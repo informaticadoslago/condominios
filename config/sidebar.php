@@ -1,0 +1,79 @@
+<?php
+
+return [
+    'class'   => 'shadow-lg',
+    'content' => [
+        [
+            'type'  => 'header',
+            'name'  => 'menu.main',
+            'brand' => [
+                'href'      => '#',
+                'logo'      => '',
+                'logo_dark' => '',
+            ],
+        ],
+        [
+            'type'  => 'nav',
+            'items' => [
+                ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.dashboard'), 'route' => 'dashboard'],
+                [
+                    'type'  => 'group',
+                    'icon'  => 'fa-solid fa-building-columns',
+                    'label' => trans_key('menu.Maestros de la música'),
+                    'can'   => 'menu-maestros',
+                    'items' => [
+                        ['icon' => 'fa-solid fa-building-columns', 'label' => trans_key('menu.Entidades financieras'), 'route' => 'entidades-bancarias.index'],
+                        ['icon' => 'fa-solid fa-money-bill', 'label' => trans_key('menu.Formas de pago'), 'route' => 'formas-de-pago.index'],
+                        ['icon' => 'fa-solid fa-earth-europe', 'label' => trans_key('menu.Países'), 'route' => 'paises.index'],
+                    ],
+                ],
+                [
+                    'type'  => 'group',
+                    'icon'  => 'fa-regular fa-user',
+                    'label' => trans_key('menu.Informes'),
+                    'can'   => 'menu-informes',
+                    'items' => [
+                        ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.Informes generados'), 'href' => '#'],
+                    ],
+                ],
+                ['type' => 'spacer'],
+                [
+                    'type'  => 'group',
+                    'icon'  => 'fa-regular fa-user',
+                    'label' => trans_key('menu.Administracion de sistema'),
+                    'can'   => 'menu-administracion-sistema',
+                    'items' => [
+                        ['icon'    => 'fa-regular fa-house', 'label' => trans_key('menu.Empresa'),
+                            'can'      => 'sistema-empresa-edit',
+                            'route'    => 'sysadmin.empresa.edit',
+                            'livewire' => 'administracion-sistema.empresa.editar'],
+                        ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.Usuarios'), 'href' => '#',
+                        'can'      => 'sistema-usuarios-list', 'route' => 'sysadmin.usuarios.index',
+                            'livewire' => 'administracion-sistema.usuarios.lista'],
+                        ['icon'    => 'fa-regular fa-house', 'label'   => trans_key('menu.Personas'),
+                            'can'      => 'sistema-personas-list', 'route' => 'sysadmin.personas.index',
+                            'livewire' => 'administracion-sistema.personas.lista'],
+                        ['icon'    => 'fa-regular fa-house', 'label' => trans_key('menu.Roles'), 'href' => '#',
+                            'livewire' => 'administracion-sistema.roles.lista',
+                            'route'    => 'sysadmin.roles.index',
+                            'can'      => 'role-list'],
+                        ['icon'    => 'fa-regular fa-house', 'label' => trans_key('menu.Permisos'),
+                            'route'    => 'sysadmin.permisos.index',
+                            'can'      => 'permiso-list',
+                            'livewire' => 'administracion-sistema.permisos.lista'],
+                        ['icon'    => 'fa-regular fa-house', 'label' => trans_key('menu.Copias de seguridad'),
+                            'route'    => 'sysadmin.backups.index',
+                            'livewire' => 'administracion-sistema.backups.lista'],
+                    ],
+                ],
+            ],
+        ],
+        ['type' => 'spacer'],
+        [
+            'type'  => 'nav',
+            'items' => [
+                ['icon' => 'fa-regular fa-gear', 'label' => trans_key('menu.settings'), 'can' => 'global-configuracion', 'action' => 'abrir-configuracion'],
+            ],
+        ],
+    ],
+];

@@ -1,0 +1,82 @@
+@use "sass:color";
+
+@at-root {
+  /*! 
+  
+  Generado automáticamente. No modificar directamente.
+  Viene de resources/scss/theme.scss
+  */
+
+}
+
+
+// =========================================
+// Flux-style theme generator (modern Sass)
+// =========================================
+
+
+/* === 1. Color base === */
+// Colores base
+$accent-base: #88ab32;
+$gray-base: #71717a;
+
+// Funciones auxiliares
+@function tint($c, $p) {
+  @return color.mix(white, $c, $p);
+}
+
+@function shade($c, $p) {
+  @return color.mix(black, $c, $p);
+}
+
+
+/* === 2. Escalas de color === */
+// Genera escala 50–950
+@function generate-scale($color) {
+  @return (
+    50:  tint($color, 90%),
+    100: tint($color, 80%),
+    200: tint($color, 65%),
+    300: tint($color, 50%),
+    400: tint($color, 35%),
+    500: $color,
+    600: shade($color, 10%),
+    700: shade($color, 25%),
+    800: shade($color, 40%),
+    900: shade($color, 55%),
+    950: shade($color, 70%)
+  );
+}
+
+$accent-scale: generate-scale($accent-base);
+$gray-scale: generate-scale($gray-base);
+
+/* Re-assign Flux's gray of choice... */
+@theme {
+    --color-zinc-50: var(--color-stone-50);
+    --color-zinc-100: var(--color-stone-100);
+    --color-zinc-200: var(--color-stone-200);
+    --color-zinc-300: var(--color-stone-300);
+    --color-zinc-400: var(--color-stone-400);
+    --color-zinc-500: var(--color-stone-500);
+    --color-zinc-600: var(--color-stone-600);
+    --color-zinc-700: var(--color-stone-700);
+    --color-zinc-800: var(--color-stone-800);
+    --color-zinc-900: var(--color-stone-900);
+    --color-zinc-950: var(--color-stone-950);
+}
+
+@theme {
+    --color-accent: var(--color-teal-600);
+    --color-accent-content: var(--color-teal-600);
+    --color-accent-foreground: var(--color-white);
+}
+
+/* === 3. Dark mode === */
+@layer theme {
+    .dark {
+        --color-accent: var(--color-teal-600);
+        --color-accent-content: var(--color-teal-400);
+        --color-accent-foreground: var(--color-white);
+    }
+}

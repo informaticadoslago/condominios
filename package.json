@@ -1,0 +1,37 @@
+{
+    "$schema": "https://json.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "sass": "sass resources/scss:resources/css --no-source-map",
+        "sass:colores": "sass resources/scss/colores.scss:resources/css/colores.css --no-source-map",
+        "sass:theme": "sass resources/scss/theme.scss:resources/css/theme.css --no-source-map",
+        "export:php": "node resources/scripts/export-colores-php.js",
+        "export:js": "node resources/scripts/export-colores-js.js",
+        "sync:colores": "npm run export:js && npm run export:php && npm run build"
+    },
+    "devDependencies": {
+        "@tailwindcss/vite": "^4.1.11",
+        "autoprefixer": "^10.4.20",
+        "axios": "^1.7.4",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^2.0",
+        "sass": "^1.93.2",
+        "tailwindcss": "^4.0.7",
+        "vite": "^7.0.4"
+    },
+    "optionalDependencies": {
+        "@rollup/rollup-linux-x64-gnu": "4.9.5",
+        "@tailwindcss/oxide-linux-x64-gnu": "^4.0.1",
+        "lightningcss-linux-x64-gnu": "^1.29.1"
+    },
+    "dependencies": {
+        "@alpinejs/collapse": "^3.15.0",
+        "@alpinejs/focus": "^3.15.0",
+        "@fortawesome/fontawesome-free": "^7.1.0",
+        "alpinejs": "^3.15.0",
+        "sweetalert2": "^11.26.2"
+    }
+}

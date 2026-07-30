@@ -1,0 +1,6697 @@
+@charset "UTF-8";
+/*! 
+
+Generado automáticamente. No modificar directamente.
+Viene de resources/scss/colores.scss
+*/
+.btn-fresa {
+  background-color: #ff4757;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-fresa:hover {
+  background-color: rgb(249.5, 0, 21.6956521739);
+  color: white;
+}
+.dark .btn-fresa {
+  background-color: var(--color-gray-200);
+  color: #ff4757;
+}
+.dark .btn-fresa:hover {
+  color: rgb(249.5, 0, 21.6956521739);
+}
+
+.pildora-fresa {
+  background-color: hsl(354.7826086957, 80%, 108.9215686275%);
+  color: rgb(224, 0, 19.4782608696);
+}
+.dark .pildora-fresa {
+  background-color: rgba(255, 71, 87, 0.1);
+  color: rgb(255, 173, 180.1304347826);
+}
+
+.bg-fresa-50 {
+  background-color: hsl(354.7826086957, 100%, 103.9215686275%) !important;
+}
+
+.text-fresa-50 {
+  color: hsl(354.7826086957, 100%, 103.9215686275%) !important;
+}
+
+.border-fresa-50 {
+  border-color: hsl(354.7826086957, 100%, 103.9215686275%) !important;
+}
+
+.bg-fresa-100 {
+  background-color: rgb(255, 224, 226.6956521739) !important;
+}
+
+.text-fresa-100 {
+  color: rgb(255, 224, 226.6956521739) !important;
+}
+
+.border-fresa-100 {
+  border-color: rgb(255, 224, 226.6956521739) !important;
+}
+
+.bg-fresa-200 {
+  background-color: rgb(255, 173, 180.1304347826) !important;
+}
+
+.text-fresa-200 {
+  color: rgb(255, 173, 180.1304347826) !important;
+}
+
+.border-fresa-200 {
+  border-color: rgb(255, 173, 180.1304347826) !important;
+}
+
+.bg-fresa-300 {
+  background-color: rgb(255, 122, 133.5652173913) !important;
+}
+
+.text-fresa-300 {
+  color: rgb(255, 122, 133.5652173913) !important;
+}
+
+.border-fresa-300 {
+  border-color: rgb(255, 122, 133.5652173913) !important;
+}
+
+.bg-fresa-400 {
+  background-color: rgb(255, 96.5, 110.2826086957) !important;
+}
+
+.text-fresa-400 {
+  color: rgb(255, 96.5, 110.2826086957) !important;
+}
+
+.border-fresa-400 {
+  border-color: rgb(255, 96.5, 110.2826086957) !important;
+}
+
+.bg-fresa-500 {
+  background-color: #ff4757 !important;
+}
+
+.text-fresa-500 {
+  color: #ff4757 !important;
+}
+
+.border-fresa-500 {
+  border-color: #ff4757 !important;
+}
+
+.bg-fresa-600 {
+  background-color: rgb(255, 40.4, 59.0608695652) !important;
+}
+
+.text-fresa-600 {
+  color: rgb(255, 40.4, 59.0608695652) !important;
+}
+
+.border-fresa-600 {
+  border-color: rgb(255, 40.4, 59.0608695652) !important;
+}
+
+.bg-fresa-700 {
+  background-color: rgb(255, 9.8, 31.1217391304) !important;
+}
+
+.text-fresa-700 {
+  color: rgb(255, 9.8, 31.1217391304) !important;
+}
+
+.border-fresa-700 {
+  border-color: rgb(255, 9.8, 31.1217391304) !important;
+}
+
+.bg-fresa-800 {
+  background-color: rgb(234.2, 0, 20.3652173913) !important;
+}
+
+.text-fresa-800 {
+  color: rgb(234.2, 0, 20.3652173913) !important;
+}
+
+.border-fresa-800 {
+  border-color: rgb(234.2, 0, 20.3652173913) !important;
+}
+
+.bg-fresa-900 {
+  background-color: rgb(203.6, 0, 17.7043478261) !important;
+}
+
+.text-fresa-900 {
+  color: rgb(203.6, 0, 17.7043478261) !important;
+}
+
+.border-fresa-900 {
+  border-color: rgb(203.6, 0, 17.7043478261) !important;
+}
+
+.bg-fresa {
+  background-color: #ff4757 !important;
+}
+
+.text-fresa {
+  color: #ff4757 !important;
+}
+
+.border-fresa {
+  border-color: #ff4757 !important;
+}
+
+.btn-naranja {
+  background-color: #ff6348;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-naranja:hover {
+  background-color: rgb(250.5, 36.9590163934, 0);
+  color: white;
+}
+.dark .btn-naranja {
+  background-color: var(--color-gray-200);
+  color: #ff6348;
+}
+.dark .btn-naranja:hover {
+  color: rgb(250.5, 36.9590163934, 0);
+}
+
+.pildora-naranja {
+  background-color: hsl(8.8524590164, 80%, 109.1176470588%);
+  color: rgb(225, 33.1967213115, 0);
+}
+.dark .pildora-naranja {
+  background-color: rgba(255, 99, 72, 0.1);
+  color: rgb(255, 185.9508196721, 174);
+}
+
+.bg-naranja-50 {
+  background-color: hsl(8.8524590164, 100%, 104.1176470588%) !important;
+}
+
+.text-naranja-50 {
+  color: hsl(8.8524590164, 100%, 104.1176470588%) !important;
+}
+
+.border-naranja-50 {
+  border-color: hsl(8.8524590164, 100%, 104.1176470588%) !important;
+}
+
+.bg-naranja-100 {
+  background-color: rgb(255, 229.4262295082, 225) !important;
+}
+
+.text-naranja-100 {
+  color: rgb(255, 229.4262295082, 225) !important;
+}
+
+.border-naranja-100 {
+  border-color: rgb(255, 229.4262295082, 225) !important;
+}
+
+.bg-naranja-200 {
+  background-color: rgb(255, 185.9508196721, 174) !important;
+}
+
+.text-naranja-200 {
+  color: rgb(255, 185.9508196721, 174) !important;
+}
+
+.border-naranja-200 {
+  border-color: rgb(255, 185.9508196721, 174) !important;
+}
+
+.bg-naranja-300 {
+  background-color: rgb(255, 142.4754098361, 123) !important;
+}
+
+.text-naranja-300 {
+  color: rgb(255, 142.4754098361, 123) !important;
+}
+
+.border-naranja-300 {
+  border-color: rgb(255, 142.4754098361, 123) !important;
+}
+
+.bg-naranja-400 {
+  background-color: rgb(255, 120.737704918, 97.5) !important;
+}
+
+.text-naranja-400 {
+  color: rgb(255, 120.737704918, 97.5) !important;
+}
+
+.border-naranja-400 {
+  border-color: rgb(255, 120.737704918, 97.5) !important;
+}
+
+.bg-naranja-500 {
+  background-color: #ff6348 !important;
+}
+
+.text-naranja-500 {
+  color: #ff6348 !important;
+}
+
+.border-naranja-500 {
+  border-color: #ff6348 !important;
+}
+
+.bg-naranja-600 {
+  background-color: rgb(255, 72.9147540984, 41.4) !important;
+}
+
+.text-naranja-600 {
+  color: rgb(255, 72.9147540984, 41.4) !important;
+}
+
+.border-naranja-600 {
+  border-color: rgb(255, 72.9147540984, 41.4) !important;
+}
+
+.bg-naranja-700 {
+  background-color: rgb(255, 46.8295081967, 10.8) !important;
+}
+
+.text-naranja-700 {
+  color: rgb(255, 46.8295081967, 10.8) !important;
+}
+
+.border-naranja-700 {
+  border-color: rgb(255, 46.8295081967, 10.8) !important;
+}
+
+.bg-naranja-800 {
+  background-color: rgb(235.2, 34.7016393443, 0) !important;
+}
+
+.text-naranja-800 {
+  color: rgb(235.2, 34.7016393443, 0) !important;
+}
+
+.border-naranja-800 {
+  border-color: rgb(235.2, 34.7016393443, 0) !important;
+}
+
+.bg-naranja-900 {
+  background-color: rgb(204.6, 30.1868852459, 0) !important;
+}
+
+.text-naranja-900 {
+  color: rgb(204.6, 30.1868852459, 0) !important;
+}
+
+.border-naranja-900 {
+  border-color: rgb(204.6, 30.1868852459, 0) !important;
+}
+
+.bg-naranja {
+  background-color: #ff6348 !important;
+}
+
+.text-naranja {
+  color: #ff6348 !important;
+}
+
+.border-naranja {
+  border-color: #ff6348 !important;
+}
+
+.btn-limon {
+  background-color: #fffa65;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-limon:hover {
+  background-color: rgb(255, 247.5162337662, 24.5);
+  color: white;
+}
+.dark .btn-limon {
+  background-color: var(--color-gray-200);
+  color: #fffa65;
+}
+.dark .btn-limon:hover {
+  color: rgb(255, 247.5162337662, 24.5);
+}
+
+.pildora-limon {
+  background-color: hsl(58.0519480519, 80%, 114.8039215686%);
+  color: rgb(254, 245.7532467532, 0);
+}
+.dark .pildora-limon {
+  background-color: rgba(255, 250, 101, 0.1);
+  color: rgb(255, 253.3116883117, 203);
+}
+
+.bg-limon-50 {
+  background-color: hsl(58.0519480519, 100%, 109.8039215686%) !important;
+}
+
+.text-limon-50 {
+  color: hsl(58.0519480519, 100%, 109.8039215686%) !important;
+}
+
+.border-limon-50 {
+  border-color: hsl(58.0519480519, 100%, 109.8039215686%) !important;
+}
+
+.bg-limon-100 {
+  background-color: rgb(255, 254.9675324675, 254) !important;
+}
+
+.text-limon-100 {
+  color: rgb(255, 254.9675324675, 254) !important;
+}
+
+.border-limon-100 {
+  border-color: rgb(255, 254.9675324675, 254) !important;
+}
+
+.bg-limon-200 {
+  background-color: rgb(255, 253.3116883117, 203) !important;
+}
+
+.text-limon-200 {
+  color: rgb(255, 253.3116883117, 203) !important;
+}
+
+.border-limon-200 {
+  border-color: rgb(255, 253.3116883117, 203) !important;
+}
+
+.bg-limon-300 {
+  background-color: rgb(255, 251.6558441558, 152) !important;
+}
+
+.text-limon-300 {
+  color: rgb(255, 251.6558441558, 152) !important;
+}
+
+.border-limon-300 {
+  border-color: rgb(255, 251.6558441558, 152) !important;
+}
+
+.bg-limon-400 {
+  background-color: rgb(255, 250.8279220779, 126.5) !important;
+}
+
+.text-limon-400 {
+  color: rgb(255, 250.8279220779, 126.5) !important;
+}
+
+.border-limon-400 {
+  border-color: rgb(255, 250.8279220779, 126.5) !important;
+}
+
+.bg-limon-500 {
+  background-color: #fffa65 !important;
+}
+
+.text-limon-500 {
+  color: #fffa65 !important;
+}
+
+.border-limon-500 {
+  border-color: #fffa65 !important;
+}
+
+.bg-limon-600 {
+  background-color: rgb(255, 249.0064935065, 70.4) !important;
+}
+
+.text-limon-600 {
+  color: rgb(255, 249.0064935065, 70.4) !important;
+}
+
+.border-limon-600 {
+  border-color: rgb(255, 249.0064935065, 70.4) !important;
+}
+
+.bg-limon-700 {
+  background-color: rgb(255, 248.012987013, 39.8) !important;
+}
+
+.text-limon-700 {
+  color: rgb(255, 248.012987013, 39.8) !important;
+}
+
+.border-limon-700 {
+  border-color: rgb(255, 248.012987013, 39.8) !important;
+}
+
+.bg-limon-800 {
+  background-color: rgb(255, 247.0194805195, 9.2) !important;
+}
+
+.text-limon-800 {
+  color: rgb(255, 247.0194805195, 9.2) !important;
+}
+
+.border-limon-800 {
+  border-color: rgb(255, 247.0194805195, 9.2) !important;
+}
+
+.bg-limon-900 {
+  background-color: rgb(233.6, 226.0155844156, 0) !important;
+}
+
+.text-limon-900 {
+  color: rgb(233.6, 226.0155844156, 0) !important;
+}
+
+.border-limon-900 {
+  border-color: rgb(233.6, 226.0155844156, 0) !important;
+}
+
+.bg-limon {
+  background-color: #fffa65 !important;
+}
+
+.text-limon {
+  color: #fffa65 !important;
+}
+
+.border-limon {
+  border-color: #fffa65 !important;
+}
+
+.btn-kiwi {
+  background-color: #7bed9f;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-kiwi:hover {
+  background-color: rgb(55.68, 227.82, 110.04);
+  color: white;
+}
+.dark .btn-kiwi {
+  background-color: var(--color-gray-200);
+  color: #7bed9f;
+}
+.dark .btn-kiwi:hover {
+  color: rgb(55.68, 227.82, 110.04);
+}
+
+.pildora-kiwi {
+  background-color: hsl(138.9473684211, 56%, 115.5882352941%);
+  color: rgb(33.24, 224.76, 93.72);
+}
+.dark .pildora-kiwi {
+  background-color: rgba(123, 237, 159, 0.1);
+  color: rgb(212.76, 249.24, 224.28);
+}
+
+.bg-kiwi-50 {
+  background-color: hsl(138.9473684211, 76%, 110.5882352941%) !important;
+}
+
+.text-kiwi-50 {
+  color: hsl(138.9473684211, 76%, 110.5882352941%) !important;
+}
+
+.border-kiwi-50 {
+  border-color: hsl(138.9473684211, 76%, 110.5882352941%) !important;
+}
+
+.bg-kiwi-100 {
+  background-color: hsl(138.9473684211, 76%, 100.5882352941%) !important;
+}
+
+.text-kiwi-100 {
+  color: hsl(138.9473684211, 76%, 100.5882352941%) !important;
+}
+
+.border-kiwi-100 {
+  border-color: hsl(138.9473684211, 76%, 100.5882352941%) !important;
+}
+
+.bg-kiwi-200 {
+  background-color: rgb(212.76, 249.24, 224.28) !important;
+}
+
+.text-kiwi-200 {
+  color: rgb(212.76, 249.24, 224.28) !important;
+}
+
+.border-kiwi-200 {
+  border-color: rgb(212.76, 249.24, 224.28) !important;
+}
+
+.bg-kiwi-300 {
+  background-color: rgb(167.88, 243.12, 191.64) !important;
+}
+
+.text-kiwi-300 {
+  color: rgb(167.88, 243.12, 191.64) !important;
+}
+
+.border-kiwi-300 {
+  border-color: rgb(167.88, 243.12, 191.64) !important;
+}
+
+.bg-kiwi-400 {
+  background-color: rgb(145.44, 240.06, 175.32) !important;
+}
+
+.text-kiwi-400 {
+  color: rgb(145.44, 240.06, 175.32) !important;
+}
+
+.border-kiwi-400 {
+  border-color: rgb(145.44, 240.06, 175.32) !important;
+}
+
+.bg-kiwi-500 {
+  background-color: #7bed9f !important;
+}
+
+.text-kiwi-500 {
+  color: #7bed9f !important;
+}
+
+.border-kiwi-500 {
+  border-color: #7bed9f !important;
+}
+
+.bg-kiwi-600 {
+  background-color: rgb(96.072, 233.328, 139.416) !important;
+}
+
+.text-kiwi-600 {
+  color: rgb(96.072, 233.328, 139.416) !important;
+}
+
+.border-kiwi-600 {
+  border-color: rgb(96.072, 233.328, 139.416) !important;
+}
+
+.bg-kiwi-700 {
+  background-color: rgb(69.144, 229.656, 119.832) !important;
+}
+
+.text-kiwi-700 {
+  color: rgb(69.144, 229.656, 119.832) !important;
+}
+
+.border-kiwi-700 {
+  border-color: rgb(69.144, 229.656, 119.832) !important;
+}
+
+.bg-kiwi-800 {
+  background-color: rgb(42.216, 225.984, 100.248) !important;
+}
+
+.text-kiwi-800 {
+  color: rgb(42.216, 225.984, 100.248) !important;
+}
+
+.border-kiwi-800 {
+  border-color: rgb(42.216, 225.984, 100.248) !important;
+}
+
+.bg-kiwi-900 {
+  background-color: rgb(28.512, 209.088, 85.536) !important;
+}
+
+.text-kiwi-900 {
+  color: rgb(28.512, 209.088, 85.536) !important;
+}
+
+.border-kiwi-900 {
+  border-color: rgb(28.512, 209.088, 85.536) !important;
+}
+
+.bg-kiwi {
+  background-color: #7bed9f !important;
+}
+
+.text-kiwi {
+  color: #7bed9f !important;
+}
+
+.border-kiwi {
+  border-color: #7bed9f !important;
+}
+
+.btn-arandano {
+  background-color: #5352ed;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-arandano:hover {
+  background-color: rgb(24.1230366492, 22.8534031414, 219.6465968586);
+  color: white;
+}
+.dark .btn-arandano {
+  background-color: var(--color-gray-200);
+  color: #5352ed;
+}
+.dark .btn-arandano:hover {
+  color: rgb(24.1230366492, 22.8534031414, 219.6465968586);
+}
+
+.pildora-arandano {
+  background-color: hsl(240.3870967742, 61.1518324607%, 107.5490196078%);
+  color: rgb(21.5863874346, 20.4502617801, 196.5497382199);
+}
+.dark .pildora-arandano {
+  background-color: rgba(83, 82, 237, 0.1);
+  color: rgb(174.8534031414, 174.387434555, 246.612565445);
+}
+
+.bg-arandano-50 {
+  background-color: hsl(240.3870967742, 81.1518324607%, 102.5490196078%) !important;
+}
+
+.text-arandano-50 {
+  color: hsl(240.3870967742, 81.1518324607%, 102.5490196078%) !important;
+}
+
+.border-arandano-50 {
+  border-color: hsl(240.3870967742, 81.1518324607%, 102.5490196078%) !important;
+}
+
+.bg-arandano-100 {
+  background-color: rgb(220.780104712, 220.5811518325, 251.4188481675) !important;
+}
+
+.text-arandano-100 {
+  color: rgb(220.780104712, 220.5811518325, 251.4188481675) !important;
+}
+
+.border-arandano-100 {
+  border-color: rgb(220.780104712, 220.5811518325, 251.4188481675) !important;
+}
+
+.bg-arandano-200 {
+  background-color: rgb(174.8534031414, 174.387434555, 246.612565445) !important;
+}
+
+.text-arandano-200 {
+  color: rgb(174.8534031414, 174.387434555, 246.612565445) !important;
+}
+
+.border-arandano-200 {
+  border-color: rgb(174.8534031414, 174.387434555, 246.612565445) !important;
+}
+
+.bg-arandano-300 {
+  background-color: rgb(128.9267015707, 128.1937172775, 241.8062827225) !important;
+}
+
+.text-arandano-300 {
+  color: rgb(128.9267015707, 128.1937172775, 241.8062827225) !important;
+}
+
+.border-arandano-300 {
+  border-color: rgb(128.9267015707, 128.1937172775, 241.8062827225) !important;
+}
+
+.bg-arandano-400 {
+  background-color: rgb(105.9633507853, 105.0968586387, 239.4031413613) !important;
+}
+
+.text-arandano-400 {
+  color: rgb(105.9633507853, 105.0968586387, 239.4031413613) !important;
+}
+
+.border-arandano-400 {
+  border-color: rgb(105.9633507853, 105.0968586387, 239.4031413613) !important;
+}
+
+.bg-arandano-500 {
+  background-color: #5352ed !important;
+}
+
+.text-arandano-500 {
+  color: #5352ed !important;
+}
+
+.border-arandano-500 {
+  border-color: #5352ed !important;
+}
+
+.bg-arandano-600 {
+  background-color: rgb(55.4439790576, 54.2837696335, 234.1162303665) !important;
+}
+
+.text-arandano-600 {
+  color: rgb(55.4439790576, 54.2837696335, 234.1162303665) !important;
+}
+
+.border-arandano-600 {
+  border-color: rgb(55.4439790576, 54.2837696335, 234.1162303665) !important;
+}
+
+.bg-arandano-700 {
+  background-color: rgb(27.8879581152, 26.567539267, 231.232460733) !important;
+}
+
+.text-arandano-700 {
+  color: rgb(27.8879581152, 26.567539267, 231.232460733) !important;
+}
+
+.border-arandano-700 {
+  border-color: rgb(27.8879581152, 26.567539267, 231.232460733) !important;
+}
+
+.bg-arandano-800 {
+  background-color: rgb(22.6010471204, 21.4115183246, 205.7884816754) !important;
+}
+
+.text-arandano-800 {
+  color: rgb(22.6010471204, 21.4115183246, 205.7884816754) !important;
+}
+
+.border-arandano-800 {
+  border-color: rgb(22.6010471204, 21.4115183246, 205.7884816754) !important;
+}
+
+.bg-arandano-900 {
+  background-color: rgb(19.5570680628, 18.5277486911, 178.0722513089) !important;
+}
+
+.text-arandano-900 {
+  color: rgb(19.5570680628, 18.5277486911, 178.0722513089) !important;
+}
+
+.border-arandano-900 {
+  border-color: rgb(19.5570680628, 18.5277486911, 178.0722513089) !important;
+}
+
+.bg-arandano {
+  background-color: #5352ed !important;
+}
+
+.text-arandano {
+  color: #5352ed !important;
+}
+
+.border-arandano {
+  border-color: #5352ed !important;
+}
+
+.btn-uva {
+  background-color: #8e44ad;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-uva:hover {
+  background-color: rgb(96.9253112033, 46.4149377593, 118.0850622407);
+  color: white;
+}
+.dark .btn-uva {
+  background-color: var(--color-gray-200);
+  color: #8e44ad;
+}
+.dark .btn-uva:hover {
+  color: rgb(96.9253112033, 46.4149377593, 118.0850622407);
+}
+
+.pildora-uva {
+  background-color: rgb(237.1562398735, 230.5952282158, 239.9047717842);
+  color: rgb(81.9004149378, 39.2199170124, 99.7800829876);
+}
+.dark .pildora-uva {
+  background-color: rgba(142, 68, 173, 0.1);
+  color: rgb(186.398340249, 135.1203319502, 207.8796680498);
+}
+
+.bg-uva-50 {
+  background-color: rgb(228.2987551867, 208.3402489627, 236.6597510373) !important;
+}
+
+.text-uva-50 {
+  color: rgb(228.2987551867, 208.3402489627, 236.6597510373) !important;
+}
+
+.border-uva-50 {
+  border-color: rgb(228.2987551867, 208.3402489627, 236.6597510373) !important;
+}
+
+.bg-uva-100 {
+  background-color: rgb(207.3485477178, 171.7302904564, 222.2697095436) !important;
+}
+
+.text-uva-100 {
+  color: rgb(207.3485477178, 171.7302904564, 222.2697095436) !important;
+}
+
+.border-uva-100 {
+  border-color: rgb(207.3485477178, 171.7302904564, 222.2697095436) !important;
+}
+
+.bg-uva-200 {
+  background-color: rgb(186.398340249, 135.1203319502, 207.8796680498) !important;
+}
+
+.text-uva-200 {
+  color: rgb(186.398340249, 135.1203319502, 207.8796680498) !important;
+}
+
+.border-uva-200 {
+  border-color: rgb(186.398340249, 135.1203319502, 207.8796680498) !important;
+}
+
+.bg-uva-300 {
+  background-color: rgb(165.4481327801, 98.510373444, 193.489626556) !important;
+}
+
+.text-uva-300 {
+  color: rgb(165.4481327801, 98.510373444, 193.489626556) !important;
+}
+
+.border-uva-300 {
+  border-color: rgb(165.4481327801, 98.510373444, 193.489626556) !important;
+}
+
+.bg-uva-400 {
+  background-color: rgb(154.9730290456, 80.2053941909, 186.2946058091) !important;
+}
+
+.text-uva-400 {
+  color: rgb(154.9730290456, 80.2053941909, 186.2946058091) !important;
+}
+
+.border-uva-400 {
+  border-color: rgb(154.9730290456, 80.2053941909, 186.2946058091) !important;
+}
+
+.bg-uva-500 {
+  background-color: #8e44ad !important;
+}
+
+.text-uva-500 {
+  color: #8e44ad !important;
+}
+
+.border-uva-500 {
+  border-color: #8e44ad !important;
+}
+
+.bg-uva-600 {
+  background-color: rgb(123.9701244813, 59.3659751037, 151.0340248963) !important;
+}
+
+.text-uva-600 {
+  color: rgb(123.9701244813, 59.3659751037, 151.0340248963) !important;
+}
+
+.border-uva-600 {
+  border-color: rgb(123.9701244813, 59.3659751037, 151.0340248963) !important;
+}
+
+.bg-uva-700 {
+  background-color: rgb(105.9402489627, 50.7319502075, 129.0680497925) !important;
+}
+
+.text-uva-700 {
+  color: rgb(105.9402489627, 50.7319502075, 129.0680497925) !important;
+}
+
+.border-uva-700 {
+  border-color: rgb(105.9402489627, 50.7319502075, 129.0680497925) !important;
+}
+
+.bg-uva-800 {
+  background-color: rgb(87.910373444, 42.0979253112, 107.1020746888) !important;
+}
+
+.text-uva-800 {
+  color: rgb(87.910373444, 42.0979253112, 107.1020746888) !important;
+}
+
+.border-uva-800 {
+  border-color: rgb(87.910373444, 42.0979253112, 107.1020746888) !important;
+}
+
+.bg-uva-900 {
+  background-color: rgb(69.8804979253, 33.4639004149, 85.1360995851) !important;
+}
+
+.text-uva-900 {
+  color: rgb(69.8804979253, 33.4639004149, 85.1360995851) !important;
+}
+
+.border-uva-900 {
+  border-color: rgb(69.8804979253, 33.4639004149, 85.1360995851) !important;
+}
+
+.bg-uva {
+  background-color: #8e44ad !important;
+}
+
+.text-uva {
+  color: #8e44ad !important;
+}
+
+.border-uva {
+  border-color: #8e44ad !important;
+}
+
+.btn-melocoton {
+  background-color: #ffb8b8;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-melocoton:hover {
+  background-color: rgb(255, 107.5, 107.5);
+  color: white;
+}
+.dark .btn-melocoton {
+  background-color: var(--color-gray-200);
+  color: #ffb8b8;
+}
+.dark .btn-melocoton:hover {
+  color: rgb(255, 107.5, 107.5);
+}
+
+.pildora-melocoton {
+  background-color: hsl(0, 80%, 131.0784313725%);
+  color: #ff5252;
+}
+.dark .pildora-melocoton {
+  background-color: rgba(255, 184, 184, 0.1);
+  color: hsl(0, 100%, 106.0784313725%);
+}
+
+.bg-melocoton-50 {
+  background-color: hsl(0, 100%, 126.0784313725%) !important;
+}
+
+.text-melocoton-50 {
+  color: hsl(0, 100%, 126.0784313725%) !important;
+}
+
+.border-melocoton-50 {
+  border-color: hsl(0, 100%, 126.0784313725%) !important;
+}
+
+.bg-melocoton-100 {
+  background-color: hsl(0, 100%, 116.0784313725%) !important;
+}
+
+.text-melocoton-100 {
+  color: hsl(0, 100%, 116.0784313725%) !important;
+}
+
+.border-melocoton-100 {
+  border-color: hsl(0, 100%, 116.0784313725%) !important;
+}
+
+.bg-melocoton-200 {
+  background-color: hsl(0, 100%, 106.0784313725%) !important;
+}
+
+.text-melocoton-200 {
+  color: hsl(0, 100%, 106.0784313725%) !important;
+}
+
+.border-melocoton-200 {
+  border-color: hsl(0, 100%, 106.0784313725%) !important;
+}
+
+.bg-melocoton-300 {
+  background-color: #ffebeb !important;
+}
+
+.text-melocoton-300 {
+  color: #ffebeb !important;
+}
+
+.border-melocoton-300 {
+  border-color: #ffebeb !important;
+}
+
+.bg-melocoton-400 {
+  background-color: rgb(255, 209.5, 209.5) !important;
+}
+
+.text-melocoton-400 {
+  color: rgb(255, 209.5, 209.5) !important;
+}
+
+.border-melocoton-400 {
+  border-color: rgb(255, 209.5, 209.5) !important;
+}
+
+.bg-melocoton-500 {
+  background-color: #ffb8b8 !important;
+}
+
+.text-melocoton-500 {
+  color: #ffb8b8 !important;
+}
+
+.border-melocoton-500 {
+  border-color: #ffb8b8 !important;
+}
+
+.bg-melocoton-600 {
+  background-color: rgb(255, 153.4, 153.4) !important;
+}
+
+.text-melocoton-600 {
+  color: rgb(255, 153.4, 153.4) !important;
+}
+
+.border-melocoton-600 {
+  border-color: rgb(255, 153.4, 153.4) !important;
+}
+
+.bg-melocoton-700 {
+  background-color: rgb(255, 122.8, 122.8) !important;
+}
+
+.text-melocoton-700 {
+  color: rgb(255, 122.8, 122.8) !important;
+}
+
+.border-melocoton-700 {
+  border-color: rgb(255, 122.8, 122.8) !important;
+}
+
+.bg-melocoton-800 {
+  background-color: rgb(255, 92.2, 92.2) !important;
+}
+
+.text-melocoton-800 {
+  color: rgb(255, 92.2, 92.2) !important;
+}
+
+.border-melocoton-800 {
+  border-color: rgb(255, 92.2, 92.2) !important;
+}
+
+.bg-melocoton-900 {
+  background-color: rgb(255, 61.6, 61.6) !important;
+}
+
+.text-melocoton-900 {
+  color: rgb(255, 61.6, 61.6) !important;
+}
+
+.border-melocoton-900 {
+  border-color: rgb(255, 61.6, 61.6) !important;
+}
+
+.bg-melocoton {
+  background-color: #ffb8b8 !important;
+}
+
+.text-melocoton {
+  color: #ffb8b8 !important;
+}
+
+.border-melocoton {
+  border-color: #ffb8b8 !important;
+}
+
+.btn-cereza {
+  background-color: #c0392b;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-cereza:hover {
+  background-color: rgb(129.4978723404, 38.4446808511, 29.0021276596);
+  color: white;
+}
+.dark .btn-cereza {
+  background-color: var(--color-gray-200);
+  color: #c0392b;
+}
+.dark .btn-cereza:hover {
+  color: rgb(129.4978723404, 38.4446808511, 29.0021276596);
+}
+
+.pildora-cereza {
+  background-color: rgb(242.1244680851, 224.2311366557, 222.3755319149);
+  color: rgb(108.6638297872, 32.2595744681, 24.3361702128);
+}
+.dark .pildora-cereza {
+  background-color: rgba(192, 57, 43, 0.1);
+  color: rgb(223.3446808511, 123.9617021277, 113.6553191489);
+}
+
+.bg-cereza-50 {
+  background-color: rgb(242.0085106383, 201.2212765957, 196.9914893617) !important;
+}
+
+.text-cereza-50 {
+  color: rgb(242.0085106383, 201.2212765957, 196.9914893617) !important;
+}
+
+.border-cereza-50 {
+  border-color: rgb(242.0085106383, 201.2212765957, 196.9914893617) !important;
+}
+
+.bg-cereza-100 {
+  background-color: rgb(232.6765957447, 162.5914893617, 155.3234042553) !important;
+}
+
+.text-cereza-100 {
+  color: rgb(232.6765957447, 162.5914893617, 155.3234042553) !important;
+}
+
+.border-cereza-100 {
+  border-color: rgb(232.6765957447, 162.5914893617, 155.3234042553) !important;
+}
+
+.bg-cereza-200 {
+  background-color: rgb(223.3446808511, 123.9617021277, 113.6553191489) !important;
+}
+
+.text-cereza-200 {
+  color: rgb(223.3446808511, 123.9617021277, 113.6553191489) !important;
+}
+
+.border-cereza-200 {
+  border-color: rgb(223.3446808511, 123.9617021277, 113.6553191489) !important;
+}
+
+.bg-cereza-300 {
+  background-color: rgb(214.0127659574, 85.3319148936, 71.9872340426) !important;
+}
+
+.text-cereza-300 {
+  color: rgb(214.0127659574, 85.3319148936, 71.9872340426) !important;
+}
+
+.border-cereza-300 {
+  border-color: rgb(214.0127659574, 85.3319148936, 71.9872340426) !important;
+}
+
+.bg-cereza-400 {
+  background-color: rgb(209.3468085106, 66.0170212766, 51.1531914894) !important;
+}
+
+.text-cereza-400 {
+  color: rgb(209.3468085106, 66.0170212766, 51.1531914894) !important;
+}
+
+.border-cereza-400 {
+  border-color: rgb(209.3468085106, 66.0170212766, 51.1531914894) !important;
+}
+
+.bg-cereza-500 {
+  background-color: #c0392b !important;
+}
+
+.text-cereza-500 {
+  color: #c0392b !important;
+}
+
+.border-cereza-500 {
+  border-color: #c0392b !important;
+}
+
+.bg-cereza-600 {
+  background-color: rgb(166.9991489362, 49.5778723404, 37.4008510638) !important;
+}
+
+.text-cereza-600 {
+  color: rgb(166.9991489362, 49.5778723404, 37.4008510638) !important;
+}
+
+.border-cereza-600 {
+  border-color: rgb(166.9991489362, 49.5778723404, 37.4008510638) !important;
+}
+
+.bg-cereza-700 {
+  background-color: rgb(141.9982978723, 42.1557446809, 31.8017021277) !important;
+}
+
+.text-cereza-700 {
+  color: rgb(141.9982978723, 42.1557446809, 31.8017021277) !important;
+}
+
+.border-cereza-700 {
+  border-color: rgb(141.9982978723, 42.1557446809, 31.8017021277) !important;
+}
+
+.bg-cereza-800 {
+  background-color: rgb(116.9974468085, 34.7336170213, 26.2025531915) !important;
+}
+
+.text-cereza-800 {
+  color: rgb(116.9974468085, 34.7336170213, 26.2025531915) !important;
+}
+
+.border-cereza-800 {
+  border-color: rgb(116.9974468085, 34.7336170213, 26.2025531915) !important;
+}
+
+.bg-cereza-900 {
+  background-color: rgb(91.9965957447, 27.3114893617, 20.6034042553) !important;
+}
+
+.text-cereza-900 {
+  color: rgb(91.9965957447, 27.3114893617, 20.6034042553) !important;
+}
+
+.border-cereza-900 {
+  border-color: rgb(91.9965957447, 27.3114893617, 20.6034042553) !important;
+}
+
+.bg-cereza {
+  background-color: #c0392b !important;
+}
+
+.text-cereza {
+  color: #c0392b !important;
+}
+
+.border-cereza {
+  border-color: #c0392b !important;
+}
+
+.btn-manzana {
+  background-color: #27ae60;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-manzana:hover {
+  background-color: rgb(24.9929577465, 111.5070422535, 61.5211267606);
+  color: white;
+}
+.dark .btn-manzana {
+  background-color: var(--color-gray-200);
+  color: #27ae60;
+}
+.dark .btn-manzana:hover {
+  color: rgb(24.9929577465, 111.5070422535, 61.5211267606);
+}
+
+.pildora-manzana {
+  background-color: rgb(206.6091549296, 235.8908450704, 218.9725352113);
+  color: rgb(20.323943662, 90.676056338, 50.0281690141);
+}
+.dark .pildora-manzana {
+  background-color: rgba(39, 174, 96, 0.1);
+  color: rgb(95.7042253521, 219.2957746479, 147.8873239437);
+}
+
+.bg-manzana-50 {
+  background-color: rgb(179.0281690141, 237.9718309859, 203.9154929577) !important;
+}
+
+.text-manzana-50 {
+  color: rgb(179.0281690141, 237.9718309859, 203.9154929577) !important;
+}
+
+.border-manzana-50 {
+  border-color: rgb(179.0281690141, 237.9718309859, 203.9154929577) !important;
+}
+
+.bg-manzana-100 {
+  background-color: rgb(137.3661971831, 228.6338028169, 175.9014084507) !important;
+}
+
+.text-manzana-100 {
+  color: rgb(137.3661971831, 228.6338028169, 175.9014084507) !important;
+}
+
+.border-manzana-100 {
+  border-color: rgb(137.3661971831, 228.6338028169, 175.9014084507) !important;
+}
+
+.bg-manzana-200 {
+  background-color: rgb(95.7042253521, 219.2957746479, 147.8873239437) !important;
+}
+
+.text-manzana-200 {
+  color: rgb(95.7042253521, 219.2957746479, 147.8873239437) !important;
+}
+
+.border-manzana-200 {
+  border-color: rgb(95.7042253521, 219.2957746479, 147.8873239437) !important;
+}
+
+.bg-manzana-300 {
+  background-color: rgb(54.0422535211, 209.9577464789, 119.8732394366) !important;
+}
+
+.text-manzana-300 {
+  color: rgb(54.0422535211, 209.9577464789, 119.8732394366) !important;
+}
+
+.border-manzana-300 {
+  border-color: rgb(54.0422535211, 209.9577464789, 119.8732394366) !important;
+}
+
+.bg-manzana-400 {
+  background-color: rgb(43.6690140845, 194.8309859155, 107.4929577465) !important;
+}
+
+.text-manzana-400 {
+  color: rgb(43.6690140845, 194.8309859155, 107.4929577465) !important;
+}
+
+.border-manzana-400 {
+  border-color: rgb(43.6690140845, 194.8309859155, 107.4929577465) !important;
+}
+
+.bg-manzana-500 {
+  background-color: #27ae60 !important;
+}
+
+.text-manzana-500 {
+  color: #27ae60 !important;
+}
+
+.border-manzana-500 {
+  border-color: #27ae60 !important;
+}
+
+.bg-manzana-600 {
+  background-color: rgb(33.3971830986, 149.0028169014, 82.2084507042) !important;
+}
+
+.text-manzana-600 {
+  color: rgb(33.3971830986, 149.0028169014, 82.2084507042) !important;
+}
+
+.border-manzana-600 {
+  border-color: rgb(33.3971830986, 149.0028169014, 82.2084507042) !important;
+}
+
+.bg-manzana-700 {
+  background-color: rgb(27.7943661972, 124.0056338028, 68.4169014085) !important;
+}
+
+.text-manzana-700 {
+  color: rgb(27.7943661972, 124.0056338028, 68.4169014085) !important;
+}
+
+.border-manzana-700 {
+  border-color: rgb(27.7943661972, 124.0056338028, 68.4169014085) !important;
+}
+
+.bg-manzana-800 {
+  background-color: rgb(22.1915492958, 99.0084507042, 54.6253521127) !important;
+}
+
+.text-manzana-800 {
+  color: rgb(22.1915492958, 99.0084507042, 54.6253521127) !important;
+}
+
+.border-manzana-800 {
+  border-color: rgb(22.1915492958, 99.0084507042, 54.6253521127) !important;
+}
+
+.bg-manzana-900 {
+  background-color: rgb(16.5887323944, 74.0112676056, 40.8338028169) !important;
+}
+
+.text-manzana-900 {
+  color: rgb(16.5887323944, 74.0112676056, 40.8338028169) !important;
+}
+
+.border-manzana-900 {
+  border-color: rgb(16.5887323944, 74.0112676056, 40.8338028169) !important;
+}
+
+.bg-manzana {
+  background-color: #27ae60 !important;
+}
+
+.text-manzana {
+  color: #27ae60 !important;
+}
+
+.border-manzana {
+  border-color: #27ae60 !important;
+}
+
+.btn-coco {
+  background-color: #f5f3f0;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-coco:hover {
+  background-color: rgb(214.4, 206.28, 194.1);
+  color: white;
+}
+.dark .btn-coco {
+  background-color: var(--color-gray-200);
+  color: #f5f3f0;
+}
+.dark .btn-coco:hover {
+  color: rgb(214.4, 206.28, 194.1);
+}
+
+.pildora-coco {
+  background-color: hsl(0, 0%, 140.0980392157%);
+  color: rgb(204.2, 194.04, 178.8);
+}
+.dark .pildora-coco {
+  background-color: rgba(245, 243, 240, 0.1);
+  color: hsl(36, 20%, 115.0980392157%);
+}
+
+.bg-coco-50 {
+  background-color: hsl(36, 20%, 135.0980392157%) !important;
+}
+
+.text-coco-50 {
+  color: hsl(36, 20%, 135.0980392157%) !important;
+}
+
+.border-coco-50 {
+  border-color: hsl(36, 20%, 135.0980392157%) !important;
+}
+
+.bg-coco-100 {
+  background-color: hsl(36, 20%, 125.0980392157%) !important;
+}
+
+.text-coco-100 {
+  color: hsl(36, 20%, 125.0980392157%) !important;
+}
+
+.border-coco-100 {
+  border-color: hsl(36, 20%, 125.0980392157%) !important;
+}
+
+.bg-coco-200 {
+  background-color: hsl(36, 20%, 115.0980392157%) !important;
+}
+
+.text-coco-200 {
+  color: hsl(36, 20%, 115.0980392157%) !important;
+}
+
+.border-coco-200 {
+  border-color: hsl(36, 20%, 115.0980392157%) !important;
+}
+
+.bg-coco-300 {
+  background-color: hsl(36, 20%, 105.0980392157%) !important;
+}
+
+.text-coco-300 {
+  color: hsl(36, 20%, 105.0980392157%) !important;
+}
+
+.border-coco-300 {
+  border-color: hsl(36, 20%, 105.0980392157%) !important;
+}
+
+.bg-coco-400 {
+  background-color: hsl(36, 20%, 100.0980392157%) !important;
+}
+
+.text-coco-400 {
+  color: hsl(36, 20%, 100.0980392157%) !important;
+}
+
+.border-coco-400 {
+  border-color: hsl(36, 20%, 100.0980392157%) !important;
+}
+
+.bg-coco-500 {
+  background-color: #f5f3f0 !important;
+}
+
+.text-coco-500 {
+  color: #f5f3f0 !important;
+}
+
+.border-coco-500 {
+  border-color: #f5f3f0 !important;
+}
+
+.bg-coco-600 {
+  background-color: rgb(232.76, 228.312, 221.64) !important;
+}
+
+.text-coco-600 {
+  color: rgb(232.76, 228.312, 221.64) !important;
+}
+
+.border-coco-600 {
+  border-color: rgb(232.76, 228.312, 221.64) !important;
+}
+
+.bg-coco-700 {
+  background-color: rgb(220.52, 213.624, 203.28) !important;
+}
+
+.text-coco-700 {
+  color: rgb(220.52, 213.624, 203.28) !important;
+}
+
+.border-coco-700 {
+  border-color: rgb(220.52, 213.624, 203.28) !important;
+}
+
+.bg-coco-800 {
+  background-color: rgb(208.28, 198.936, 184.92) !important;
+}
+
+.text-coco-800 {
+  color: rgb(208.28, 198.936, 184.92) !important;
+}
+
+.border-coco-800 {
+  border-color: rgb(208.28, 198.936, 184.92) !important;
+}
+
+.bg-coco-900 {
+  background-color: rgb(196.04, 184.248, 166.56) !important;
+}
+
+.text-coco-900 {
+  color: rgb(196.04, 184.248, 166.56) !important;
+}
+
+.border-coco-900 {
+  border-color: rgb(196.04, 184.248, 166.56) !important;
+}
+
+.bg-coco {
+  background-color: #f5f3f0 !important;
+}
+
+.text-coco {
+  color: #f5f3f0 !important;
+}
+
+.border-coco {
+  border-color: #f5f3f0 !important;
+}
+
+.btn-platano {
+  background-color: #f1c40f;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-platano:hover {
+  background-color: rgb(169.6062992126, 137.8051181102, 9.8937007874);
+  color: white;
+}
+.dark .btn-platano {
+  background-color: var(--color-gray-200);
+  color: #f1c40f;
+}
+.dark .btn-platano:hover {
+  color: rgb(169.6062992126, 137.8051181102, 9.8937007874);
+}
+
+.pildora-platano {
+  background-color: rgb(251.1996062992, 247.8347188349, 234.3003937008);
+  color: rgb(145.5118110236, 118.2283464567, 8.4881889764);
+}
+.dark .pildora-platano {
+  background-color: rgba(241, 196, 15, 0.1);
+  color: rgb(246.6220472441, 219.6929133858, 111.3779527559);
+}
+
+.bg-platano-50 {
+  background-color: rgb(252.2440944882, 243.3858267717, 207.7559055118) !important;
+}
+
+.text-platano-50 {
+  color: rgb(252.2440944882, 243.3858267717, 207.7559055118) !important;
+}
+
+.border-platano-50 {
+  border-color: rgb(252.2440944882, 243.3858267717, 207.7559055118) !important;
+}
+
+.bg-platano-100 {
+  background-color: rgb(249.4330708661, 231.5393700787, 159.5669291339) !important;
+}
+
+.text-platano-100 {
+  color: rgb(249.4330708661, 231.5393700787, 159.5669291339) !important;
+}
+
+.border-platano-100 {
+  border-color: rgb(249.4330708661, 231.5393700787, 159.5669291339) !important;
+}
+
+.bg-platano-200 {
+  background-color: rgb(246.6220472441, 219.6929133858, 111.3779527559) !important;
+}
+
+.text-platano-200 {
+  color: rgb(246.6220472441, 219.6929133858, 111.3779527559) !important;
+}
+
+.border-platano-200 {
+  border-color: rgb(246.6220472441, 219.6929133858, 111.3779527559) !important;
+}
+
+.bg-platano-300 {
+  background-color: rgb(243.811023622, 207.8464566929, 63.188976378) !important;
+}
+
+.text-platano-300 {
+  color: rgb(243.811023622, 207.8464566929, 63.188976378) !important;
+}
+
+.border-platano-300 {
+  border-color: rgb(243.811023622, 207.8464566929, 63.188976378) !important;
+}
+
+.bg-platano-400 {
+  background-color: rgb(242.405511811, 201.9232283465, 39.094488189) !important;
+}
+
+.text-platano-400 {
+  color: rgb(242.405511811, 201.9232283465, 39.094488189) !important;
+}
+
+.border-platano-400 {
+  border-color: rgb(242.405511811, 201.9232283465, 39.094488189) !important;
+}
+
+.bg-platano-500 {
+  background-color: #f1c40f !important;
+}
+
+.text-platano-500 {
+  color: #f1c40f !important;
+}
+
+.border-platano-500 {
+  border-color: #f1c40f !important;
+}
+
+.bg-platano-600 {
+  background-color: rgb(212.9763779528, 173.0433070866, 12.4236220472) !important;
+}
+
+.text-platano-600 {
+  color: rgb(212.9763779528, 173.0433070866, 12.4236220472) !important;
+}
+
+.border-platano-600 {
+  border-color: rgb(212.9763779528, 173.0433070866, 12.4236220472) !important;
+}
+
+.bg-platano-700 {
+  background-color: rgb(184.062992126, 149.5511811024, 10.737007874) !important;
+}
+
+.text-platano-700 {
+  color: rgb(184.062992126, 149.5511811024, 10.737007874) !important;
+}
+
+.border-platano-700 {
+  border-color: rgb(184.062992126, 149.5511811024, 10.737007874) !important;
+}
+
+.bg-platano-800 {
+  background-color: rgb(155.1496062992, 126.0590551181, 9.0503937008) !important;
+}
+
+.text-platano-800 {
+  color: rgb(155.1496062992, 126.0590551181, 9.0503937008) !important;
+}
+
+.border-platano-800 {
+  border-color: rgb(155.1496062992, 126.0590551181, 9.0503937008) !important;
+}
+
+.bg-platano-900 {
+  background-color: rgb(126.2362204724, 102.5669291339, 7.3637795276) !important;
+}
+
+.text-platano-900 {
+  color: rgb(126.2362204724, 102.5669291339, 7.3637795276) !important;
+}
+
+.border-platano-900 {
+  border-color: rgb(126.2362204724, 102.5669291339, 7.3637795276) !important;
+}
+
+.bg-platano {
+  background-color: #f1c40f !important;
+}
+
+.text-platano {
+  color: #f1c40f !important;
+}
+
+.border-platano {
+  border-color: #f1c40f !important;
+}
+
+.btn-mora {
+  background-color: #2c2c54;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-mora:hover {
+  background-color: rgb(17.703125, 17.703125, 33.796875);
+  color: white;
+}
+.dark .btn-mora {
+  background-color: var(--color-gray-200);
+  color: #2c2c54;
+}
+.dark .btn-mora:hover {
+  color: rgb(17.703125, 17.703125, 33.796875);
+}
+
+.pildora-mora {
+  background-color: rgb(170.171875, 170.171875, 187.328125);
+  color: rgb(8.9375, 8.9375, 17.0625);
+}
+.dark .pildora-mora {
+  background-color: rgba(44, 44, 84, 0.1);
+  color: rgb(79.0625, 79.0625, 150.9375);
+}
+
+.bg-mora-50 {
+  background-color: rgb(138.1875, 138.1875, 193.8125) !important;
+}
+
+.text-mora-50 {
+  color: rgb(138.1875, 138.1875, 193.8125) !important;
+}
+
+.border-mora-50 {
+  border-color: rgb(138.1875, 138.1875, 193.8125) !important;
+}
+
+.bg-mora-100 {
+  background-color: rgb(104.71875, 104.71875, 176.28125) !important;
+}
+
+.text-mora-100 {
+  color: rgb(104.71875, 104.71875, 176.28125) !important;
+}
+
+.border-mora-100 {
+  border-color: rgb(104.71875, 104.71875, 176.28125) !important;
+}
+
+.bg-mora-200 {
+  background-color: rgb(79.0625, 79.0625, 150.9375) !important;
+}
+
+.text-mora-200 {
+  color: rgb(79.0625, 79.0625, 150.9375) !important;
+}
+
+.border-mora-200 {
+  border-color: rgb(79.0625, 79.0625, 150.9375) !important;
+}
+
+.bg-mora-300 {
+  background-color: rgb(61.53125, 61.53125, 117.46875) !important;
+}
+
+.text-mora-300 {
+  color: rgb(61.53125, 61.53125, 117.46875) !important;
+}
+
+.border-mora-300 {
+  border-color: rgb(61.53125, 61.53125, 117.46875) !important;
+}
+
+.bg-mora-400 {
+  background-color: rgb(52.765625, 52.765625, 100.734375) !important;
+}
+
+.text-mora-400 {
+  color: rgb(52.765625, 52.765625, 100.734375) !important;
+}
+
+.border-mora-400 {
+  border-color: rgb(52.765625, 52.765625, 100.734375) !important;
+}
+
+.bg-mora-500 {
+  background-color: #2c2c54 !important;
+}
+
+.text-mora-500 {
+  color: #2c2c54 !important;
+}
+
+.border-mora-500 {
+  border-color: #2c2c54 !important;
+}
+
+.bg-mora-600 {
+  background-color: rgb(33.48125, 33.48125, 63.91875) !important;
+}
+
+.text-mora-600 {
+  color: rgb(33.48125, 33.48125, 63.91875) !important;
+}
+
+.border-mora-600 {
+  border-color: rgb(33.48125, 33.48125, 63.91875) !important;
+}
+
+.bg-mora-700 {
+  background-color: rgb(22.9625, 22.9625, 43.8375) !important;
+}
+
+.text-mora-700 {
+  color: rgb(22.9625, 22.9625, 43.8375) !important;
+}
+
+.border-mora-700 {
+  border-color: rgb(22.9625, 22.9625, 43.8375) !important;
+}
+
+.bg-mora-800 {
+  background-color: rgb(12.44375, 12.44375, 23.75625) !important;
+}
+
+.text-mora-800 {
+  color: rgb(12.44375, 12.44375, 23.75625) !important;
+}
+
+.border-mora-800 {
+  border-color: rgb(12.44375, 12.44375, 23.75625) !important;
+}
+
+.bg-mora-900 {
+  background-color: rgb(1.925, 1.925, 3.675) !important;
+}
+
+.text-mora-900 {
+  color: rgb(1.925, 1.925, 3.675) !important;
+}
+
+.border-mora-900 {
+  border-color: rgb(1.925, 1.925, 3.675) !important;
+}
+
+.bg-mora {
+  background-color: #2c2c54 !important;
+}
+
+.text-mora {
+  color: #2c2c54 !important;
+}
+
+.border-mora {
+  border-color: #2c2c54 !important;
+}
+
+.btn-zafiro {
+  background-color: #0066cc;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-zafiro:hover {
+  background-color: rgb(0, 63.75, 127.5);
+  color: white;
+}
+.dark .btn-zafiro {
+  background-color: var(--color-gray-200);
+  color: #0066cc;
+}
+.dark .btn-zafiro:hover {
+  color: rgb(0, 63.75, 127.5);
+}
+
+.pildora-zafiro {
+  background-color: rgb(186.15, 216.75, 247.35);
+  color: #003366;
+}
+.dark .pildora-zafiro {
+  background-color: rgba(0, 102, 204, 0.1);
+  color: #3399ff;
+}
+
+.bg-zafiro-50 {
+  background-color: #99ccff !important;
+}
+
+.text-zafiro-50 {
+  color: #99ccff !important;
+}
+
+.border-zafiro-50 {
+  border-color: #99ccff !important;
+}
+
+.bg-zafiro-100 {
+  background-color: rgb(102, 178.5, 255) !important;
+}
+
+.text-zafiro-100 {
+  color: rgb(102, 178.5, 255) !important;
+}
+
+.border-zafiro-100 {
+  border-color: rgb(102, 178.5, 255) !important;
+}
+
+.bg-zafiro-200 {
+  background-color: #3399ff !important;
+}
+
+.text-zafiro-200 {
+  color: #3399ff !important;
+}
+
+.border-zafiro-200 {
+  border-color: #3399ff !important;
+}
+
+.bg-zafiro-300 {
+  background-color: rgb(0, 127.5, 255) !important;
+}
+
+.text-zafiro-300 {
+  color: rgb(0, 127.5, 255) !important;
+}
+
+.border-zafiro-300 {
+  border-color: rgb(0, 127.5, 255) !important;
+}
+
+.bg-zafiro-400 {
+  background-color: rgb(0, 114.75, 229.5) !important;
+}
+
+.text-zafiro-400 {
+  color: rgb(0, 114.75, 229.5) !important;
+}
+
+.border-zafiro-400 {
+  border-color: rgb(0, 114.75, 229.5) !important;
+}
+
+.bg-zafiro-500 {
+  background-color: #0066cc !important;
+}
+
+.text-zafiro-500 {
+  color: #0066cc !important;
+}
+
+.border-zafiro-500 {
+  border-color: #0066cc !important;
+}
+
+.bg-zafiro-600 {
+  background-color: rgb(0, 86.7, 173.4) !important;
+}
+
+.text-zafiro-600 {
+  color: rgb(0, 86.7, 173.4) !important;
+}
+
+.border-zafiro-600 {
+  border-color: rgb(0, 86.7, 173.4) !important;
+}
+
+.bg-zafiro-700 {
+  background-color: rgb(0, 71.4, 142.8) !important;
+}
+
+.text-zafiro-700 {
+  color: rgb(0, 71.4, 142.8) !important;
+}
+
+.border-zafiro-700 {
+  border-color: rgb(0, 71.4, 142.8) !important;
+}
+
+.bg-zafiro-800 {
+  background-color: rgb(0, 56.1, 112.2) !important;
+}
+
+.text-zafiro-800 {
+  color: rgb(0, 56.1, 112.2) !important;
+}
+
+.border-zafiro-800 {
+  border-color: rgb(0, 56.1, 112.2) !important;
+}
+
+.bg-zafiro-900 {
+  background-color: rgb(0, 40.8, 81.6) !important;
+}
+
+.text-zafiro-900 {
+  color: rgb(0, 40.8, 81.6) !important;
+}
+
+.border-zafiro-900 {
+  border-color: rgb(0, 40.8, 81.6) !important;
+}
+
+.bg-zafiro {
+  background-color: #0066cc !important;
+}
+
+.text-zafiro {
+  color: #0066cc !important;
+}
+
+.border-zafiro {
+  border-color: #0066cc !important;
+}
+
+.btn-rubi {
+  background-color: #e74c3c;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-rubi:hover {
+  background-color: rgb(190.9931506849, 39.1780821918, 23.5068493151);
+  color: white;
+}
+.dark .btn-rubi {
+  background-color: var(--color-gray-200);
+  color: #e74c3c;
+}
+.dark .btn-rubi:hover {
+  color: rgb(190.9931506849, 39.1780821918, 23.5068493151);
+}
+
+.pildora-rubi {
+  background-color: hsl(5.6140350877, 58.0821917808%, 102.0588235294%);
+  color: rgb(168.2876712329, 34.5205479452, 20.7123287671);
+}
+.dark .pildora-rubi {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: rgb(242.1780821918, 159.3698630137, 150.8219178082);
+}
+
+.bg-rubi-50 {
+  background-color: rgb(253.3561643836, 242.7397260274, 241.6438356164) !important;
+}
+
+.text-rubi-50 {
+  color: rgb(253.3561643836, 242.7397260274, 241.6438356164) !important;
+}
+
+.border-rubi-50 {
+  border-color: rgb(253.3561643836, 242.7397260274, 241.6438356164) !important;
+}
+
+.bg-rubi-100 {
+  background-color: rgb(247.7671232877, 201.0547945205, 196.2328767123) !important;
+}
+
+.text-rubi-100 {
+  color: rgb(247.7671232877, 201.0547945205, 196.2328767123) !important;
+}
+
+.border-rubi-100 {
+  border-color: rgb(247.7671232877, 201.0547945205, 196.2328767123) !important;
+}
+
+.bg-rubi-200 {
+  background-color: rgb(242.1780821918, 159.3698630137, 150.8219178082) !important;
+}
+
+.text-rubi-200 {
+  color: rgb(242.1780821918, 159.3698630137, 150.8219178082) !important;
+}
+
+.border-rubi-200 {
+  border-color: rgb(242.1780821918, 159.3698630137, 150.8219178082) !important;
+}
+
+.bg-rubi-300 {
+  background-color: rgb(236.5890410959, 117.6849315068, 105.4109589041) !important;
+}
+
+.text-rubi-300 {
+  color: rgb(236.5890410959, 117.6849315068, 105.4109589041) !important;
+}
+
+.border-rubi-300 {
+  border-color: rgb(236.5890410959, 117.6849315068, 105.4109589041) !important;
+}
+
+.bg-rubi-400 {
+  background-color: rgb(233.7945205479, 96.8424657534, 82.7054794521) !important;
+}
+
+.text-rubi-400 {
+  color: rgb(233.7945205479, 96.8424657534, 82.7054794521) !important;
+}
+
+.border-rubi-400 {
+  border-color: rgb(233.7945205479, 96.8424657534, 82.7054794521) !important;
+}
+
+.bg-rubi-500 {
+  background-color: #e74c3c !important;
+}
+
+.text-rubi-500 {
+  color: #e74c3c !important;
+}
+
+.border-rubi-500 {
+  border-color: #e74c3c !important;
+}
+
+.bg-rubi-600 {
+  background-color: rgb(227.6465753425, 50.9890410959, 32.7534246575) !important;
+}
+
+.text-rubi-600 {
+  color: rgb(227.6465753425, 50.9890410959, 32.7534246575) !important;
+}
+
+.border-rubi-600 {
+  border-color: rgb(227.6465753425, 50.9890410959, 32.7534246575) !important;
+}
+
+.bg-rubi-700 {
+  background-color: rgb(204.6164383562, 41.9726027397, 25.1835616438) !important;
+}
+
+.text-rubi-700 {
+  color: rgb(204.6164383562, 41.9726027397, 25.1835616438) !important;
+}
+
+.border-rubi-700 {
+  border-color: rgb(204.6164383562, 41.9726027397, 25.1835616438) !important;
+}
+
+.bg-rubi-800 {
+  background-color: rgb(177.3698630137, 36.3835616438, 21.8301369863) !important;
+}
+
+.text-rubi-800 {
+  color: rgb(177.3698630137, 36.3835616438, 21.8301369863) !important;
+}
+
+.border-rubi-800 {
+  border-color: rgb(177.3698630137, 36.3835616438, 21.8301369863) !important;
+}
+
+.bg-rubi-900 {
+  background-color: rgb(150.1232876712, 30.7945205479, 18.4767123288) !important;
+}
+
+.text-rubi-900 {
+  color: rgb(150.1232876712, 30.7945205479, 18.4767123288) !important;
+}
+
+.border-rubi-900 {
+  border-color: rgb(150.1232876712, 30.7945205479, 18.4767123288) !important;
+}
+
+.bg-rubi {
+  background-color: #e74c3c !important;
+}
+
+.text-rubi {
+  color: #e74c3c !important;
+}
+
+.border-rubi {
+  border-color: #e74c3c !important;
+}
+
+.btn-esmeralda {
+  background-color: #00a085;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-esmeralda:hover {
+  background-color: rgb(0, 83.5, 69.409375);
+  color: white;
+}
+.dark .btn-esmeralda {
+  background-color: var(--color-gray-200);
+  color: #00a085;
+}
+.dark .btn-esmeralda:hover {
+  color: rgb(0, 83.5, 69.409375);
+}
+
+.pildora-esmeralda {
+  background-color: rgb(146.55, 242.95, 226.6825);
+  color: rgb(0, 58, 48.2125);
+}
+.dark .pildora-esmeralda {
+  background-color: rgba(0, 160, 133, 0.1);
+  color: rgb(7, 255, 213.15);
+}
+
+.bg-esmeralda-50 {
+  background-color: rgb(109, 255, 230.3625) !important;
+}
+
+.text-esmeralda-50 {
+  color: rgb(109, 255, 230.3625) !important;
+}
+
+.border-esmeralda-50 {
+  border-color: rgb(109, 255, 230.3625) !important;
+}
+
+.bg-esmeralda-100 {
+  background-color: rgb(58, 255, 221.75625) !important;
+}
+
+.text-esmeralda-100 {
+  color: rgb(58, 255, 221.75625) !important;
+}
+
+.border-esmeralda-100 {
+  border-color: rgb(58, 255, 221.75625) !important;
+}
+
+.bg-esmeralda-200 {
+  background-color: rgb(7, 255, 213.15) !important;
+}
+
+.text-esmeralda-200 {
+  color: rgb(7, 255, 213.15) !important;
+}
+
+.border-esmeralda-200 {
+  border-color: rgb(7, 255, 213.15) !important;
+}
+
+.bg-esmeralda-300 {
+  background-color: rgb(0, 211, 175.39375) !important;
+}
+
+.text-esmeralda-300 {
+  color: rgb(0, 211, 175.39375) !important;
+}
+
+.border-esmeralda-300 {
+  border-color: rgb(0, 211, 175.39375) !important;
+}
+
+.bg-esmeralda-400 {
+  background-color: rgb(0, 185.5, 154.196875) !important;
+}
+
+.text-esmeralda-400 {
+  color: rgb(0, 185.5, 154.196875) !important;
+}
+
+.border-esmeralda-400 {
+  border-color: rgb(0, 185.5, 154.196875) !important;
+}
+
+.bg-esmeralda-500 {
+  background-color: #00a085 !important;
+}
+
+.text-esmeralda-500 {
+  color: #00a085 !important;
+}
+
+.border-esmeralda-500 {
+  border-color: #00a085 !important;
+}
+
+.bg-esmeralda-600 {
+  background-color: rgb(0, 129.4, 107.56375) !important;
+}
+
+.text-esmeralda-600 {
+  color: rgb(0, 129.4, 107.56375) !important;
+}
+
+.border-esmeralda-600 {
+  border-color: rgb(0, 129.4, 107.56375) !important;
+}
+
+.bg-esmeralda-700 {
+  background-color: rgb(0, 98.8, 82.1275) !important;
+}
+
+.text-esmeralda-700 {
+  color: rgb(0, 98.8, 82.1275) !important;
+}
+
+.border-esmeralda-700 {
+  border-color: rgb(0, 98.8, 82.1275) !important;
+}
+
+.bg-esmeralda-800 {
+  background-color: rgb(0, 68.2, 56.69125) !important;
+}
+
+.text-esmeralda-800 {
+  color: rgb(0, 68.2, 56.69125) !important;
+}
+
+.border-esmeralda-800 {
+  border-color: rgb(0, 68.2, 56.69125) !important;
+}
+
+.bg-esmeralda-900 {
+  background-color: rgb(0, 37.6, 31.255) !important;
+}
+
+.text-esmeralda-900 {
+  color: rgb(0, 37.6, 31.255) !important;
+}
+
+.border-esmeralda-900 {
+  border-color: rgb(0, 37.6, 31.255) !important;
+}
+
+.bg-esmeralda {
+  background-color: #00a085 !important;
+}
+
+.text-esmeralda {
+  color: #00a085 !important;
+}
+
+.border-esmeralda {
+  border-color: #00a085 !important;
+}
+
+.btn-amatista {
+  background-color: #9b59b6;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-amatista:hover {
+  background-color: rgb(113.1192468619, 59.4079497908, 135.0920502092);
+  color: white;
+}
+.dark .btn-amatista {
+  background-color: var(--color-gray-200);
+  color: #9b59b6;
+}
+.dark .btn-amatista:hover {
+  color: rgb(113.1192468619, 59.4079497908, 135.0920502092);
+}
+
+.pildora-amatista {
+  background-color: rgb(250.6267175057, 249.3516736402, 251.1483263598);
+  color: rgb(98.2887029289, 51.6192468619, 117.3807531381);
+}
+.dark .pildora-amatista {
+  background-color: rgba(155, 89, 182, 0.1);
+  color: rgb(197.6778242678, 159.8451882845, 213.1548117155);
+}
+
+.bg-amatista-50 {
+  background-color: rgb(240.3556485356, 230.690376569, 244.309623431) !important;
+}
+
+.text-amatista-50 {
+  color: rgb(240.3556485356, 230.690376569, 244.309623431) !important;
+}
+
+.border-amatista-50 {
+  border-color: rgb(240.3556485356, 230.690376569, 244.309623431) !important;
+}
+
+.bg-amatista-100 {
+  background-color: rgb(219.0167364017, 195.2677824268, 228.7322175732) !important;
+}
+
+.text-amatista-100 {
+  color: rgb(219.0167364017, 195.2677824268, 228.7322175732) !important;
+}
+
+.border-amatista-100 {
+  border-color: rgb(219.0167364017, 195.2677824268, 228.7322175732) !important;
+}
+
+.bg-amatista-200 {
+  background-color: rgb(197.6778242678, 159.8451882845, 213.1548117155) !important;
+}
+
+.text-amatista-200 {
+  color: rgb(197.6778242678, 159.8451882845, 213.1548117155) !important;
+}
+
+.border-amatista-200 {
+  border-color: rgb(197.6778242678, 159.8451882845, 213.1548117155) !important;
+}
+
+.bg-amatista-300 {
+  background-color: rgb(176.3389121339, 124.4225941423, 197.5774058577) !important;
+}
+
+.text-amatista-300 {
+  color: rgb(176.3389121339, 124.4225941423, 197.5774058577) !important;
+}
+
+.border-amatista-300 {
+  border-color: rgb(176.3389121339, 124.4225941423, 197.5774058577) !important;
+}
+
+.bg-amatista-400 {
+  background-color: rgb(165.6694560669, 106.7112970711, 189.7887029289) !important;
+}
+
+.text-amatista-400 {
+  color: rgb(165.6694560669, 106.7112970711, 189.7887029289) !important;
+}
+
+.border-amatista-400 {
+  border-color: rgb(165.6694560669, 106.7112970711, 189.7887029289) !important;
+}
+
+.bg-amatista-500 {
+  background-color: #9b59b6 !important;
+}
+
+.text-amatista-500 {
+  color: #9b59b6 !important;
+}
+
+.border-amatista-500 {
+  border-color: #9b59b6 !important;
+}
+
+.bg-amatista-600 {
+  background-color: rgb(139.8142259414, 73.4276150628, 166.9723849372) !important;
+}
+
+.text-amatista-600 {
+  color: rgb(139.8142259414, 73.4276150628, 166.9723849372) !important;
+}
+
+.border-amatista-600 {
+  border-color: rgb(139.8142259414, 73.4276150628, 166.9723849372) !important;
+}
+
+.bg-amatista-700 {
+  background-color: rgb(122.0175732218, 64.0811715481, 145.7188284519) !important;
+}
+
+.text-amatista-700 {
+  color: rgb(122.0175732218, 64.0811715481, 145.7188284519) !important;
+}
+
+.border-amatista-700 {
+  border-color: rgb(122.0175732218, 64.0811715481, 145.7188284519) !important;
+}
+
+.bg-amatista-800 {
+  background-color: rgb(104.2209205021, 54.7347280335, 124.4652719665) !important;
+}
+
+.text-amatista-800 {
+  color: rgb(104.2209205021, 54.7347280335, 124.4652719665) !important;
+}
+
+.border-amatista-800 {
+  border-color: rgb(104.2209205021, 54.7347280335, 124.4652719665) !important;
+}
+
+.bg-amatista-900 {
+  background-color: rgb(86.4242677824, 45.3882845188, 103.2117154812) !important;
+}
+
+.text-amatista-900 {
+  color: rgb(86.4242677824, 45.3882845188, 103.2117154812) !important;
+}
+
+.border-amatista-900 {
+  border-color: rgb(86.4242677824, 45.3882845188, 103.2117154812) !important;
+}
+
+.bg-amatista {
+  background-color: #9b59b6 !important;
+}
+
+.text-amatista {
+  color: #9b59b6 !important;
+}
+
+.border-amatista {
+  border-color: #9b59b6 !important;
+}
+
+.btn-topacio {
+  background-color: #f39c12;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-topacio:hover {
+  background-color: rgb(175.6084337349, 111.1445783133, 8.8915662651);
+  color: white;
+}
+.dark .btn-topacio {
+  background-color: var(--color-gray-200);
+  color: #f39c12;
+}
+.dark .btn-topacio:hover {
+  color: rgb(175.6084337349, 111.1445783133, 8.8915662651);
+}
+
+.pildora-topacio {
+  background-color: rgb(252.1102409639, 246.8049879518, 238.3897590361);
+  color: rgb(151.3373493976, 95.7831325301, 7.6626506024);
+}
+.dark .pildora-topacio {
+  background-color: rgba(243, 156, 18, 0.1);
+  color: rgb(247.9156626506, 196.5542168675, 115.0843373494);
+}
+
+.bg-topacio-50 {
+  background-color: rgb(252.8313253012, 237.1084337349, 212.1686746988) !important;
+}
+
+.text-topacio-50 {
+  color: rgb(252.8313253012, 237.1084337349, 212.1686746988) !important;
+}
+
+.border-topacio-50 {
+  border-color: rgb(252.8313253012, 237.1084337349, 212.1686746988) !important;
+}
+
+.bg-topacio-100 {
+  background-color: rgb(250.3734939759, 216.8313253012, 163.6265060241) !important;
+}
+
+.text-topacio-100 {
+  color: rgb(250.3734939759, 216.8313253012, 163.6265060241) !important;
+}
+
+.border-topacio-100 {
+  border-color: rgb(250.3734939759, 216.8313253012, 163.6265060241) !important;
+}
+
+.bg-topacio-200 {
+  background-color: rgb(247.9156626506, 196.5542168675, 115.0843373494) !important;
+}
+
+.text-topacio-200 {
+  color: rgb(247.9156626506, 196.5542168675, 115.0843373494) !important;
+}
+
+.border-topacio-200 {
+  border-color: rgb(247.9156626506, 196.5542168675, 115.0843373494) !important;
+}
+
+.bg-topacio-300 {
+  background-color: rgb(245.4578313253, 176.2771084337, 66.5421686747) !important;
+}
+
+.text-topacio-300 {
+  color: rgb(245.4578313253, 176.2771084337, 66.5421686747) !important;
+}
+
+.border-topacio-300 {
+  border-color: rgb(245.4578313253, 176.2771084337, 66.5421686747) !important;
+}
+
+.bg-topacio-400 {
+  background-color: rgb(244.2289156627, 166.1385542169, 42.2710843373) !important;
+}
+
+.text-topacio-400 {
+  color: rgb(244.2289156627, 166.1385542169, 42.2710843373) !important;
+}
+
+.border-topacio-400 {
+  border-color: rgb(244.2289156627, 166.1385542169, 42.2710843373) !important;
+}
+
+.bg-topacio-500 {
+  background-color: #f39c12 !important;
+}
+
+.text-topacio-500 {
+  color: #f39c12 !important;
+}
+
+.border-topacio-500 {
+  border-color: #f39c12 !important;
+}
+
+.bg-topacio-600 {
+  background-color: rgb(219.2963855422, 138.7951807229, 11.1036144578) !important;
+}
+
+.text-topacio-600 {
+  color: rgb(219.2963855422, 138.7951807229, 11.1036144578) !important;
+}
+
+.border-topacio-600 {
+  border-color: rgb(219.2963855422, 138.7951807229, 11.1036144578) !important;
+}
+
+.bg-topacio-700 {
+  background-color: rgb(190.1710843373, 120.3614457831, 9.6289156627) !important;
+}
+
+.text-topacio-700 {
+  color: rgb(190.1710843373, 120.3614457831, 9.6289156627) !important;
+}
+
+.border-topacio-700 {
+  border-color: rgb(190.1710843373, 120.3614457831, 9.6289156627) !important;
+}
+
+.bg-topacio-800 {
+  background-color: rgb(161.0457831325, 101.9277108434, 8.1542168675) !important;
+}
+
+.text-topacio-800 {
+  color: rgb(161.0457831325, 101.9277108434, 8.1542168675) !important;
+}
+
+.border-topacio-800 {
+  border-color: rgb(161.0457831325, 101.9277108434, 8.1542168675) !important;
+}
+
+.bg-topacio-900 {
+  background-color: rgb(131.9204819277, 83.4939759036, 6.6795180723) !important;
+}
+
+.text-topacio-900 {
+  color: rgb(131.9204819277, 83.4939759036, 6.6795180723) !important;
+}
+
+.border-topacio-900 {
+  border-color: rgb(131.9204819277, 83.4939759036, 6.6795180723) !important;
+}
+
+.bg-topacio {
+  background-color: #f39c12 !important;
+}
+
+.text-topacio {
+  color: #f39c12 !important;
+}
+
+.border-topacio {
+  border-color: #f39c12 !important;
+}
+
+.btn-diamante {
+  background-color: #ecf0f1;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-diamante:hover {
+  background-color: rgb(191.9545454545, 205.2272727273, 208.5454545455);
+  color: white;
+}
+.dark .btn-diamante {
+  background-color: var(--color-gray-200);
+  color: #ecf0f1;
+}
+.dark .btn-diamante:hover {
+  color: rgb(191.9545454545, 205.2272727273, 208.5454545455);
+}
+
+.pildora-diamante {
+  background-color: hsl(0, 0%, 138.5294117647%);
+  color: rgb(177.2727272727, 193.6363636364, 197.7272727273);
+}
+.dark .pildora-diamante {
+  background-color: rgba(236, 240, 241, 0.1);
+  color: hsl(192, 15.1515151515%, 113.5294117647%);
+}
+
+.bg-diamante-50 {
+  background-color: hsl(192, 15.1515151515%, 133.5294117647%) !important;
+}
+
+.text-diamante-50 {
+  color: hsl(192, 15.1515151515%, 133.5294117647%) !important;
+}
+
+.border-diamante-50 {
+  border-color: hsl(192, 15.1515151515%, 133.5294117647%) !important;
+}
+
+.bg-diamante-100 {
+  background-color: hsl(192, 15.1515151515%, 123.5294117647%) !important;
+}
+
+.text-diamante-100 {
+  color: hsl(192, 15.1515151515%, 123.5294117647%) !important;
+}
+
+.border-diamante-100 {
+  border-color: hsl(192, 15.1515151515%, 123.5294117647%) !important;
+}
+
+.bg-diamante-200 {
+  background-color: hsl(192, 15.1515151515%, 113.5294117647%) !important;
+}
+
+.text-diamante-200 {
+  color: hsl(192, 15.1515151515%, 113.5294117647%) !important;
+}
+
+.border-diamante-200 {
+  border-color: hsl(192, 15.1515151515%, 113.5294117647%) !important;
+}
+
+.bg-diamante-300 {
+  background-color: hsl(192, 15.1515151515%, 103.5294117647%) !important;
+}
+
+.text-diamante-300 {
+  color: hsl(192, 15.1515151515%, 103.5294117647%) !important;
+}
+
+.border-diamante-300 {
+  border-color: hsl(192, 15.1515151515%, 103.5294117647%) !important;
+}
+
+.bg-diamante-400 {
+  background-color: rgb(250.6818181818, 251.5909090909, 251.8181818182) !important;
+}
+
+.text-diamante-400 {
+  color: rgb(250.6818181818, 251.5909090909, 251.8181818182) !important;
+}
+
+.border-diamante-400 {
+  border-color: rgb(250.6818181818, 251.5909090909, 251.8181818182) !important;
+}
+
+.bg-diamante-500 {
+  background-color: #ecf0f1 !important;
+}
+
+.text-diamante-500 {
+  color: #ecf0f1 !important;
+}
+
+.border-diamante-500 {
+  border-color: #ecf0f1 !important;
+}
+
+.bg-diamante-600 {
+  background-color: rgb(218.3818181818, 226.0909090909, 228.0181818182) !important;
+}
+
+.text-diamante-600 {
+  color: rgb(218.3818181818, 226.0909090909, 228.0181818182) !important;
+}
+
+.border-diamante-600 {
+  border-color: rgb(218.3818181818, 226.0909090909, 228.0181818182) !important;
+}
+
+.bg-diamante-700 {
+  background-color: rgb(200.7636363636, 212.1818181818, 215.0363636364) !important;
+}
+
+.text-diamante-700 {
+  color: rgb(200.7636363636, 212.1818181818, 215.0363636364) !important;
+}
+
+.border-diamante-700 {
+  border-color: rgb(200.7636363636, 212.1818181818, 215.0363636364) !important;
+}
+
+.bg-diamante-800 {
+  background-color: rgb(183.1454545455, 198.2727272727, 202.0545454545) !important;
+}
+
+.text-diamante-800 {
+  color: rgb(183.1454545455, 198.2727272727, 202.0545454545) !important;
+}
+
+.border-diamante-800 {
+  border-color: rgb(183.1454545455, 198.2727272727, 202.0545454545) !important;
+}
+
+.bg-diamante-900 {
+  background-color: rgb(165.5272727273, 184.3636363636, 189.0727272727) !important;
+}
+
+.text-diamante-900 {
+  color: rgb(165.5272727273, 184.3636363636, 189.0727272727) !important;
+}
+
+.border-diamante-900 {
+  border-color: rgb(165.5272727273, 184.3636363636, 189.0727272727) !important;
+}
+
+.bg-diamante {
+  background-color: #ecf0f1 !important;
+}
+
+.text-diamante {
+  color: #ecf0f1 !important;
+}
+
+.border-diamante {
+  border-color: #ecf0f1 !important;
+}
+
+.btn-obsidiana {
+  background-color: #2c3e50;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-obsidiana:hover {
+  background-color: rgb(16.8548387097, 23.75, 30.6451612903);
+  color: white;
+}
+.dark .btn-obsidiana {
+  background-color: var(--color-gray-200);
+  color: #2c3e50;
+}
+.dark .btn-obsidiana:hover {
+  color: rgb(16.8548387097, 23.75, 30.6451612903);
+}
+
+.pildora-obsidiana {
+  background-color: rgb(169.6822580645, 176.75, 183.8177419355);
+  color: rgb(7.8064516129, 11, 14.1935483871);
+}
+.dark .pildora-obsidiana {
+  background-color: rgba(44, 62, 80, 0.1);
+  color: rgb(80.1935483871, 113, 145.8064516129);
+}
+
+.bg-obsidiana-50 {
+  background-color: rgb(137.5806451613, 164, 190.4193548387) !important;
+}
+
+.text-obsidiana-50 {
+  color: rgb(137.5806451613, 164, 190.4193548387) !important;
+}
+
+.border-obsidiana-50 {
+  border-color: rgb(137.5806451613, 164, 190.4193548387) !important;
+}
+
+.bg-obsidiana-100 {
+  background-color: rgb(104.6774193548, 138.5, 172.3225806452) !important;
+}
+
+.text-obsidiana-100 {
+  color: rgb(104.6774193548, 138.5, 172.3225806452) !important;
+}
+
+.border-obsidiana-100 {
+  border-color: rgb(104.6774193548, 138.5, 172.3225806452) !important;
+}
+
+.bg-obsidiana-200 {
+  background-color: rgb(80.1935483871, 113, 145.8064516129) !important;
+}
+
+.text-obsidiana-200 {
+  color: rgb(80.1935483871, 113, 145.8064516129) !important;
+}
+
+.border-obsidiana-200 {
+  border-color: rgb(80.1935483871, 113, 145.8064516129) !important;
+}
+
+.bg-obsidiana-300 {
+  background-color: rgb(62.0967741935, 87.5, 112.9032258065) !important;
+}
+
+.text-obsidiana-300 {
+  color: rgb(62.0967741935, 87.5, 112.9032258065) !important;
+}
+
+.border-obsidiana-300 {
+  border-color: rgb(62.0967741935, 87.5, 112.9032258065) !important;
+}
+
+.bg-obsidiana-400 {
+  background-color: rgb(53.0483870968, 74.75, 96.4516129032) !important;
+}
+
+.text-obsidiana-400 {
+  color: rgb(53.0483870968, 74.75, 96.4516129032) !important;
+}
+
+.border-obsidiana-400 {
+  border-color: rgb(53.0483870968, 74.75, 96.4516129032) !important;
+}
+
+.bg-obsidiana-500 {
+  background-color: #2c3e50 !important;
+}
+
+.text-obsidiana-500 {
+  color: #2c3e50 !important;
+}
+
+.border-obsidiana-500 {
+  border-color: #2c3e50 !important;
+}
+
+.bg-obsidiana-600 {
+  background-color: rgb(33.1419354839, 46.7, 60.2580645161) !important;
+}
+
+.text-obsidiana-600 {
+  color: rgb(33.1419354839, 46.7, 60.2580645161) !important;
+}
+
+.border-obsidiana-600 {
+  border-color: rgb(33.1419354839, 46.7, 60.2580645161) !important;
+}
+
+.bg-obsidiana-700 {
+  background-color: rgb(22.2838709677, 31.4, 40.5161290323) !important;
+}
+
+.text-obsidiana-700 {
+  color: rgb(22.2838709677, 31.4, 40.5161290323) !important;
+}
+
+.border-obsidiana-700 {
+  border-color: rgb(22.2838709677, 31.4, 40.5161290323) !important;
+}
+
+.bg-obsidiana-800 {
+  background-color: rgb(11.4258064516, 16.1, 20.7741935484) !important;
+}
+
+.text-obsidiana-800 {
+  color: rgb(11.4258064516, 16.1, 20.7741935484) !important;
+}
+
+.border-obsidiana-800 {
+  border-color: rgb(11.4258064516, 16.1, 20.7741935484) !important;
+}
+
+.bg-obsidiana-900 {
+  background-color: rgb(0.5677419355, 0.8, 1.0322580645) !important;
+}
+
+.text-obsidiana-900 {
+  color: rgb(0.5677419355, 0.8, 1.0322580645) !important;
+}
+
+.border-obsidiana-900 {
+  border-color: rgb(0.5677419355, 0.8, 1.0322580645) !important;
+}
+
+.bg-obsidiana {
+  background-color: #2c3e50 !important;
+}
+
+.text-obsidiana {
+  color: #2c3e50 !important;
+}
+
+.border-obsidiana {
+  border-color: #2c3e50 !important;
+}
+
+.btn-malaquita {
+  background-color: #16a085;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-malaquita:hover {
+  background-color: rgb(12.7527472527, 92.7472527473, 77.0961538462);
+  color: white;
+}
+.dark .btn-malaquita {
+  background-color: var(--color-gray-200);
+  color: #16a085;
+}
+.dark .btn-malaquita:hover {
+  color: rgb(12.7527472527, 92.7472527473, 77.0961538462);
+}
+
+.pildora-malaquita {
+  background-color: rgb(178.2565934066, 233.2434065934, 222.4851170569);
+  color: rgb(9.6703296703, 70.3296703297, 58.4615384615);
+}
+.dark .pildora-malaquita {
+  background-color: rgba(22, 160, 133, 0.1);
+  color: rgb(56.3186813187, 227.6813186813, 194.1538461538);
+}
+
+.bg-malaquita-50 {
+  background-color: rgb(145.989010989, 240.010989011, 221.6153846154) !important;
+}
+
+.text-malaquita-50 {
+  color: rgb(145.989010989, 240.010989011, 221.6153846154) !important;
+}
+
+.border-malaquita-50 {
+  border-color: rgb(145.989010989, 240.010989011, 221.6153846154) !important;
+}
+
+.bg-malaquita-100 {
+  background-color: rgb(101.1538461538, 233.8461538462, 207.8846153846) !important;
+}
+
+.text-malaquita-100 {
+  color: rgb(101.1538461538, 233.8461538462, 207.8846153846) !important;
+}
+
+.border-malaquita-100 {
+  border-color: rgb(101.1538461538, 233.8461538462, 207.8846153846) !important;
+}
+
+.bg-malaquita-200 {
+  background-color: rgb(56.3186813187, 227.6813186813, 194.1538461538) !important;
+}
+
+.text-malaquita-200 {
+  color: rgb(56.3186813187, 227.6813186813, 194.1538461538) !important;
+}
+
+.border-malaquita-200 {
+  border-color: rgb(56.3186813187, 227.6813186813, 194.1538461538) !important;
+}
+
+.bg-malaquita-300 {
+  background-color: rgb(28.1648351648, 204.8351648352, 170.2692307692) !important;
+}
+
+.text-malaquita-300 {
+  color: rgb(28.1648351648, 204.8351648352, 170.2692307692) !important;
+}
+
+.border-malaquita-300 {
+  border-color: rgb(28.1648351648, 204.8351648352, 170.2692307692) !important;
+}
+
+.bg-malaquita-400 {
+  background-color: rgb(25.0824175824, 182.4175824176, 151.6346153846) !important;
+}
+
+.text-malaquita-400 {
+  color: rgb(25.0824175824, 182.4175824176, 151.6346153846) !important;
+}
+
+.border-malaquita-400 {
+  border-color: rgb(25.0824175824, 182.4175824176, 151.6346153846) !important;
+}
+
+.bg-malaquita-500 {
+  background-color: #16a085 !important;
+}
+
+.text-malaquita-500 {
+  color: #16a085 !important;
+}
+
+.border-malaquita-500 {
+  border-color: #16a085 !important;
+}
+
+.bg-malaquita-600 {
+  background-color: rgb(18.3010989011, 133.0989010989, 110.6384615385) !important;
+}
+
+.text-malaquita-600 {
+  color: rgb(18.3010989011, 133.0989010989, 110.6384615385) !important;
+}
+
+.border-malaquita-600 {
+  border-color: rgb(18.3010989011, 133.0989010989, 110.6384615385) !important;
+}
+
+.bg-malaquita-700 {
+  background-color: rgb(14.6021978022, 106.1978021978, 88.2769230769) !important;
+}
+
+.text-malaquita-700 {
+  color: rgb(14.6021978022, 106.1978021978, 88.2769230769) !important;
+}
+
+.border-malaquita-700 {
+  border-color: rgb(14.6021978022, 106.1978021978, 88.2769230769) !important;
+}
+
+.bg-malaquita-800 {
+  background-color: rgb(10.9032967033, 79.2967032967, 65.9153846154) !important;
+}
+
+.text-malaquita-800 {
+  color: rgb(10.9032967033, 79.2967032967, 65.9153846154) !important;
+}
+
+.border-malaquita-800 {
+  border-color: rgb(10.9032967033, 79.2967032967, 65.9153846154) !important;
+}
+
+.bg-malaquita-900 {
+  background-color: rgb(7.2043956044, 52.3956043956, 43.5538461538) !important;
+}
+
+.text-malaquita-900 {
+  color: rgb(7.2043956044, 52.3956043956, 43.5538461538) !important;
+}
+
+.border-malaquita-900 {
+  border-color: rgb(7.2043956044, 52.3956043956, 43.5538461538) !important;
+}
+
+.bg-malaquita {
+  background-color: #16a085 !important;
+}
+
+.text-malaquita {
+  color: #16a085 !important;
+}
+
+.border-malaquita {
+  border-color: #16a085 !important;
+}
+
+.btn-cuarzo {
+  background-color: #bdc3c7;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-cuarzo:hover {
+  background-color: rgb(147.6147540984, 157.3770491803, 163.8852459016);
+  color: white;
+}
+.dark .btn-cuarzo {
+  background-color: var(--color-gray-200);
+  color: #bdc3c7;
+}
+.dark .btn-cuarzo:hover {
+  color: rgb(147.6147540984, 157.3770491803, 163.8852459016);
+}
+
+.pildora-cuarzo {
+  background-color: hsl(0, 0%, 121.0784313725%);
+  color: rgb(133.8196721311, 144.8360655738, 152.1803278689);
+}
+.dark .pildora-cuarzo {
+  background-color: rgba(189, 195, 199, 0.1);
+  color: rgb(244.1803278689, 245.1639344262, 245.8196721311);
+}
+
+.bg-cuarzo-50 {
+  background-color: hsl(204, 8.1967213115%, 116.0784313725%) !important;
+}
+
+.text-cuarzo-50 {
+  color: hsl(204, 8.1967213115%, 116.0784313725%) !important;
+}
+
+.border-cuarzo-50 {
+  border-color: hsl(204, 8.1967213115%, 116.0784313725%) !important;
+}
+
+.bg-cuarzo-100 {
+  background-color: hsl(204, 8.1967213115%, 106.0784313725%) !important;
+}
+
+.text-cuarzo-100 {
+  color: hsl(204, 8.1967213115%, 106.0784313725%) !important;
+}
+
+.border-cuarzo-100 {
+  border-color: hsl(204, 8.1967213115%, 106.0784313725%) !important;
+}
+
+.bg-cuarzo-200 {
+  background-color: rgb(244.1803278689, 245.1639344262, 245.8196721311) !important;
+}
+
+.text-cuarzo-200 {
+  color: rgb(244.1803278689, 245.1639344262, 245.8196721311) !important;
+}
+
+.border-cuarzo-200 {
+  border-color: rgb(244.1803278689, 245.1639344262, 245.8196721311) !important;
+}
+
+.bg-cuarzo-300 {
+  background-color: rgb(216.5901639344, 220.0819672131, 222.4098360656) !important;
+}
+
+.text-cuarzo-300 {
+  color: rgb(216.5901639344, 220.0819672131, 222.4098360656) !important;
+}
+
+.border-cuarzo-300 {
+  border-color: rgb(216.5901639344, 220.0819672131, 222.4098360656) !important;
+}
+
+.bg-cuarzo-400 {
+  background-color: rgb(202.7950819672, 207.5409836066, 210.7049180328) !important;
+}
+
+.text-cuarzo-400 {
+  color: rgb(202.7950819672, 207.5409836066, 210.7049180328) !important;
+}
+
+.border-cuarzo-400 {
+  border-color: rgb(202.7950819672, 207.5409836066, 210.7049180328) !important;
+}
+
+.bg-cuarzo-500 {
+  background-color: #bdc3c7 !important;
+}
+
+.text-cuarzo-500 {
+  color: #bdc3c7 !important;
+}
+
+.border-cuarzo-500 {
+  border-color: #bdc3c7 !important;
+}
+
+.bg-cuarzo-600 {
+  background-color: rgb(172.4459016393, 179.9508196721, 184.9540983607) !important;
+}
+
+.text-cuarzo-600 {
+  color: rgb(172.4459016393, 179.9508196721, 184.9540983607) !important;
+}
+
+.border-cuarzo-600 {
+  border-color: rgb(172.4459016393, 179.9508196721, 184.9540983607) !important;
+}
+
+.bg-cuarzo-700 {
+  background-color: rgb(155.8918032787, 164.9016393443, 170.9081967213) !important;
+}
+
+.text-cuarzo-700 {
+  color: rgb(155.8918032787, 164.9016393443, 170.9081967213) !important;
+}
+
+.border-cuarzo-700 {
+  border-color: rgb(155.8918032787, 164.9016393443, 170.9081967213) !important;
+}
+
+.bg-cuarzo-800 {
+  background-color: rgb(139.337704918, 149.8524590164, 156.862295082) !important;
+}
+
+.text-cuarzo-800 {
+  color: rgb(139.337704918, 149.8524590164, 156.862295082) !important;
+}
+
+.border-cuarzo-800 {
+  border-color: rgb(139.337704918, 149.8524590164, 156.862295082) !important;
+}
+
+.bg-cuarzo-900 {
+  background-color: rgb(122.7836065574, 134.8032786885, 142.8163934426) !important;
+}
+
+.text-cuarzo-900 {
+  color: rgb(122.7836065574, 134.8032786885, 142.8163934426) !important;
+}
+
+.border-cuarzo-900 {
+  border-color: rgb(122.7836065574, 134.8032786885, 142.8163934426) !important;
+}
+
+.bg-cuarzo {
+  background-color: #bdc3c7 !important;
+}
+
+.text-cuarzo {
+  color: #bdc3c7 !important;
+}
+
+.border-cuarzo {
+  border-color: #bdc3c7 !important;
+}
+
+.btn-onix {
+  background-color: #34495e;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-onix:hover {
+  background-color: rgb(24.7534246575, 34.75, 44.7465753425);
+  color: white;
+}
+.dark .btn-onix {
+  background-color: var(--color-gray-200);
+  color: #34495e;
+}
+.dark .btn-onix:hover {
+  color: rgb(24.7534246575, 34.75, 44.7465753425);
+}
+
+.pildora-onix {
+  background-color: rgb(181.854109589, 187.75, 193.645890411);
+  color: rgb(15.6712328767, 22, 28.3287671233);
+}
+.dark .pildora-onix {
+  background-color: rgba(52, 73, 94, 0.1);
+  color: rgb(88.3287671233, 124, 159.6712328767);
+}
+
+.bg-onix-50 {
+  background-color: rgb(151.9863013699, 175, 198.0136986301) !important;
+}
+
+.text-onix-50 {
+  color: rgb(151.9863013699, 175, 198.0136986301) !important;
+}
+
+.border-onix-50 {
+  border-color: rgb(151.9863013699, 175, 198.0136986301) !important;
+}
+
+.bg-onix-100 {
+  background-color: rgb(119.1506849315, 149.5, 179.8493150685) !important;
+}
+
+.text-onix-100 {
+  color: rgb(119.1506849315, 149.5, 179.8493150685) !important;
+}
+
+.border-onix-100 {
+  border-color: rgb(119.1506849315, 149.5, 179.8493150685) !important;
+}
+
+.bg-onix-200 {
+  background-color: rgb(88.3287671233, 124, 159.6712328767) !important;
+}
+
+.text-onix-200 {
+  color: rgb(88.3287671233, 124, 159.6712328767) !important;
+}
+
+.border-onix-200 {
+  border-color: rgb(88.3287671233, 124, 159.6712328767) !important;
+}
+
+.bg-onix-300 {
+  background-color: rgb(70.1643835616, 98.5, 126.8356164384) !important;
+}
+
+.text-onix-300 {
+  color: rgb(70.1643835616, 98.5, 126.8356164384) !important;
+}
+
+.border-onix-300 {
+  border-color: rgb(70.1643835616, 98.5, 126.8356164384) !important;
+}
+
+.bg-onix-400 {
+  background-color: rgb(61.0821917808, 85.75, 110.4178082192) !important;
+}
+
+.text-onix-400 {
+  color: rgb(61.0821917808, 85.75, 110.4178082192) !important;
+}
+
+.border-onix-400 {
+  border-color: rgb(61.0821917808, 85.75, 110.4178082192) !important;
+}
+
+.bg-onix-500 {
+  background-color: #34495e !important;
+}
+
+.text-onix-500 {
+  color: #34495e !important;
+}
+
+.border-onix-500 {
+  border-color: #34495e !important;
+}
+
+.bg-onix-600 {
+  background-color: rgb(41.101369863, 57.7, 74.298630137) !important;
+}
+
+.text-onix-600 {
+  color: rgb(41.101369863, 57.7, 74.298630137) !important;
+}
+
+.border-onix-600 {
+  border-color: rgb(41.101369863, 57.7, 74.298630137) !important;
+}
+
+.bg-onix-700 {
+  background-color: rgb(30.202739726, 42.4, 54.597260274) !important;
+}
+
+.text-onix-700 {
+  color: rgb(30.202739726, 42.4, 54.597260274) !important;
+}
+
+.border-onix-700 {
+  border-color: rgb(30.202739726, 42.4, 54.597260274) !important;
+}
+
+.bg-onix-800 {
+  background-color: rgb(19.304109589, 27.1, 34.895890411) !important;
+}
+
+.text-onix-800 {
+  color: rgb(19.304109589, 27.1, 34.895890411) !important;
+}
+
+.border-onix-800 {
+  border-color: rgb(19.304109589, 27.1, 34.895890411) !important;
+}
+
+.bg-onix-900 {
+  background-color: rgb(8.4054794521, 11.8, 15.1945205479) !important;
+}
+
+.text-onix-900 {
+  color: rgb(8.4054794521, 11.8, 15.1945205479) !important;
+}
+
+.border-onix-900 {
+  border-color: rgb(8.4054794521, 11.8, 15.1945205479) !important;
+}
+
+.bg-onix {
+  background-color: #34495e !important;
+}
+
+.text-onix {
+  color: #34495e !important;
+}
+
+.border-onix {
+  border-color: #34495e !important;
+}
+
+.btn-jade {
+  background-color: #2ecc71;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-jade:hover {
+  background-color: rgb(31.924, 141.576, 78.422);
+  color: white;
+}
+.dark .btn-jade {
+  background-color: var(--color-gray-200);
+  color: #2ecc71;
+}
+.dark .btn-jade:hover {
+  color: rgb(31.924, 141.576, 78.422);
+}
+
+.pildora-jade {
+  background-color: rgb(233.162, 246.338, 238.7492911392);
+  color: rgb(27.232, 120.768, 66.896);
+}
+.dark .pildora-jade {
+  background-color: rgba(46, 204, 113, 0.1);
+  color: rgb(126.072, 225.928, 168.416);
+}
+
+.bg-jade-50 {
+  background-color: rgb(209.304, 244.696, 224.312) !important;
+}
+
+.text-jade-50 {
+  color: rgb(209.304, 244.696, 224.312) !important;
+}
+
+.border-jade-50 {
+  border-color: rgb(209.304, 244.696, 224.312) !important;
+}
+
+.bg-jade-100 {
+  background-color: rgb(167.688, 235.312, 196.364) !important;
+}
+
+.text-jade-100 {
+  color: rgb(167.688, 235.312, 196.364) !important;
+}
+
+.border-jade-100 {
+  border-color: rgb(167.688, 235.312, 196.364) !important;
+}
+
+.bg-jade-200 {
+  background-color: rgb(126.072, 225.928, 168.416) !important;
+}
+
+.text-jade-200 {
+  color: rgb(126.072, 225.928, 168.416) !important;
+}
+
+.border-jade-200 {
+  border-color: rgb(126.072, 225.928, 168.416) !important;
+}
+
+.bg-jade-300 {
+  background-color: rgb(84.456, 216.544, 140.468) !important;
+}
+
+.text-jade-300 {
+  color: rgb(84.456, 216.544, 140.468) !important;
+}
+
+.border-jade-300 {
+  border-color: rgb(84.456, 216.544, 140.468) !important;
+}
+
+.bg-jade-400 {
+  background-color: rgb(63.648, 211.852, 126.494) !important;
+}
+
+.text-jade-400 {
+  color: rgb(63.648, 211.852, 126.494) !important;
+}
+
+.border-jade-400 {
+  border-color: rgb(63.648, 211.852, 126.494) !important;
+}
+
+.bg-jade-500 {
+  background-color: #2ecc71 !important;
+}
+
+.text-jade-500 {
+  color: #2ecc71 !important;
+}
+
+.border-jade-500 {
+  border-color: #2ecc71 !important;
+}
+
+.bg-jade-600 {
+  background-color: rgb(40.3696, 179.0304, 99.1688) !important;
+}
+
+.text-jade-600 {
+  color: rgb(40.3696, 179.0304, 99.1688) !important;
+}
+
+.border-jade-600 {
+  border-color: rgb(40.3696, 179.0304, 99.1688) !important;
+}
+
+.bg-jade-700 {
+  background-color: rgb(34.7392, 154.0608, 85.3376) !important;
+}
+
+.text-jade-700 {
+  color: rgb(34.7392, 154.0608, 85.3376) !important;
+}
+
+.border-jade-700 {
+  border-color: rgb(34.7392, 154.0608, 85.3376) !important;
+}
+
+.bg-jade-800 {
+  background-color: rgb(29.1088, 129.0912, 71.5064) !important;
+}
+
+.text-jade-800 {
+  color: rgb(29.1088, 129.0912, 71.5064) !important;
+}
+
+.border-jade-800 {
+  border-color: rgb(29.1088, 129.0912, 71.5064) !important;
+}
+
+.bg-jade-900 {
+  background-color: rgb(23.4784, 104.1216, 57.6752) !important;
+}
+
+.text-jade-900 {
+  color: rgb(23.4784, 104.1216, 57.6752) !important;
+}
+
+.border-jade-900 {
+  border-color: rgb(23.4784, 104.1216, 57.6752) !important;
+}
+
+.bg-jade {
+  background-color: #2ecc71 !important;
+}
+
+.text-jade {
+  color: #2ecc71 !important;
+}
+
+.border-jade {
+  border-color: #2ecc71 !important;
+}
+
+.btn-opalo {
+  background-color: #e8f8f5;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-opalo:hover {
+  background-color: rgb(173.35, 230.15, 219.5);
+  color: white;
+}
+.dark .btn-opalo {
+  background-color: var(--color-gray-200);
+  color: #e8f8f5;
+}
+.dark .btn-opalo:hover {
+  color: rgb(173.35, 230.15, 219.5);
+}
+
+.pildora-opalo {
+  background-color: hsl(168.75, 33.3333333333%, 139.1176470588%);
+  color: rgb(153.8, 224.2, 211);
+}
+.dark .pildora-opalo {
+  background-color: rgba(232, 248, 245, 0.1);
+  color: hsl(168.75, 53.3333333333%, 114.1176470588%);
+}
+
+.bg-opalo-50 {
+  background-color: hsl(168.75, 53.3333333333%, 134.1176470588%) !important;
+}
+
+.text-opalo-50 {
+  color: hsl(168.75, 53.3333333333%, 134.1176470588%) !important;
+}
+
+.border-opalo-50 {
+  border-color: hsl(168.75, 53.3333333333%, 134.1176470588%) !important;
+}
+
+.bg-opalo-100 {
+  background-color: hsl(168.75, 53.3333333333%, 124.1176470588%) !important;
+}
+
+.text-opalo-100 {
+  color: hsl(168.75, 53.3333333333%, 124.1176470588%) !important;
+}
+
+.border-opalo-100 {
+  border-color: hsl(168.75, 53.3333333333%, 124.1176470588%) !important;
+}
+
+.bg-opalo-200 {
+  background-color: hsl(168.75, 53.3333333333%, 114.1176470588%) !important;
+}
+
+.text-opalo-200 {
+  color: hsl(168.75, 53.3333333333%, 114.1176470588%) !important;
+}
+
+.border-opalo-200 {
+  border-color: hsl(168.75, 53.3333333333%, 114.1176470588%) !important;
+}
+
+.bg-opalo-300 {
+  background-color: hsl(168.75, 53.3333333333%, 104.1176470588%) !important;
+}
+
+.text-opalo-300 {
+  color: hsl(168.75, 53.3333333333%, 104.1176470588%) !important;
+}
+
+.border-opalo-300 {
+  border-color: hsl(168.75, 53.3333333333%, 104.1176470588%) !important;
+}
+
+.bg-opalo-400 {
+  background-color: rgb(251.55, 253.95, 253.5) !important;
+}
+
+.text-opalo-400 {
+  color: rgb(251.55, 253.95, 253.5) !important;
+}
+
+.border-opalo-400 {
+  border-color: rgb(251.55, 253.95, 253.5) !important;
+}
+
+.bg-opalo-500 {
+  background-color: #e8f8f5 !important;
+}
+
+.text-opalo-500 {
+  color: #e8f8f5 !important;
+}
+
+.border-opalo-500 {
+  border-color: #e8f8f5 !important;
+}
+
+.bg-opalo-600 {
+  background-color: rgb(208.54, 240.86, 234.8) !important;
+}
+
+.text-opalo-600 {
+  color: rgb(208.54, 240.86, 234.8) !important;
+}
+
+.border-opalo-600 {
+  border-color: rgb(208.54, 240.86, 234.8) !important;
+}
+
+.bg-opalo-700 {
+  background-color: rgb(185.08, 233.72, 224.6) !important;
+}
+
+.text-opalo-700 {
+  color: rgb(185.08, 233.72, 224.6) !important;
+}
+
+.border-opalo-700 {
+  border-color: rgb(185.08, 233.72, 224.6) !important;
+}
+
+.bg-opalo-800 {
+  background-color: rgb(161.62, 226.58, 214.4) !important;
+}
+
+.text-opalo-800 {
+  color: rgb(161.62, 226.58, 214.4) !important;
+}
+
+.border-opalo-800 {
+  border-color: rgb(161.62, 226.58, 214.4) !important;
+}
+
+.bg-opalo-900 {
+  background-color: rgb(138.16, 219.44, 204.2) !important;
+}
+
+.text-opalo-900 {
+  color: rgb(138.16, 219.44, 204.2) !important;
+}
+
+.border-opalo-900 {
+  border-color: rgb(138.16, 219.44, 204.2) !important;
+}
+
+.bg-opalo {
+  background-color: #e8f8f5 !important;
+}
+
+.text-opalo {
+  color: #e8f8f5 !important;
+}
+
+.border-opalo {
+  border-color: #e8f8f5 !important;
+}
+
+.btn-nuevo {
+  background-color: #0066cc;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-nuevo:hover {
+  background-color: rgb(0, 63.75, 127.5);
+  color: white;
+}
+.dark .btn-nuevo {
+  background-color: var(--color-gray-200);
+  color: #0066cc;
+}
+.dark .btn-nuevo:hover {
+  color: rgb(0, 63.75, 127.5);
+}
+
+.pildora-nuevo {
+  background-color: rgb(186.15, 216.75, 247.35);
+  color: #003366;
+}
+.dark .pildora-nuevo {
+  background-color: rgba(0, 102, 204, 0.1);
+  color: #3399ff;
+}
+
+.bg-nuevo-50 {
+  background-color: #99ccff !important;
+}
+
+.text-nuevo-50 {
+  color: #99ccff !important;
+}
+
+.border-nuevo-50 {
+  border-color: #99ccff !important;
+}
+
+.bg-nuevo-100 {
+  background-color: rgb(102, 178.5, 255) !important;
+}
+
+.text-nuevo-100 {
+  color: rgb(102, 178.5, 255) !important;
+}
+
+.border-nuevo-100 {
+  border-color: rgb(102, 178.5, 255) !important;
+}
+
+.bg-nuevo-200 {
+  background-color: #3399ff !important;
+}
+
+.text-nuevo-200 {
+  color: #3399ff !important;
+}
+
+.border-nuevo-200 {
+  border-color: #3399ff !important;
+}
+
+.bg-nuevo-300 {
+  background-color: rgb(0, 127.5, 255) !important;
+}
+
+.text-nuevo-300 {
+  color: rgb(0, 127.5, 255) !important;
+}
+
+.border-nuevo-300 {
+  border-color: rgb(0, 127.5, 255) !important;
+}
+
+.bg-nuevo-400 {
+  background-color: rgb(0, 114.75, 229.5) !important;
+}
+
+.text-nuevo-400 {
+  color: rgb(0, 114.75, 229.5) !important;
+}
+
+.border-nuevo-400 {
+  border-color: rgb(0, 114.75, 229.5) !important;
+}
+
+.bg-nuevo-500 {
+  background-color: #0066cc !important;
+}
+
+.text-nuevo-500 {
+  color: #0066cc !important;
+}
+
+.border-nuevo-500 {
+  border-color: #0066cc !important;
+}
+
+.bg-nuevo-600 {
+  background-color: rgb(0, 86.7, 173.4) !important;
+}
+
+.text-nuevo-600 {
+  color: rgb(0, 86.7, 173.4) !important;
+}
+
+.border-nuevo-600 {
+  border-color: rgb(0, 86.7, 173.4) !important;
+}
+
+.bg-nuevo-700 {
+  background-color: rgb(0, 71.4, 142.8) !important;
+}
+
+.text-nuevo-700 {
+  color: rgb(0, 71.4, 142.8) !important;
+}
+
+.border-nuevo-700 {
+  border-color: rgb(0, 71.4, 142.8) !important;
+}
+
+.bg-nuevo-800 {
+  background-color: rgb(0, 56.1, 112.2) !important;
+}
+
+.text-nuevo-800 {
+  color: rgb(0, 56.1, 112.2) !important;
+}
+
+.border-nuevo-800 {
+  border-color: rgb(0, 56.1, 112.2) !important;
+}
+
+.bg-nuevo-900 {
+  background-color: rgb(0, 40.8, 81.6) !important;
+}
+
+.text-nuevo-900 {
+  color: rgb(0, 40.8, 81.6) !important;
+}
+
+.border-nuevo-900 {
+  border-color: rgb(0, 40.8, 81.6) !important;
+}
+
+.bg-nuevo {
+  background-color: #0066cc !important;
+}
+
+.text-nuevo {
+  color: #0066cc !important;
+}
+
+.border-nuevo {
+  border-color: #0066cc !important;
+}
+
+.btn-editar {
+  background-color: #00a085;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-editar:hover {
+  background-color: rgb(0, 83.5, 69.409375);
+  color: white;
+}
+.dark .btn-editar {
+  background-color: var(--color-gray-200);
+  color: #00a085;
+}
+.dark .btn-editar:hover {
+  color: rgb(0, 83.5, 69.409375);
+}
+
+.pildora-editar {
+  background-color: rgb(146.55, 242.95, 226.6825);
+  color: rgb(0, 58, 48.2125);
+}
+.dark .pildora-editar {
+  background-color: rgba(0, 160, 133, 0.1);
+  color: rgb(7, 255, 213.15);
+}
+
+.bg-editar-50 {
+  background-color: rgb(109, 255, 230.3625) !important;
+}
+
+.text-editar-50 {
+  color: rgb(109, 255, 230.3625) !important;
+}
+
+.border-editar-50 {
+  border-color: rgb(109, 255, 230.3625) !important;
+}
+
+.bg-editar-100 {
+  background-color: rgb(58, 255, 221.75625) !important;
+}
+
+.text-editar-100 {
+  color: rgb(58, 255, 221.75625) !important;
+}
+
+.border-editar-100 {
+  border-color: rgb(58, 255, 221.75625) !important;
+}
+
+.bg-editar-200 {
+  background-color: rgb(7, 255, 213.15) !important;
+}
+
+.text-editar-200 {
+  color: rgb(7, 255, 213.15) !important;
+}
+
+.border-editar-200 {
+  border-color: rgb(7, 255, 213.15) !important;
+}
+
+.bg-editar-300 {
+  background-color: rgb(0, 211, 175.39375) !important;
+}
+
+.text-editar-300 {
+  color: rgb(0, 211, 175.39375) !important;
+}
+
+.border-editar-300 {
+  border-color: rgb(0, 211, 175.39375) !important;
+}
+
+.bg-editar-400 {
+  background-color: rgb(0, 185.5, 154.196875) !important;
+}
+
+.text-editar-400 {
+  color: rgb(0, 185.5, 154.196875) !important;
+}
+
+.border-editar-400 {
+  border-color: rgb(0, 185.5, 154.196875) !important;
+}
+
+.bg-editar-500 {
+  background-color: #00a085 !important;
+}
+
+.text-editar-500 {
+  color: #00a085 !important;
+}
+
+.border-editar-500 {
+  border-color: #00a085 !important;
+}
+
+.bg-editar-600 {
+  background-color: rgb(0, 129.4, 107.56375) !important;
+}
+
+.text-editar-600 {
+  color: rgb(0, 129.4, 107.56375) !important;
+}
+
+.border-editar-600 {
+  border-color: rgb(0, 129.4, 107.56375) !important;
+}
+
+.bg-editar-700 {
+  background-color: rgb(0, 98.8, 82.1275) !important;
+}
+
+.text-editar-700 {
+  color: rgb(0, 98.8, 82.1275) !important;
+}
+
+.border-editar-700 {
+  border-color: rgb(0, 98.8, 82.1275) !important;
+}
+
+.bg-editar-800 {
+  background-color: rgb(0, 68.2, 56.69125) !important;
+}
+
+.text-editar-800 {
+  color: rgb(0, 68.2, 56.69125) !important;
+}
+
+.border-editar-800 {
+  border-color: rgb(0, 68.2, 56.69125) !important;
+}
+
+.bg-editar-900 {
+  background-color: rgb(0, 37.6, 31.255) !important;
+}
+
+.text-editar-900 {
+  color: rgb(0, 37.6, 31.255) !important;
+}
+
+.border-editar-900 {
+  border-color: rgb(0, 37.6, 31.255) !important;
+}
+
+.bg-editar {
+  background-color: #00a085 !important;
+}
+
+.text-editar {
+  color: #00a085 !important;
+}
+
+.border-editar {
+  border-color: #00a085 !important;
+}
+
+.btn-eliminar {
+  background-color: #c0392b;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-eliminar:hover {
+  background-color: rgb(129.4978723404, 38.4446808511, 29.0021276596);
+  color: white;
+}
+.dark .btn-eliminar {
+  background-color: var(--color-gray-200);
+  color: #c0392b;
+}
+.dark .btn-eliminar:hover {
+  color: rgb(129.4978723404, 38.4446808511, 29.0021276596);
+}
+
+.pildora-eliminar {
+  background-color: rgb(242.1244680851, 224.2311366557, 222.3755319149);
+  color: rgb(108.6638297872, 32.2595744681, 24.3361702128);
+}
+.dark .pildora-eliminar {
+  background-color: rgba(192, 57, 43, 0.1);
+  color: rgb(223.3446808511, 123.9617021277, 113.6553191489);
+}
+
+.bg-eliminar-50 {
+  background-color: rgb(242.0085106383, 201.2212765957, 196.9914893617) !important;
+}
+
+.text-eliminar-50 {
+  color: rgb(242.0085106383, 201.2212765957, 196.9914893617) !important;
+}
+
+.border-eliminar-50 {
+  border-color: rgb(242.0085106383, 201.2212765957, 196.9914893617) !important;
+}
+
+.bg-eliminar-100 {
+  background-color: rgb(232.6765957447, 162.5914893617, 155.3234042553) !important;
+}
+
+.text-eliminar-100 {
+  color: rgb(232.6765957447, 162.5914893617, 155.3234042553) !important;
+}
+
+.border-eliminar-100 {
+  border-color: rgb(232.6765957447, 162.5914893617, 155.3234042553) !important;
+}
+
+.bg-eliminar-200 {
+  background-color: rgb(223.3446808511, 123.9617021277, 113.6553191489) !important;
+}
+
+.text-eliminar-200 {
+  color: rgb(223.3446808511, 123.9617021277, 113.6553191489) !important;
+}
+
+.border-eliminar-200 {
+  border-color: rgb(223.3446808511, 123.9617021277, 113.6553191489) !important;
+}
+
+.bg-eliminar-300 {
+  background-color: rgb(214.0127659574, 85.3319148936, 71.9872340426) !important;
+}
+
+.text-eliminar-300 {
+  color: rgb(214.0127659574, 85.3319148936, 71.9872340426) !important;
+}
+
+.border-eliminar-300 {
+  border-color: rgb(214.0127659574, 85.3319148936, 71.9872340426) !important;
+}
+
+.bg-eliminar-400 {
+  background-color: rgb(209.3468085106, 66.0170212766, 51.1531914894) !important;
+}
+
+.text-eliminar-400 {
+  color: rgb(209.3468085106, 66.0170212766, 51.1531914894) !important;
+}
+
+.border-eliminar-400 {
+  border-color: rgb(209.3468085106, 66.0170212766, 51.1531914894) !important;
+}
+
+.bg-eliminar-500 {
+  background-color: #c0392b !important;
+}
+
+.text-eliminar-500 {
+  color: #c0392b !important;
+}
+
+.border-eliminar-500 {
+  border-color: #c0392b !important;
+}
+
+.bg-eliminar-600 {
+  background-color: rgb(166.9991489362, 49.5778723404, 37.4008510638) !important;
+}
+
+.text-eliminar-600 {
+  color: rgb(166.9991489362, 49.5778723404, 37.4008510638) !important;
+}
+
+.border-eliminar-600 {
+  border-color: rgb(166.9991489362, 49.5778723404, 37.4008510638) !important;
+}
+
+.bg-eliminar-700 {
+  background-color: rgb(141.9982978723, 42.1557446809, 31.8017021277) !important;
+}
+
+.text-eliminar-700 {
+  color: rgb(141.9982978723, 42.1557446809, 31.8017021277) !important;
+}
+
+.border-eliminar-700 {
+  border-color: rgb(141.9982978723, 42.1557446809, 31.8017021277) !important;
+}
+
+.bg-eliminar-800 {
+  background-color: rgb(116.9974468085, 34.7336170213, 26.2025531915) !important;
+}
+
+.text-eliminar-800 {
+  color: rgb(116.9974468085, 34.7336170213, 26.2025531915) !important;
+}
+
+.border-eliminar-800 {
+  border-color: rgb(116.9974468085, 34.7336170213, 26.2025531915) !important;
+}
+
+.bg-eliminar-900 {
+  background-color: rgb(91.9965957447, 27.3114893617, 20.6034042553) !important;
+}
+
+.text-eliminar-900 {
+  color: rgb(91.9965957447, 27.3114893617, 20.6034042553) !important;
+}
+
+.border-eliminar-900 {
+  border-color: rgb(91.9965957447, 27.3114893617, 20.6034042553) !important;
+}
+
+.bg-eliminar {
+  background-color: #c0392b !important;
+}
+
+.text-eliminar {
+  color: #c0392b !important;
+}
+
+.border-eliminar {
+  border-color: #c0392b !important;
+}
+
+.btn-cancelar {
+  background-color: #f39c12;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-cancelar:hover {
+  background-color: rgb(175.6084337349, 111.1445783133, 8.8915662651);
+  color: white;
+}
+.dark .btn-cancelar {
+  background-color: var(--color-gray-200);
+  color: #f39c12;
+}
+.dark .btn-cancelar:hover {
+  color: rgb(175.6084337349, 111.1445783133, 8.8915662651);
+}
+
+.pildora-cancelar {
+  background-color: rgb(252.1102409639, 246.8049879518, 238.3897590361);
+  color: rgb(151.3373493976, 95.7831325301, 7.6626506024);
+}
+.dark .pildora-cancelar {
+  background-color: rgba(243, 156, 18, 0.1);
+  color: rgb(247.9156626506, 196.5542168675, 115.0843373494);
+}
+
+.bg-cancelar-50 {
+  background-color: rgb(252.8313253012, 237.1084337349, 212.1686746988) !important;
+}
+
+.text-cancelar-50 {
+  color: rgb(252.8313253012, 237.1084337349, 212.1686746988) !important;
+}
+
+.border-cancelar-50 {
+  border-color: rgb(252.8313253012, 237.1084337349, 212.1686746988) !important;
+}
+
+.bg-cancelar-100 {
+  background-color: rgb(250.3734939759, 216.8313253012, 163.6265060241) !important;
+}
+
+.text-cancelar-100 {
+  color: rgb(250.3734939759, 216.8313253012, 163.6265060241) !important;
+}
+
+.border-cancelar-100 {
+  border-color: rgb(250.3734939759, 216.8313253012, 163.6265060241) !important;
+}
+
+.bg-cancelar-200 {
+  background-color: rgb(247.9156626506, 196.5542168675, 115.0843373494) !important;
+}
+
+.text-cancelar-200 {
+  color: rgb(247.9156626506, 196.5542168675, 115.0843373494) !important;
+}
+
+.border-cancelar-200 {
+  border-color: rgb(247.9156626506, 196.5542168675, 115.0843373494) !important;
+}
+
+.bg-cancelar-300 {
+  background-color: rgb(245.4578313253, 176.2771084337, 66.5421686747) !important;
+}
+
+.text-cancelar-300 {
+  color: rgb(245.4578313253, 176.2771084337, 66.5421686747) !important;
+}
+
+.border-cancelar-300 {
+  border-color: rgb(245.4578313253, 176.2771084337, 66.5421686747) !important;
+}
+
+.bg-cancelar-400 {
+  background-color: rgb(244.2289156627, 166.1385542169, 42.2710843373) !important;
+}
+
+.text-cancelar-400 {
+  color: rgb(244.2289156627, 166.1385542169, 42.2710843373) !important;
+}
+
+.border-cancelar-400 {
+  border-color: rgb(244.2289156627, 166.1385542169, 42.2710843373) !important;
+}
+
+.bg-cancelar-500 {
+  background-color: #f39c12 !important;
+}
+
+.text-cancelar-500 {
+  color: #f39c12 !important;
+}
+
+.border-cancelar-500 {
+  border-color: #f39c12 !important;
+}
+
+.bg-cancelar-600 {
+  background-color: rgb(219.2963855422, 138.7951807229, 11.1036144578) !important;
+}
+
+.text-cancelar-600 {
+  color: rgb(219.2963855422, 138.7951807229, 11.1036144578) !important;
+}
+
+.border-cancelar-600 {
+  border-color: rgb(219.2963855422, 138.7951807229, 11.1036144578) !important;
+}
+
+.bg-cancelar-700 {
+  background-color: rgb(190.1710843373, 120.3614457831, 9.6289156627) !important;
+}
+
+.text-cancelar-700 {
+  color: rgb(190.1710843373, 120.3614457831, 9.6289156627) !important;
+}
+
+.border-cancelar-700 {
+  border-color: rgb(190.1710843373, 120.3614457831, 9.6289156627) !important;
+}
+
+.bg-cancelar-800 {
+  background-color: rgb(161.0457831325, 101.9277108434, 8.1542168675) !important;
+}
+
+.text-cancelar-800 {
+  color: rgb(161.0457831325, 101.9277108434, 8.1542168675) !important;
+}
+
+.border-cancelar-800 {
+  border-color: rgb(161.0457831325, 101.9277108434, 8.1542168675) !important;
+}
+
+.bg-cancelar-900 {
+  background-color: rgb(131.9204819277, 83.4939759036, 6.6795180723) !important;
+}
+
+.text-cancelar-900 {
+  color: rgb(131.9204819277, 83.4939759036, 6.6795180723) !important;
+}
+
+.border-cancelar-900 {
+  border-color: rgb(131.9204819277, 83.4939759036, 6.6795180723) !important;
+}
+
+.bg-cancelar {
+  background-color: #f39c12 !important;
+}
+
+.text-cancelar {
+  color: #f39c12 !important;
+}
+
+.border-cancelar {
+  border-color: #f39c12 !important;
+}
+
+.btn-cerrar {
+  background-color: #f1c40f;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-cerrar:hover {
+  background-color: rgb(169.6062992126, 137.8051181102, 9.8937007874);
+  color: white;
+}
+.dark .btn-cerrar {
+  background-color: var(--color-gray-200);
+  color: #f1c40f;
+}
+.dark .btn-cerrar:hover {
+  color: rgb(169.6062992126, 137.8051181102, 9.8937007874);
+}
+
+.pildora-cerrar {
+  background-color: rgb(251.1996062992, 247.8347188349, 234.3003937008);
+  color: rgb(145.5118110236, 118.2283464567, 8.4881889764);
+}
+.dark .pildora-cerrar {
+  background-color: rgba(241, 196, 15, 0.1);
+  color: rgb(246.6220472441, 219.6929133858, 111.3779527559);
+}
+
+.bg-cerrar-50 {
+  background-color: rgb(252.2440944882, 243.3858267717, 207.7559055118) !important;
+}
+
+.text-cerrar-50 {
+  color: rgb(252.2440944882, 243.3858267717, 207.7559055118) !important;
+}
+
+.border-cerrar-50 {
+  border-color: rgb(252.2440944882, 243.3858267717, 207.7559055118) !important;
+}
+
+.bg-cerrar-100 {
+  background-color: rgb(249.4330708661, 231.5393700787, 159.5669291339) !important;
+}
+
+.text-cerrar-100 {
+  color: rgb(249.4330708661, 231.5393700787, 159.5669291339) !important;
+}
+
+.border-cerrar-100 {
+  border-color: rgb(249.4330708661, 231.5393700787, 159.5669291339) !important;
+}
+
+.bg-cerrar-200 {
+  background-color: rgb(246.6220472441, 219.6929133858, 111.3779527559) !important;
+}
+
+.text-cerrar-200 {
+  color: rgb(246.6220472441, 219.6929133858, 111.3779527559) !important;
+}
+
+.border-cerrar-200 {
+  border-color: rgb(246.6220472441, 219.6929133858, 111.3779527559) !important;
+}
+
+.bg-cerrar-300 {
+  background-color: rgb(243.811023622, 207.8464566929, 63.188976378) !important;
+}
+
+.text-cerrar-300 {
+  color: rgb(243.811023622, 207.8464566929, 63.188976378) !important;
+}
+
+.border-cerrar-300 {
+  border-color: rgb(243.811023622, 207.8464566929, 63.188976378) !important;
+}
+
+.bg-cerrar-400 {
+  background-color: rgb(242.405511811, 201.9232283465, 39.094488189) !important;
+}
+
+.text-cerrar-400 {
+  color: rgb(242.405511811, 201.9232283465, 39.094488189) !important;
+}
+
+.border-cerrar-400 {
+  border-color: rgb(242.405511811, 201.9232283465, 39.094488189) !important;
+}
+
+.bg-cerrar-500 {
+  background-color: #f1c40f !important;
+}
+
+.text-cerrar-500 {
+  color: #f1c40f !important;
+}
+
+.border-cerrar-500 {
+  border-color: #f1c40f !important;
+}
+
+.bg-cerrar-600 {
+  background-color: rgb(212.9763779528, 173.0433070866, 12.4236220472) !important;
+}
+
+.text-cerrar-600 {
+  color: rgb(212.9763779528, 173.0433070866, 12.4236220472) !important;
+}
+
+.border-cerrar-600 {
+  border-color: rgb(212.9763779528, 173.0433070866, 12.4236220472) !important;
+}
+
+.bg-cerrar-700 {
+  background-color: rgb(184.062992126, 149.5511811024, 10.737007874) !important;
+}
+
+.text-cerrar-700 {
+  color: rgb(184.062992126, 149.5511811024, 10.737007874) !important;
+}
+
+.border-cerrar-700 {
+  border-color: rgb(184.062992126, 149.5511811024, 10.737007874) !important;
+}
+
+.bg-cerrar-800 {
+  background-color: rgb(155.1496062992, 126.0590551181, 9.0503937008) !important;
+}
+
+.text-cerrar-800 {
+  color: rgb(155.1496062992, 126.0590551181, 9.0503937008) !important;
+}
+
+.border-cerrar-800 {
+  border-color: rgb(155.1496062992, 126.0590551181, 9.0503937008) !important;
+}
+
+.bg-cerrar-900 {
+  background-color: rgb(126.2362204724, 102.5669291339, 7.3637795276) !important;
+}
+
+.text-cerrar-900 {
+  color: rgb(126.2362204724, 102.5669291339, 7.3637795276) !important;
+}
+
+.border-cerrar-900 {
+  border-color: rgb(126.2362204724, 102.5669291339, 7.3637795276) !important;
+}
+
+.bg-cerrar {
+  background-color: #f1c40f !important;
+}
+
+.text-cerrar {
+  color: #f1c40f !important;
+}
+
+.border-cerrar {
+  border-color: #f1c40f !important;
+}
+
+.btn-guardar {
+  background-color: #27ae60;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-guardar:hover {
+  background-color: rgb(24.9929577465, 111.5070422535, 61.5211267606);
+  color: white;
+}
+.dark .btn-guardar {
+  background-color: var(--color-gray-200);
+  color: #27ae60;
+}
+.dark .btn-guardar:hover {
+  color: rgb(24.9929577465, 111.5070422535, 61.5211267606);
+}
+
+.pildora-guardar {
+  background-color: rgb(206.6091549296, 235.8908450704, 218.9725352113);
+  color: rgb(20.323943662, 90.676056338, 50.0281690141);
+}
+.dark .pildora-guardar {
+  background-color: rgba(39, 174, 96, 0.1);
+  color: rgb(95.7042253521, 219.2957746479, 147.8873239437);
+}
+
+.bg-guardar-50 {
+  background-color: rgb(179.0281690141, 237.9718309859, 203.9154929577) !important;
+}
+
+.text-guardar-50 {
+  color: rgb(179.0281690141, 237.9718309859, 203.9154929577) !important;
+}
+
+.border-guardar-50 {
+  border-color: rgb(179.0281690141, 237.9718309859, 203.9154929577) !important;
+}
+
+.bg-guardar-100 {
+  background-color: rgb(137.3661971831, 228.6338028169, 175.9014084507) !important;
+}
+
+.text-guardar-100 {
+  color: rgb(137.3661971831, 228.6338028169, 175.9014084507) !important;
+}
+
+.border-guardar-100 {
+  border-color: rgb(137.3661971831, 228.6338028169, 175.9014084507) !important;
+}
+
+.bg-guardar-200 {
+  background-color: rgb(95.7042253521, 219.2957746479, 147.8873239437) !important;
+}
+
+.text-guardar-200 {
+  color: rgb(95.7042253521, 219.2957746479, 147.8873239437) !important;
+}
+
+.border-guardar-200 {
+  border-color: rgb(95.7042253521, 219.2957746479, 147.8873239437) !important;
+}
+
+.bg-guardar-300 {
+  background-color: rgb(54.0422535211, 209.9577464789, 119.8732394366) !important;
+}
+
+.text-guardar-300 {
+  color: rgb(54.0422535211, 209.9577464789, 119.8732394366) !important;
+}
+
+.border-guardar-300 {
+  border-color: rgb(54.0422535211, 209.9577464789, 119.8732394366) !important;
+}
+
+.bg-guardar-400 {
+  background-color: rgb(43.6690140845, 194.8309859155, 107.4929577465) !important;
+}
+
+.text-guardar-400 {
+  color: rgb(43.6690140845, 194.8309859155, 107.4929577465) !important;
+}
+
+.border-guardar-400 {
+  border-color: rgb(43.6690140845, 194.8309859155, 107.4929577465) !important;
+}
+
+.bg-guardar-500 {
+  background-color: #27ae60 !important;
+}
+
+.text-guardar-500 {
+  color: #27ae60 !important;
+}
+
+.border-guardar-500 {
+  border-color: #27ae60 !important;
+}
+
+.bg-guardar-600 {
+  background-color: rgb(33.3971830986, 149.0028169014, 82.2084507042) !important;
+}
+
+.text-guardar-600 {
+  color: rgb(33.3971830986, 149.0028169014, 82.2084507042) !important;
+}
+
+.border-guardar-600 {
+  border-color: rgb(33.3971830986, 149.0028169014, 82.2084507042) !important;
+}
+
+.bg-guardar-700 {
+  background-color: rgb(27.7943661972, 124.0056338028, 68.4169014085) !important;
+}
+
+.text-guardar-700 {
+  color: rgb(27.7943661972, 124.0056338028, 68.4169014085) !important;
+}
+
+.border-guardar-700 {
+  border-color: rgb(27.7943661972, 124.0056338028, 68.4169014085) !important;
+}
+
+.bg-guardar-800 {
+  background-color: rgb(22.1915492958, 99.0084507042, 54.6253521127) !important;
+}
+
+.text-guardar-800 {
+  color: rgb(22.1915492958, 99.0084507042, 54.6253521127) !important;
+}
+
+.border-guardar-800 {
+  border-color: rgb(22.1915492958, 99.0084507042, 54.6253521127) !important;
+}
+
+.bg-guardar-900 {
+  background-color: rgb(16.5887323944, 74.0112676056, 40.8338028169) !important;
+}
+
+.text-guardar-900 {
+  color: rgb(16.5887323944, 74.0112676056, 40.8338028169) !important;
+}
+
+.border-guardar-900 {
+  border-color: rgb(16.5887323944, 74.0112676056, 40.8338028169) !important;
+}
+
+.bg-guardar {
+  background-color: #27ae60 !important;
+}
+
+.text-guardar {
+  color: #27ae60 !important;
+}
+
+.border-guardar {
+  border-color: #27ae60 !important;
+}
+
+.btn-confirmar {
+  background-color: #8e44ad;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-confirmar:hover {
+  background-color: rgb(96.9253112033, 46.4149377593, 118.0850622407);
+  color: white;
+}
+.dark .btn-confirmar {
+  background-color: var(--color-gray-200);
+  color: #8e44ad;
+}
+.dark .btn-confirmar:hover {
+  color: rgb(96.9253112033, 46.4149377593, 118.0850622407);
+}
+
+.pildora-confirmar {
+  background-color: rgb(237.1562398735, 230.5952282158, 239.9047717842);
+  color: rgb(81.9004149378, 39.2199170124, 99.7800829876);
+}
+.dark .pildora-confirmar {
+  background-color: rgba(142, 68, 173, 0.1);
+  color: rgb(186.398340249, 135.1203319502, 207.8796680498);
+}
+
+.bg-confirmar-50 {
+  background-color: rgb(228.2987551867, 208.3402489627, 236.6597510373) !important;
+}
+
+.text-confirmar-50 {
+  color: rgb(228.2987551867, 208.3402489627, 236.6597510373) !important;
+}
+
+.border-confirmar-50 {
+  border-color: rgb(228.2987551867, 208.3402489627, 236.6597510373) !important;
+}
+
+.bg-confirmar-100 {
+  background-color: rgb(207.3485477178, 171.7302904564, 222.2697095436) !important;
+}
+
+.text-confirmar-100 {
+  color: rgb(207.3485477178, 171.7302904564, 222.2697095436) !important;
+}
+
+.border-confirmar-100 {
+  border-color: rgb(207.3485477178, 171.7302904564, 222.2697095436) !important;
+}
+
+.bg-confirmar-200 {
+  background-color: rgb(186.398340249, 135.1203319502, 207.8796680498) !important;
+}
+
+.text-confirmar-200 {
+  color: rgb(186.398340249, 135.1203319502, 207.8796680498) !important;
+}
+
+.border-confirmar-200 {
+  border-color: rgb(186.398340249, 135.1203319502, 207.8796680498) !important;
+}
+
+.bg-confirmar-300 {
+  background-color: rgb(165.4481327801, 98.510373444, 193.489626556) !important;
+}
+
+.text-confirmar-300 {
+  color: rgb(165.4481327801, 98.510373444, 193.489626556) !important;
+}
+
+.border-confirmar-300 {
+  border-color: rgb(165.4481327801, 98.510373444, 193.489626556) !important;
+}
+
+.bg-confirmar-400 {
+  background-color: rgb(154.9730290456, 80.2053941909, 186.2946058091) !important;
+}
+
+.text-confirmar-400 {
+  color: rgb(154.9730290456, 80.2053941909, 186.2946058091) !important;
+}
+
+.border-confirmar-400 {
+  border-color: rgb(154.9730290456, 80.2053941909, 186.2946058091) !important;
+}
+
+.bg-confirmar-500 {
+  background-color: #8e44ad !important;
+}
+
+.text-confirmar-500 {
+  color: #8e44ad !important;
+}
+
+.border-confirmar-500 {
+  border-color: #8e44ad !important;
+}
+
+.bg-confirmar-600 {
+  background-color: rgb(123.9701244813, 59.3659751037, 151.0340248963) !important;
+}
+
+.text-confirmar-600 {
+  color: rgb(123.9701244813, 59.3659751037, 151.0340248963) !important;
+}
+
+.border-confirmar-600 {
+  border-color: rgb(123.9701244813, 59.3659751037, 151.0340248963) !important;
+}
+
+.bg-confirmar-700 {
+  background-color: rgb(105.9402489627, 50.7319502075, 129.0680497925) !important;
+}
+
+.text-confirmar-700 {
+  color: rgb(105.9402489627, 50.7319502075, 129.0680497925) !important;
+}
+
+.border-confirmar-700 {
+  border-color: rgb(105.9402489627, 50.7319502075, 129.0680497925) !important;
+}
+
+.bg-confirmar-800 {
+  background-color: rgb(87.910373444, 42.0979253112, 107.1020746888) !important;
+}
+
+.text-confirmar-800 {
+  color: rgb(87.910373444, 42.0979253112, 107.1020746888) !important;
+}
+
+.border-confirmar-800 {
+  border-color: rgb(87.910373444, 42.0979253112, 107.1020746888) !important;
+}
+
+.bg-confirmar-900 {
+  background-color: rgb(69.8804979253, 33.4639004149, 85.1360995851) !important;
+}
+
+.text-confirmar-900 {
+  color: rgb(69.8804979253, 33.4639004149, 85.1360995851) !important;
+}
+
+.border-confirmar-900 {
+  border-color: rgb(69.8804979253, 33.4639004149, 85.1360995851) !important;
+}
+
+.bg-confirmar {
+  background-color: #8e44ad !important;
+}
+
+.text-confirmar {
+  color: #8e44ad !important;
+}
+
+.border-confirmar {
+  border-color: #8e44ad !important;
+}
+
+.btn-azulgoro {
+  background-color: #0f2fe7;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-azulgoro:hover {
+  background-color: rgb(10.3353658537, 32.3841463415, 159.1646341463);
+  color: white;
+}
+.dark .btn-azulgoro {
+  background-color: var(--color-gray-200);
+  color: #0f2fe7;
+}
+.dark .btn-azulgoro:hover {
+  color: rgb(10.3353658537, 32.3841463415, 159.1646341463);
+}
+
+.pildora-azulgoro {
+  background-color: rgb(226.0536585366, 229.5192411924, 249.4463414634);
+  color: rgb(8.7804878049, 27.512195122, 135.2195121951);
+}
+.dark .pildora-azulgoro {
+  background-color: rgba(15, 47, 231, 0.1);
+  color: rgb(102.8780487805, 123.9512195122, 245.1219512195);
+}
+
+.bg-azulgoro-50 {
+  background-color: rgb(198.6585365854, 206.4634146341, 251.3414634146) !important;
+}
+
+.text-azulgoro-50 {
+  color: rgb(198.6585365854, 206.4634146341, 251.3414634146) !important;
+}
+
+.border-azulgoro-50 {
+  border-color: rgb(198.6585365854, 206.4634146341, 251.3414634146) !important;
+}
+
+.bg-azulgoro-100 {
+  background-color: rgb(150.7682926829, 165.2073170732, 248.2317073171) !important;
+}
+
+.text-azulgoro-100 {
+  color: rgb(150.7682926829, 165.2073170732, 248.2317073171) !important;
+}
+
+.border-azulgoro-100 {
+  border-color: rgb(150.7682926829, 165.2073170732, 248.2317073171) !important;
+}
+
+.bg-azulgoro-200 {
+  background-color: rgb(102.8780487805, 123.9512195122, 245.1219512195) !important;
+}
+
+.text-azulgoro-200 {
+  color: rgb(102.8780487805, 123.9512195122, 245.1219512195) !important;
+}
+
+.border-azulgoro-200 {
+  border-color: rgb(102.8780487805, 123.9512195122, 245.1219512195) !important;
+}
+
+.bg-azulgoro-300 {
+  background-color: rgb(54.987804878, 82.6951219512, 242.012195122) !important;
+}
+
+.text-azulgoro-300 {
+  color: rgb(54.987804878, 82.6951219512, 242.012195122) !important;
+}
+
+.border-azulgoro-300 {
+  border-color: rgb(54.987804878, 82.6951219512, 242.012195122) !important;
+}
+
+.bg-azulgoro-400 {
+  background-color: rgb(31.0426829268, 62.0670731707, 240.4573170732) !important;
+}
+
+.text-azulgoro-400 {
+  color: rgb(31.0426829268, 62.0670731707, 240.4573170732) !important;
+}
+
+.border-azulgoro-400 {
+  border-color: rgb(31.0426829268, 62.0670731707, 240.4573170732) !important;
+}
+
+.bg-azulgoro-500 {
+  background-color: #0f2fe7 !important;
+}
+
+.text-azulgoro-500 {
+  color: #0f2fe7 !important;
+}
+
+.border-azulgoro-500 {
+  border-color: #0f2fe7 !important;
+}
+
+.bg-azulgoro-600 {
+  background-color: rgb(13.1341463415, 41.1536585366, 202.2658536585) !important;
+}
+
+.text-azulgoro-600 {
+  color: rgb(13.1341463415, 41.1536585366, 202.2658536585) !important;
+}
+
+.border-azulgoro-600 {
+  border-color: rgb(13.1341463415, 41.1536585366, 202.2658536585) !important;
+}
+
+.bg-azulgoro-700 {
+  background-color: rgb(11.2682926829, 35.3073170732, 173.5317073171) !important;
+}
+
+.text-azulgoro-700 {
+  color: rgb(11.2682926829, 35.3073170732, 173.5317073171) !important;
+}
+
+.border-azulgoro-700 {
+  border-color: rgb(11.2682926829, 35.3073170732, 173.5317073171) !important;
+}
+
+.bg-azulgoro-800 {
+  background-color: rgb(9.4024390244, 29.4609756098, 144.7975609756) !important;
+}
+
+.text-azulgoro-800 {
+  color: rgb(9.4024390244, 29.4609756098, 144.7975609756) !important;
+}
+
+.border-azulgoro-800 {
+  border-color: rgb(9.4024390244, 29.4609756098, 144.7975609756) !important;
+}
+
+.bg-azulgoro-900 {
+  background-color: rgb(7.5365853659, 23.6146341463, 116.0634146341) !important;
+}
+
+.text-azulgoro-900 {
+  color: rgb(7.5365853659, 23.6146341463, 116.0634146341) !important;
+}
+
+.border-azulgoro-900 {
+  border-color: rgb(7.5365853659, 23.6146341463, 116.0634146341) !important;
+}
+
+.bg-azulgoro {
+  background-color: #0f2fe7 !important;
+}
+
+.text-azulgoro {
+  color: #0f2fe7 !important;
+}
+
+.border-azulgoro {
+  border-color: #0f2fe7 !important;
+}
+
+.btn-rojogoro {
+  background-color: #f83427;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-rojogoro:hover {
+  background-color: rgb(203.8923766816, 18.8789237668, 6.6076233184);
+  color: white;
+}
+.dark .btn-rojogoro {
+  background-color: var(--color-gray-200);
+  color: #f83427;
+}
+.dark .btn-rojogoro:hover {
+  color: rgb(203.8923766816, 18.8789237668, 6.6076233184);
+}
+
+.pildora-rojogoro {
+  background-color: hsl(3.7320574163, 73.7219730942%, 101.2745098039%);
+  color: rgb(179.1928251121, 16.5919282511, 5.8071748879);
+}
+.dark .pildora-rojogoro {
+  background-color: rgba(248, 52, 39, 0.1);
+  color: rgb(251.201793722, 144.8520179372, 137.798206278);
+}
+
+.bg-rojogoro-50 {
+  background-color: rgb(254.4035874439, 237.7040358744, 236.5964125561) !important;
+}
+
+.text-rojogoro-50 {
+  color: rgb(254.4035874439, 237.7040358744, 236.5964125561) !important;
+}
+
+.border-rojogoro-50 {
+  border-color: rgb(254.4035874439, 237.7040358744, 236.5964125561) !important;
+}
+
+.bg-rojogoro-100 {
+  background-color: rgb(252.802690583, 191.2780269058, 187.197309417) !important;
+}
+
+.text-rojogoro-100 {
+  color: rgb(252.802690583, 191.2780269058, 187.197309417) !important;
+}
+
+.border-rojogoro-100 {
+  border-color: rgb(252.802690583, 191.2780269058, 187.197309417) !important;
+}
+
+.bg-rojogoro-200 {
+  background-color: rgb(251.201793722, 144.8520179372, 137.798206278) !important;
+}
+
+.text-rojogoro-200 {
+  color: rgb(251.201793722, 144.8520179372, 137.798206278) !important;
+}
+
+.border-rojogoro-200 {
+  border-color: rgb(251.201793722, 144.8520179372, 137.798206278) !important;
+}
+
+.bg-rojogoro-300 {
+  background-color: rgb(249.600896861, 98.4260089686, 88.399103139) !important;
+}
+
+.text-rojogoro-300 {
+  color: rgb(249.600896861, 98.4260089686, 88.399103139) !important;
+}
+
+.border-rojogoro-300 {
+  border-color: rgb(249.600896861, 98.4260089686, 88.399103139) !important;
+}
+
+.bg-rojogoro-400 {
+  background-color: rgb(248.8004484305, 75.2130044843, 63.6995515695) !important;
+}
+
+.text-rojogoro-400 {
+  color: rgb(248.8004484305, 75.2130044843, 63.6995515695) !important;
+}
+
+.border-rojogoro-400 {
+  border-color: rgb(248.8004484305, 75.2130044843, 63.6995515695) !important;
+}
+
+.bg-rojogoro-500 {
+  background-color: #f83427 !important;
+}
+
+.text-rojogoro-500 {
+  color: #f83427 !important;
+}
+
+.border-rojogoro-500 {
+  border-color: #f83427 !important;
+}
+
+.bg-rojogoro-600 {
+  background-color: rgb(247.0394618834, 24.1443946188, 9.3605381166) !important;
+}
+
+.text-rojogoro-600 {
+  color: rgb(247.0394618834, 24.1443946188, 9.3605381166) !important;
+}
+
+.border-rojogoro-600 {
+  border-color: rgb(247.0394618834, 24.1443946188, 9.3605381166) !important;
+}
+
+.bg-rojogoro-700 {
+  background-color: rgb(218.7121076233, 20.2511210762, 7.0878923767) !important;
+}
+
+.text-rojogoro-700 {
+  color: rgb(218.7121076233, 20.2511210762, 7.0878923767) !important;
+}
+
+.border-rojogoro-700 {
+  border-color: rgb(218.7121076233, 20.2511210762, 7.0878923767) !important;
+}
+
+.bg-rojogoro-800 {
+  background-color: rgb(189.0726457399, 17.5067264574, 6.1273542601) !important;
+}
+
+.text-rojogoro-800 {
+  color: rgb(189.0726457399, 17.5067264574, 6.1273542601) !important;
+}
+
+.border-rojogoro-800 {
+  border-color: rgb(189.0726457399, 17.5067264574, 6.1273542601) !important;
+}
+
+.bg-rojogoro-900 {
+  background-color: rgb(159.4331838565, 14.7623318386, 5.1668161435) !important;
+}
+
+.text-rojogoro-900 {
+  color: rgb(159.4331838565, 14.7623318386, 5.1668161435) !important;
+}
+
+.border-rojogoro-900 {
+  border-color: rgb(159.4331838565, 14.7623318386, 5.1668161435) !important;
+}
+
+.bg-rojogoro {
+  background-color: #f83427 !important;
+}
+
+.text-rojogoro {
+  color: #f83427 !important;
+}
+
+.border-rojogoro {
+  border-color: #f83427 !important;
+}
+
+.btn-blanco {
+  background-color: #ffffff;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-blanco:hover {
+  background-color: rgb(216.75, 216.75, 216.75);
+  color: white;
+}
+.dark .btn-blanco {
+  background-color: var(--color-gray-200);
+  color: #ffffff;
+}
+.dark .btn-blanco:hover {
+  color: rgb(216.75, 216.75, 216.75);
+}
+
+.pildora-blanco {
+  background-color: hsl(0, 0%, 145%);
+  color: #cccccc;
+}
+.dark .pildora-blanco {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: hsl(0, 0%, 120%);
+}
+
+.bg-blanco-50 {
+  background-color: hsl(0, 0%, 140%) !important;
+}
+
+.text-blanco-50 {
+  color: hsl(0, 0%, 140%) !important;
+}
+
+.border-blanco-50 {
+  border-color: hsl(0, 0%, 140%) !important;
+}
+
+.bg-blanco-100 {
+  background-color: hsl(0, 0%, 130%) !important;
+}
+
+.text-blanco-100 {
+  color: hsl(0, 0%, 130%) !important;
+}
+
+.border-blanco-100 {
+  border-color: hsl(0, 0%, 130%) !important;
+}
+
+.bg-blanco-200 {
+  background-color: hsl(0, 0%, 120%) !important;
+}
+
+.text-blanco-200 {
+  color: hsl(0, 0%, 120%) !important;
+}
+
+.border-blanco-200 {
+  border-color: hsl(0, 0%, 120%) !important;
+}
+
+.bg-blanco-300 {
+  background-color: hsl(0, 0%, 110%) !important;
+}
+
+.text-blanco-300 {
+  color: hsl(0, 0%, 110%) !important;
+}
+
+.border-blanco-300 {
+  border-color: hsl(0, 0%, 110%) !important;
+}
+
+.bg-blanco-400 {
+  background-color: hsl(0, 0%, 105%) !important;
+}
+
+.text-blanco-400 {
+  color: hsl(0, 0%, 105%) !important;
+}
+
+.border-blanco-400 {
+  border-color: hsl(0, 0%, 105%) !important;
+}
+
+.bg-blanco-500 {
+  background-color: white !important;
+}
+
+.text-blanco-500 {
+  color: white !important;
+}
+
+.border-blanco-500 {
+  border-color: white !important;
+}
+
+.bg-blanco-600 {
+  background-color: rgb(239.7, 239.7, 239.7) !important;
+}
+
+.text-blanco-600 {
+  color: rgb(239.7, 239.7, 239.7) !important;
+}
+
+.border-blanco-600 {
+  border-color: rgb(239.7, 239.7, 239.7) !important;
+}
+
+.bg-blanco-700 {
+  background-color: rgb(224.4, 224.4, 224.4) !important;
+}
+
+.text-blanco-700 {
+  color: rgb(224.4, 224.4, 224.4) !important;
+}
+
+.border-blanco-700 {
+  border-color: rgb(224.4, 224.4, 224.4) !important;
+}
+
+.bg-blanco-800 {
+  background-color: rgb(209.1, 209.1, 209.1) !important;
+}
+
+.text-blanco-800 {
+  color: rgb(209.1, 209.1, 209.1) !important;
+}
+
+.border-blanco-800 {
+  border-color: rgb(209.1, 209.1, 209.1) !important;
+}
+
+.bg-blanco-900 {
+  background-color: rgb(193.8, 193.8, 193.8) !important;
+}
+
+.text-blanco-900 {
+  color: rgb(193.8, 193.8, 193.8) !important;
+}
+
+.border-blanco-900 {
+  border-color: rgb(193.8, 193.8, 193.8) !important;
+}
+
+.bg-blanco {
+  background-color: #ffffff !important;
+}
+
+.text-blanco {
+  color: #ffffff !important;
+}
+
+.border-blanco {
+  border-color: #ffffff !important;
+}
+
+.btn-negro {
+  background-color: #000000;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-negro:hover {
+  background-color: hsl(0, 0%, -15%);
+  color: white;
+}
+.dark .btn-negro {
+  background-color: var(--color-gray-200);
+  color: #000000;
+}
+.dark .btn-negro:hover {
+  color: hsl(0, 0%, -15%);
+}
+
+.pildora-negro {
+  background-color: rgb(114.75, 114.75, 114.75);
+  color: hsl(0, 0%, -20%);
+}
+.dark .pildora-negro {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #333333;
+}
+
+.bg-negro-50 {
+  background-color: #666666 !important;
+}
+
+.text-negro-50 {
+  color: #666666 !important;
+}
+
+.border-negro-50 {
+  border-color: #666666 !important;
+}
+
+.bg-negro-100 {
+  background-color: rgb(76.5, 76.5, 76.5) !important;
+}
+
+.text-negro-100 {
+  color: rgb(76.5, 76.5, 76.5) !important;
+}
+
+.border-negro-100 {
+  border-color: rgb(76.5, 76.5, 76.5) !important;
+}
+
+.bg-negro-200 {
+  background-color: #333333 !important;
+}
+
+.text-negro-200 {
+  color: #333333 !important;
+}
+
+.border-negro-200 {
+  border-color: #333333 !important;
+}
+
+.bg-negro-300 {
+  background-color: rgb(25.5, 25.5, 25.5) !important;
+}
+
+.text-negro-300 {
+  color: rgb(25.5, 25.5, 25.5) !important;
+}
+
+.border-negro-300 {
+  border-color: rgb(25.5, 25.5, 25.5) !important;
+}
+
+.bg-negro-400 {
+  background-color: rgb(12.75, 12.75, 12.75) !important;
+}
+
+.text-negro-400 {
+  color: rgb(12.75, 12.75, 12.75) !important;
+}
+
+.border-negro-400 {
+  border-color: rgb(12.75, 12.75, 12.75) !important;
+}
+
+.bg-negro-500 {
+  background-color: black !important;
+}
+
+.text-negro-500 {
+  color: black !important;
+}
+
+.border-negro-500 {
+  border-color: black !important;
+}
+
+.bg-negro-600 {
+  background-color: hsl(0, 0%, -6%) !important;
+}
+
+.text-negro-600 {
+  color: hsl(0, 0%, -6%) !important;
+}
+
+.border-negro-600 {
+  border-color: hsl(0, 0%, -6%) !important;
+}
+
+.bg-negro-700 {
+  background-color: hsl(0, 0%, -12%) !important;
+}
+
+.text-negro-700 {
+  color: hsl(0, 0%, -12%) !important;
+}
+
+.border-negro-700 {
+  border-color: hsl(0, 0%, -12%) !important;
+}
+
+.bg-negro-800 {
+  background-color: hsl(0, 0%, -18%) !important;
+}
+
+.text-negro-800 {
+  color: hsl(0, 0%, -18%) !important;
+}
+
+.border-negro-800 {
+  border-color: hsl(0, 0%, -18%) !important;
+}
+
+.bg-negro-900 {
+  background-color: hsl(0, 0%, -24%) !important;
+}
+
+.text-negro-900 {
+  color: hsl(0, 0%, -24%) !important;
+}
+
+.border-negro-900 {
+  border-color: hsl(0, 0%, -24%) !important;
+}
+
+.bg-negro {
+  background-color: #000000 !important;
+}
+
+.text-negro {
+  color: #000000 !important;
+}
+
+.border-negro {
+  border-color: #000000 !important;
+}
+
+.btn-athens-gray {
+  background-color: #637586;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-athens-gray:hover {
+  background-color: rgb(66.4957081545, 78.5858369099, 90.0042918455);
+  color: white;
+}
+.dark .btn-athens-gray {
+  background-color: var(--color-gray-200);
+  color: #637586;
+}
+.dark .btn-athens-gray:hover {
+  color: rgb(66.4957081545, 78.5858369099, 90.0042918455);
+}
+
+.pildora-athens-gray {
+  background-color: rgb(231.25, 231.25, 231.25);
+  color: rgb(55.660944206, 65.7811158798, 75.339055794);
+}
+.dark .pildora-athens-gray {
+  background-color: rgba(99, 117, 134, 0.1);
+  color: rgb(154.356223176, 167.8755364807, 180.643776824);
+}
+
+.bg-athens-gray-50 {
+  background-color: rgb(213.017167382, 218.6566523605, 223.982832618) !important;
+}
+
+.text-athens-gray-50 {
+  color: rgb(213.017167382, 218.6566523605, 223.982832618) !important;
+}
+
+.border-athens-gray-50 {
+  border-color: rgb(213.017167382, 218.6566523605, 223.982832618) !important;
+}
+
+.bg-athens-gray-100 {
+  background-color: rgb(183.686695279, 193.2660944206, 202.313304721) !important;
+}
+
+.text-athens-gray-100 {
+  color: rgb(183.686695279, 193.2660944206, 202.313304721) !important;
+}
+
+.border-athens-gray-100 {
+  border-color: rgb(183.686695279, 193.2660944206, 202.313304721) !important;
+}
+
+.bg-athens-gray-200 {
+  background-color: rgb(154.356223176, 167.8755364807, 180.643776824) !important;
+}
+
+.text-athens-gray-200 {
+  color: rgb(154.356223176, 167.8755364807, 180.643776824) !important;
+}
+
+.border-athens-gray-200 {
+  border-color: rgb(154.356223176, 167.8755364807, 180.643776824) !important;
+}
+
+.bg-athens-gray-300 {
+  background-color: rgb(125.025751073, 142.4849785408, 158.974248927) !important;
+}
+
+.text-athens-gray-300 {
+  color: rgb(125.025751073, 142.4849785408, 158.974248927) !important;
+}
+
+.border-athens-gray-300 {
+  border-color: rgb(125.025751073, 142.4849785408, 158.974248927) !important;
+}
+
+.bg-athens-gray-400 {
+  background-color: rgb(110.3605150215, 129.7896995708, 148.1394849785) !important;
+}
+
+.text-athens-gray-400 {
+  color: rgb(110.3605150215, 129.7896995708, 148.1394849785) !important;
+}
+
+.border-athens-gray-400 {
+  border-color: rgb(110.3605150215, 129.7896995708, 148.1394849785) !important;
+}
+
+.bg-athens-gray-500 {
+  background-color: #637586 !important;
+}
+
+.text-athens-gray-500 {
+  color: #637586 !important;
+}
+
+.border-athens-gray-500 {
+  border-color: #637586 !important;
+}
+
+.bg-athens-gray-600 {
+  background-color: rgb(85.9982832618, 101.6343347639, 116.4017167382) !important;
+}
+
+.text-athens-gray-600 {
+  color: rgb(85.9982832618, 101.6343347639, 116.4017167382) !important;
+}
+
+.border-athens-gray-600 {
+  border-color: rgb(85.9982832618, 101.6343347639, 116.4017167382) !important;
+}
+
+.bg-athens-gray-700 {
+  background-color: rgb(72.9965665236, 86.2686695279, 98.8034334764) !important;
+}
+
+.text-athens-gray-700 {
+  color: rgb(72.9965665236, 86.2686695279, 98.8034334764) !important;
+}
+
+.border-athens-gray-700 {
+  border-color: rgb(72.9965665236, 86.2686695279, 98.8034334764) !important;
+}
+
+.bg-athens-gray-800 {
+  background-color: rgb(59.9948497854, 70.9030042918, 81.2051502146) !important;
+}
+
+.text-athens-gray-800 {
+  color: rgb(59.9948497854, 70.9030042918, 81.2051502146) !important;
+}
+
+.border-athens-gray-800 {
+  border-color: rgb(59.9948497854, 70.9030042918, 81.2051502146) !important;
+}
+
+.bg-athens-gray-900 {
+  background-color: rgb(46.9931330472, 55.5373390558, 63.6068669528) !important;
+}
+
+.text-athens-gray-900 {
+  color: rgb(46.9931330472, 55.5373390558, 63.6068669528) !important;
+}
+
+.border-athens-gray-900 {
+  border-color: rgb(46.9931330472, 55.5373390558, 63.6068669528) !important;
+}
+
+.bg-athens-gray {
+  background-color: #637586 !important;
+}
+
+.text-athens-gray {
+  color: #637586 !important;
+}
+
+.border-athens-gray {
+  border-color: #637586 !important;
+}
+
+.btn-dove-gray {
+  background-color: #737373;
+  color: var(--color-gray-50);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-dove-gray:hover {
+  background-color: rgb(76.75, 76.75, 76.75);
+  color: white;
+}
+.dark .btn-dove-gray {
+  background-color: var(--color-gray-200);
+  color: #737373;
+}
+.dark .btn-dove-gray:hover {
+  color: rgb(76.75, 76.75, 76.75);
+}
+
+.pildora-dove-gray {
+  background-color: rgb(229.75, 229.75, 229.75);
+  color: #404040;
+}
+.dark .pildora-dove-gray {
+  background-color: rgba(115, 115, 115, 0.1);
+  color: #a6a6a6;
+}
+
+.bg-dove-gray-50 {
+  background-color: #d9d9d9 !important;
+}
+
+.text-dove-gray-50 {
+  color: #d9d9d9 !important;
+}
+
+.border-dove-gray-50 {
+  border-color: #d9d9d9 !important;
+}
+
+.bg-dove-gray-100 {
+  background-color: rgb(191.5, 191.5, 191.5) !important;
+}
+
+.text-dove-gray-100 {
+  color: rgb(191.5, 191.5, 191.5) !important;
+}
+
+.border-dove-gray-100 {
+  border-color: rgb(191.5, 191.5, 191.5) !important;
+}
+
+.bg-dove-gray-200 {
+  background-color: #a6a6a6 !important;
+}
+
+.text-dove-gray-200 {
+  color: #a6a6a6 !important;
+}
+
+.border-dove-gray-200 {
+  border-color: #a6a6a6 !important;
+}
+
+.bg-dove-gray-300 {
+  background-color: rgb(140.5, 140.5, 140.5) !important;
+}
+
+.text-dove-gray-300 {
+  color: rgb(140.5, 140.5, 140.5) !important;
+}
+
+.border-dove-gray-300 {
+  border-color: rgb(140.5, 140.5, 140.5) !important;
+}
+
+.bg-dove-gray-400 {
+  background-color: rgb(127.75, 127.75, 127.75) !important;
+}
+
+.text-dove-gray-400 {
+  color: rgb(127.75, 127.75, 127.75) !important;
+}
+
+.border-dove-gray-400 {
+  border-color: rgb(127.75, 127.75, 127.75) !important;
+}
+
+.bg-dove-gray-500 {
+  background-color: #737373 !important;
+}
+
+.text-dove-gray-500 {
+  color: #737373 !important;
+}
+
+.border-dove-gray-500 {
+  border-color: #737373 !important;
+}
+
+.bg-dove-gray-600 {
+  background-color: rgb(99.7, 99.7, 99.7) !important;
+}
+
+.text-dove-gray-600 {
+  color: rgb(99.7, 99.7, 99.7) !important;
+}
+
+.border-dove-gray-600 {
+  border-color: rgb(99.7, 99.7, 99.7) !important;
+}
+
+.bg-dove-gray-700 {
+  background-color: rgb(84.4, 84.4, 84.4) !important;
+}
+
+.text-dove-gray-700 {
+  color: rgb(84.4, 84.4, 84.4) !important;
+}
+
+.border-dove-gray-700 {
+  border-color: rgb(84.4, 84.4, 84.4) !important;
+}
+
+.bg-dove-gray-800 {
+  background-color: rgb(69.1, 69.1, 69.1) !important;
+}
+
+.text-dove-gray-800 {
+  color: rgb(69.1, 69.1, 69.1) !important;
+}
+
+.border-dove-gray-800 {
+  border-color: rgb(69.1, 69.1, 69.1) !important;
+}
+
+.bg-dove-gray-900 {
+  background-color: rgb(53.8, 53.8, 53.8) !important;
+}
+
+.text-dove-gray-900 {
+  color: rgb(53.8, 53.8, 53.8) !important;
+}
+
+.border-dove-gray-900 {
+  border-color: rgb(53.8, 53.8, 53.8) !important;
+}
+
+.bg-dove-gray {
+  background-color: #737373 !important;
+}
+
+.text-dove-gray {
+  color: #737373 !important;
+}
+
+.border-dove-gray {
+  border-color: #737373 !important;
+}
+
+.table-striped {
+  color: var(--color-gray-700);
+}
+.table-striped tbody tr:nth-child(odd) {
+  background-color: var(--color-gray-50);
+}
+.table-striped tbody tr:nth-child(even) {
+  background-color: var(--color-gray-100);
+}
+.table-striped tbody tr:hover {
+  background-color: color-mix(in srgb, #000 4%, var(--color-gray-50));
+}
+.table-striped tbody tr.is-active {
+  background-color: var(--color-gray-200);
+  font-weight: 600;
+}
+.dark .table-striped {
+  color: var(--color-gray-100);
+}
+.dark .table-striped tbody tr:nth-child(odd) {
+  background-color: var(--color-gray-800);
+}
+.dark .table-striped tbody tr:nth-child(even) {
+  background-color: var(--color-gray-700);
+}
+.dark .table-striped tbody tr:hover {
+  background-color: color-mix(in srgb, #fff 6%, var(--color-gray-800));
+}
+.dark .table-striped tbody tr.is-active {
+  background-color: var(--color-gray-600);
+}
+
+.table-striped-fresa {
+  color: rgb(255, 107.8, 120.6);
+}
+.table-striped-fresa tbody tr:hover {
+  background-color: hsl(354.7826086957, 100%, 108.9215686275%);
+}
+.table-striped-fresa tbody tr.is-active {
+  background-color: hsl(354.7826086957, 100%, 103.9215686275%);
+}
+.dark .table-striped-fresa {
+  color: rgb(255, 227.4, 229.8);
+}
+.dark .table-striped-fresa tbody tr:hover {
+  background-color: rgb(173, 0, 15.0434782609);
+}
+.dark .table-striped-fresa tbody tr.is-active {
+  background-color: rgb(198.5, 0, 17.2608695652);
+}
+
+.table-striped-naranja {
+  color: rgb(255, 130.2, 108.6);
+}
+.table-striped-naranja tbody tr:hover {
+  background-color: hsl(8.8524590164, 100%, 109.1176470588%);
+}
+.table-striped-naranja tbody tr.is-active {
+  background-color: hsl(8.8524590164, 100%, 104.1176470588%);
+}
+.dark .table-striped-naranja {
+  color: rgb(255, 231.6, 227.55);
+}
+.dark .table-striped-naranja tbody tr:hover {
+  background-color: rgb(174, 25.6721311475, 0);
+}
+.dark .table-striped-naranja tbody tr.is-active {
+  background-color: rgb(199.5, 29.4344262295, 0);
+}
+
+.table-striped-limon {
+  color: rgb(255, 251, 131.8);
+}
+.table-striped-limon tbody tr:hover {
+  background-color: hsl(58.0519480519, 100%, 114.8039215686%);
+}
+.table-striped-limon tbody tr.is-active {
+  background-color: hsl(58.0519480519, 100%, 109.8039215686%);
+}
+.dark .table-striped-limon {
+  color: rgb(255, 254.25, 231.9);
+}
+.dark .table-striped-limon tbody tr:hover {
+  background-color: rgb(203, 196.4090909091, 0);
+}
+.dark .table-striped-limon tbody tr.is-active {
+  background-color: rgb(228.5, 221.0811688312, 0);
+}
+
+.table-striped-kiwi {
+  color: rgb(149.4, 240.6, 178.2);
+}
+.table-striped-kiwi tbody tr:hover {
+  background-color: hsl(138.9473684211, 76%, 115.5882352941%);
+}
+.table-striped-kiwi tbody tr.is-active {
+  background-color: hsl(138.9473684211, 76%, 110.5882352941%);
+}
+.dark .table-striped-kiwi {
+  color: rgb(235.2, 252.3, 240.6);
+}
+.dark .table-striped-kiwi tbody tr:hover {
+  background-color: rgb(24.84, 182.16, 74.52);
+}
+.dark .table-striped-kiwi tbody tr.is-active {
+  background-color: rgb(27.9, 204.6, 83.7);
+}
+
+.table-striped-arandano {
+  color: rgb(117.4, 116.6, 240.6);
+}
+.table-striped-arandano tbody tr:hover {
+  background-color: hsl(240.3870967742, 81.1518324607%, 107.5490196078%);
+}
+.table-striped-arandano tbody tr.is-active {
+  background-color: hsl(240.3870967742, 81.1518324607%, 102.5490196078%);
+}
+.dark .table-striped-arandano {
+  color: rgb(229.2, 229.05, 252.3);
+}
+.dark .table-striped-arandano tbody tr:hover {
+  background-color: rgb(16.5130890052, 15.6439790576, 150.3560209424);
+}
+.dark .table-striped-arandano tbody tr.is-active {
+  background-color: rgb(19.0497382199, 18.0471204188, 173.4528795812);
+}
+
+.table-striped-uva {
+  color: rgb(164.6, 105.4, 189.4);
+}
+.table-striped-uva tbody tr:hover {
+  background-color: rgb(238.7738589212, 226.6452282158, 243.8547717842);
+}
+.table-striped-uva tbody tr.is-active {
+  background-color: rgb(228.2987551867, 208.3402489627, 236.6597510373);
+}
+.dark .table-striped-uva {
+  color: rgb(238.05, 226.95, 242.7);
+}
+.dark .table-striped-uva tbody tr:hover {
+  background-color: rgb(51.8506224066, 24.8298755187, 63.1701244813);
+}
+.dark .table-striped-uva tbody tr.is-active {
+  background-color: rgb(66.8755186722, 32.0248962656, 81.4751037344);
+}
+
+.table-striped-melocoton {
+  color: rgb(255, 198.2, 198.2);
+}
+.table-striped-melocoton tbody tr:hover {
+  background-color: hsl(0, 100%, 131.0784313725%);
+}
+.table-striped-melocoton tbody tr.is-active {
+  background-color: hsl(0, 100%, 126.0784313725%);
+}
+.dark .table-striped-melocoton {
+  color: rgb(255, 244.35, 244.35);
+}
+.dark .table-striped-melocoton tbody tr:hover {
+  background-color: #ff1f1f;
+}
+.dark .table-striped-melocoton tbody tr.is-active {
+  background-color: rgb(255, 56.5, 56.5);
+}
+
+.table-striped-cereza {
+  color: rgb(204.6, 96.6, 85.4);
+}
+.table-striped-cereza tbody tr:hover {
+  background-color: rgb(246.6744680851, 220.5361702128, 217.8255319149);
+}
+.table-striped-cereza tbody tr.is-active {
+  background-color: rgb(242.0085106383, 201.2212765957, 196.9914893617);
+}
+.dark .table-striped-cereza {
+  color: rgb(245.55, 225.3, 223.2);
+}
+.dark .table-striped-cereza tbody tr:hover {
+  background-color: rgb(66.9957446809, 19.8893617021, 15.0042553191);
+}
+.dark .table-striped-cereza tbody tr.is-active {
+  background-color: rgb(87.829787234, 26.0744680851, 19.670212766);
+}
+
+.table-striped-manzana {
+  color: rgb(82.2, 190.2, 127.8);
+}
+.table-striped-manzana tbody tr:hover {
+  background-color: rgb(199.8591549296, 242.6408450704, 217.9225352113);
+}
+.table-striped-manzana tbody tr.is-active {
+  background-color: rgb(179.0281690141, 237.9718309859, 203.9154929577);
+}
+.dark .table-striped-manzana {
+  color: rgb(222.6, 242.85, 231.15);
+}
+.dark .table-striped-manzana tbody tr:hover {
+  background-color: rgb(10.985915493, 49.014084507, 27.0422535211);
+}
+.dark .table-striped-manzana tbody tr.is-active {
+  background-color: rgb(15.6549295775, 69.8450704225, 38.5352112676);
+}
+
+.table-striped-coco {
+  color: rgb(247, 245.4, 243);
+}
+.table-striped-coco tbody tr:hover {
+  background-color: hsl(36, 20%, 140.0980392157%);
+}
+.table-striped-coco tbody tr.is-active {
+  background-color: hsl(36, 20%, 135.0980392157%);
+}
+.dark .table-striped-coco {
+  color: rgb(253.5, 253.2, 252.75);
+}
+.dark .table-striped-coco tbody tr:hover {
+  background-color: rgb(183.8, 169.56, 148.2);
+}
+.dark .table-striped-coco tbody tr.is-active {
+  background-color: rgb(194, 181.8, 163.5);
+}
+
+.table-striped-platano {
+  color: rgb(243.8, 207.8, 63);
+}
+.table-striped-platano tbody tr:hover {
+  background-color: rgb(253.6496062992, 249.3090551181, 231.8503937008);
+}
+.table-striped-platano tbody tr.is-active {
+  background-color: rgb(252.2440944882, 243.3858267717, 207.7559055118);
+}
+.dark .table-striped-platano {
+  color: rgb(252.9, 246.15, 219);
+}
+.dark .table-striped-platano tbody tr:hover {
+  background-color: rgb(97.3228346457, 79.0748031496, 5.6771653543);
+}
+.dark .table-striped-platano tbody tr.is-active {
+  background-color: rgb(121.4173228346, 98.6515748031, 7.0826771654);
+}
+
+.table-striped-mora {
+  color: rgb(86.2, 86.2, 118.2);
+}
+.table-striped-mora tbody tr:hover {
+  background-color: rgb(154.921875, 154.921875, 202.578125);
+}
+.table-striped-mora tbody tr.is-active {
+  background-color: rgb(138.1875, 138.1875, 193.8125);
+}
+.dark .table-striped-mora {
+  color: rgb(223.35, 223.35, 229.35);
+}
+.dark .table-striped-mora tbody tr:hover {
+  background-color: hsl(240, 31.25%, -4.9019607843%);
+}
+.dark .table-striped-mora tbody tr.is-active {
+  background-color: rgb(0.171875, 0.171875, 0.328125);
+}
+
+.table-striped-zafiro {
+  color: rgb(51, 132.6, 214.2);
+}
+.table-striped-zafiro tbody tr:hover {
+  background-color: rgb(178.5, 216.75, 255);
+}
+.table-striped-zafiro tbody tr.is-active {
+  background-color: #99ccff;
+}
+.dark .table-striped-zafiro {
+  color: rgb(216.75, 232.05, 247.35);
+}
+.dark .table-striped-zafiro tbody tr:hover {
+  background-color: rgb(0, 25.5, 51);
+}
+.dark .table-striped-zafiro tbody tr.is-active {
+  background-color: rgb(0, 38.25, 76.5);
+}
+
+.table-striped-rubi {
+  color: rgb(235.8, 111.8, 99);
+}
+.table-striped-rubi tbody tr:hover {
+  background-color: hsl(5.6140350877, 78.0821917808%, 102.0588235294%);
+}
+.table-striped-rubi tbody tr.is-active {
+  background-color: rgb(253.3561643836, 242.7397260274, 241.6438356164);
+}
+.dark .table-striped-rubi {
+  color: rgb(251.4, 228.15, 225.75);
+}
+.dark .table-striped-rubi tbody tr:hover {
+  background-color: rgb(122.8767123288, 25.2054794521, 15.1232876712);
+}
+.dark .table-striped-rubi tbody tr.is-active {
+  background-color: rgb(145.5821917808, 29.8630136986, 17.9178082192);
+}
+
+.table-striped-esmeralda {
+  color: rgb(51, 179, 157.4);
+}
+.table-striped-esmeralda tbody tr:hover {
+  background-color: rgb(134.5, 255, 234.665625);
+}
+.table-striped-esmeralda tbody tr.is-active {
+  background-color: rgb(109, 255, 230.3625);
+}
+.dark .table-striped-esmeralda {
+  color: rgb(216.75, 240.75, 236.7);
+}
+.dark .table-striped-esmeralda tbody tr:hover {
+  background-color: rgb(0, 7, 5.81875);
+}
+.dark .table-striped-esmeralda tbody tr.is-active {
+  background-color: rgb(0, 32.5, 27.015625);
+}
+
+.table-striped-amatista {
+  color: rgb(175, 122.2, 196.6);
+}
+.table-striped-amatista tbody tr:hover {
+  background-color: rgb(251.0251046025, 248.4016736402, 252.0983263598);
+}
+.table-striped-amatista tbody tr.is-active {
+  background-color: rgb(240.3556485356, 230.690376569, 244.309623431);
+}
+.dark .table-striped-amatista {
+  color: rgb(240, 230.1, 244.05);
+}
+.dark .table-striped-amatista tbody tr:hover {
+  background-color: rgb(68.6276150628, 36.0418410042, 81.9581589958);
+}
+.dark .table-striped-amatista tbody tr.is-active {
+  background-color: rgb(83.4581589958, 43.8305439331, 99.6694560669);
+}
+
+.table-striped-topacio {
+  color: rgb(245.4, 175.8, 65.4);
+}
+.table-striped-topacio tbody tr:hover {
+  background-color: rgb(254.0602409639, 247.2469879518, 236.4397590361);
+}
+.table-striped-topacio tbody tr.is-active {
+  background-color: rgb(252.8313253012, 237.1084337349, 212.1686746988);
+}
+.dark .table-striped-topacio {
+  color: rgb(253.2, 240.15, 219.45);
+}
+.dark .table-striped-topacio tbody tr:hover {
+  background-color: rgb(102.7951807229, 65.0602409639, 5.2048192771);
+}
+.dark .table-striped-topacio tbody tr.is-active {
+  background-color: rgb(127.0662650602, 80.421686747, 6.4337349398);
+}
+
+.table-striped-diamante {
+  color: rgb(239.8, 243, 243.8);
+}
+.table-striped-diamante tbody tr:hover {
+  background-color: hsl(192, 15.1515151515%, 138.5294117647%);
+}
+.table-striped-diamante tbody tr.is-active {
+  background-color: hsl(192, 15.1515151515%, 133.5294117647%);
+}
+.dark .table-striped-diamante {
+  color: rgb(252.15, 252.75, 252.9);
+}
+.dark .table-striped-diamante tbody tr:hover {
+  background-color: rgb(147.9090909091, 170.4545454545, 176.0909090909);
+}
+.dark .table-striped-diamante tbody tr.is-active {
+  background-color: rgb(162.5909090909, 182.0454545455, 186.9090909091);
+}
+
+.table-striped-obsidiana {
+  color: rgb(86.2, 100.6, 115);
+}
+.table-striped-obsidiana tbody tr:hover {
+  background-color: rgb(154.0322580645, 176.75, 199.4677419355);
+}
+.table-striped-obsidiana tbody tr.is-active {
+  background-color: rgb(137.5806451613, 164, 190.4193548387);
+}
+.dark .table-striped-obsidiana {
+  color: rgb(223.35, 226.05, 228.75);
+}
+.dark .table-striped-obsidiana tbody tr:hover {
+  background-color: hsl(210, 29.0322580645%, -5.6862745098%);
+}
+.dark .table-striped-obsidiana tbody tr.is-active {
+  background-color: hsl(210, 29.0322580645%, -0.6862745098%);
+}
+
+.table-striped-malaquita {
+  color: rgb(68.6, 179, 157.4);
+}
+.table-striped-malaquita tbody tr:hover {
+  background-color: rgb(168.4065934066, 243.0934065934, 228.4807692308);
+}
+.table-striped-malaquita tbody tr.is-active {
+  background-color: rgb(145.989010989, 240.010989011, 221.6153846154);
+}
+.dark .table-striped-malaquita {
+  color: rgb(220.05, 240.75, 236.7);
+}
+.dark .table-striped-malaquita tbody tr:hover {
+  background-color: rgb(3.5054945055, 25.4945054945, 21.1923076923);
+}
+.dark .table-striped-malaquita tbody tr.is-active {
+  background-color: rgb(6.5879120879, 47.9120879121, 39.8269230769);
+}
+
+.table-striped-cuarzo {
+  color: rgb(202.2, 207, 210.2);
+}
+.table-striped-cuarzo tbody tr:hover {
+  background-color: hsl(204, 8.1967213115%, 121.0784313725%);
+}
+.table-striped-cuarzo tbody tr.is-active {
+  background-color: hsl(204, 8.1967213115%, 116.0784313725%);
+}
+.dark .table-striped-cuarzo {
+  color: rgb(245.1, 246, 246.6);
+}
+.dark .table-striped-cuarzo tbody tr:hover {
+  background-color: rgb(107.868852459, 119.4262295082, 127.131147541);
+}
+.dark .table-striped-cuarzo tbody tr.is-active {
+  background-color: rgb(120.0245901639, 132.2950819672, 140.4754098361);
+}
+
+.table-striped-onix {
+  color: rgb(92.6, 109.4, 126.2);
+}
+.table-striped-onix tbody tr:hover {
+  background-color: rgb(168.404109589, 187.75, 207.095890411);
+}
+.table-striped-onix tbody tr.is-active {
+  background-color: rgb(151.9863013699, 175, 198.0136986301);
+}
+.dark .table-striped-onix {
+  color: rgb(224.55, 227.7, 230.85);
+}
+.dark .table-striped-onix tbody tr:hover {
+  background-color: hsl(210, 28.7671232877%, -1.3725490196%);
+}
+.dark .table-striped-onix tbody tr.is-active {
+  background-color: rgb(6.5890410959, 9.25, 11.9109589041);
+}
+
+.table-striped-jade {
+  color: rgb(87.8, 214.2, 141.4);
+}
+.table-striped-jade tbody tr:hover {
+  background-color: rgb(230.112, 249.388, 238.286);
+}
+.table-striped-jade tbody tr.is-active {
+  background-color: rgb(209.304, 244.696, 224.312);
+}
+.dark .table-striped-jade {
+  color: rgb(223.65, 247.35, 233.7);
+}
+.dark .table-striped-jade tbody tr:hover {
+  background-color: rgb(17.848, 79.152, 43.844);
+}
+.dark .table-striped-jade tbody tr.is-active {
+  background-color: rgb(22.54, 99.96, 55.37);
+}
+
+.table-striped-opalo {
+  color: rgb(236.6, 249.4, 247);
+}
+.table-striped-opalo tbody tr:hover {
+  background-color: hsl(168.75, 53.3333333333%, 139.1176470588%);
+}
+.table-striped-opalo tbody tr.is-active {
+  background-color: hsl(168.75, 53.3333333333%, 134.1176470588%);
+}
+.dark .table-striped-opalo {
+  color: rgb(251.55, 253.95, 253.5);
+}
+.dark .table-striped-opalo tbody tr:hover {
+  background-color: rgb(114.7, 212.3, 194);
+}
+.dark .table-striped-opalo tbody tr.is-active {
+  background-color: rgb(134.25, 218.25, 202.5);
+}
+
+.table-striped-nuevo {
+  color: rgb(51, 132.6, 214.2);
+}
+.table-striped-nuevo tbody tr:hover {
+  background-color: rgb(178.5, 216.75, 255);
+}
+.table-striped-nuevo tbody tr.is-active {
+  background-color: #99ccff;
+}
+.dark .table-striped-nuevo {
+  color: rgb(216.75, 232.05, 247.35);
+}
+.dark .table-striped-nuevo tbody tr:hover {
+  background-color: rgb(0, 25.5, 51);
+}
+.dark .table-striped-nuevo tbody tr.is-active {
+  background-color: rgb(0, 38.25, 76.5);
+}
+
+.table-striped-editar {
+  color: rgb(51, 179, 157.4);
+}
+.table-striped-editar tbody tr:hover {
+  background-color: rgb(134.5, 255, 234.665625);
+}
+.table-striped-editar tbody tr.is-active {
+  background-color: rgb(109, 255, 230.3625);
+}
+.dark .table-striped-editar {
+  color: rgb(216.75, 240.75, 236.7);
+}
+.dark .table-striped-editar tbody tr:hover {
+  background-color: rgb(0, 7, 5.81875);
+}
+.dark .table-striped-editar tbody tr.is-active {
+  background-color: rgb(0, 32.5, 27.015625);
+}
+
+.table-striped-eliminar {
+  color: rgb(204.6, 96.6, 85.4);
+}
+.table-striped-eliminar tbody tr:hover {
+  background-color: rgb(246.6744680851, 220.5361702128, 217.8255319149);
+}
+.table-striped-eliminar tbody tr.is-active {
+  background-color: rgb(242.0085106383, 201.2212765957, 196.9914893617);
+}
+.dark .table-striped-eliminar {
+  color: rgb(245.55, 225.3, 223.2);
+}
+.dark .table-striped-eliminar tbody tr:hover {
+  background-color: rgb(66.9957446809, 19.8893617021, 15.0042553191);
+}
+.dark .table-striped-eliminar tbody tr.is-active {
+  background-color: rgb(87.829787234, 26.0744680851, 19.670212766);
+}
+
+.table-striped-cancelar {
+  color: rgb(245.4, 175.8, 65.4);
+}
+.table-striped-cancelar tbody tr:hover {
+  background-color: rgb(254.0602409639, 247.2469879518, 236.4397590361);
+}
+.table-striped-cancelar tbody tr.is-active {
+  background-color: rgb(252.8313253012, 237.1084337349, 212.1686746988);
+}
+.dark .table-striped-cancelar {
+  color: rgb(253.2, 240.15, 219.45);
+}
+.dark .table-striped-cancelar tbody tr:hover {
+  background-color: rgb(102.7951807229, 65.0602409639, 5.2048192771);
+}
+.dark .table-striped-cancelar tbody tr.is-active {
+  background-color: rgb(127.0662650602, 80.421686747, 6.4337349398);
+}
+
+.table-striped-cerrar {
+  color: rgb(243.8, 207.8, 63);
+}
+.table-striped-cerrar tbody tr:hover {
+  background-color: rgb(253.6496062992, 249.3090551181, 231.8503937008);
+}
+.table-striped-cerrar tbody tr.is-active {
+  background-color: rgb(252.2440944882, 243.3858267717, 207.7559055118);
+}
+.dark .table-striped-cerrar {
+  color: rgb(252.9, 246.15, 219);
+}
+.dark .table-striped-cerrar tbody tr:hover {
+  background-color: rgb(97.3228346457, 79.0748031496, 5.6771653543);
+}
+.dark .table-striped-cerrar tbody tr.is-active {
+  background-color: rgb(121.4173228346, 98.6515748031, 7.0826771654);
+}
+
+.table-striped-guardar {
+  color: rgb(82.2, 190.2, 127.8);
+}
+.table-striped-guardar tbody tr:hover {
+  background-color: rgb(199.8591549296, 242.6408450704, 217.9225352113);
+}
+.table-striped-guardar tbody tr.is-active {
+  background-color: rgb(179.0281690141, 237.9718309859, 203.9154929577);
+}
+.dark .table-striped-guardar {
+  color: rgb(222.6, 242.85, 231.15);
+}
+.dark .table-striped-guardar tbody tr:hover {
+  background-color: rgb(10.985915493, 49.014084507, 27.0422535211);
+}
+.dark .table-striped-guardar tbody tr.is-active {
+  background-color: rgb(15.6549295775, 69.8450704225, 38.5352112676);
+}
+
+.table-striped-confirmar {
+  color: rgb(164.6, 105.4, 189.4);
+}
+.table-striped-confirmar tbody tr:hover {
+  background-color: rgb(238.7738589212, 226.6452282158, 243.8547717842);
+}
+.table-striped-confirmar tbody tr.is-active {
+  background-color: rgb(228.2987551867, 208.3402489627, 236.6597510373);
+}
+.dark .table-striped-confirmar {
+  color: rgb(238.05, 226.95, 242.7);
+}
+.dark .table-striped-confirmar tbody tr:hover {
+  background-color: rgb(51.8506224066, 24.8298755187, 63.1701244813);
+}
+.dark .table-striped-confirmar tbody tr.is-active {
+  background-color: rgb(66.8755186722, 32.0248962656, 81.4751037344);
+}
+
+.table-striped-azulgoro {
+  color: rgb(63, 88.6, 235.8);
+}
+.table-striped-azulgoro tbody tr:hover {
+  background-color: rgb(222.6036585366, 227.0914634146, 252.8963414634);
+}
+.table-striped-azulgoro tbody tr.is-active {
+  background-color: rgb(198.6585365854, 206.4634146341, 251.3414634146);
+}
+.dark .table-striped-azulgoro {
+  color: rgb(219, 223.8, 251.4);
+}
+.dark .table-striped-azulgoro tbody tr:hover {
+  background-color: rgb(5.6707317073, 17.7682926829, 87.3292682927);
+}
+.dark .table-striped-azulgoro tbody tr.is-active {
+  background-color: rgb(7.2256097561, 22.6402439024, 111.2743902439);
+}
+
+.table-striped-rojogoro {
+  color: rgb(249.4, 92.6, 82.2);
+}
+.table-striped-rojogoro tbody tr:hover {
+  background-color: hsl(3.7320574163, 93.7219730942%, 101.2745098039%);
+}
+.table-striped-rojogoro tbody tr.is-active {
+  background-color: rgb(254.4035874439, 237.7040358744, 236.5964125561);
+}
+.dark .table-striped-rojogoro {
+  color: rgb(253.95, 224.55, 222.6);
+}
+.dark .table-striped-rojogoro tbody tr:hover {
+  background-color: rgb(129.7937219731, 12.0179372197, 4.2062780269);
+}
+.dark .table-striped-rojogoro tbody tr.is-active {
+  background-color: rgb(154.4932735426, 14.3049327354, 5.0067264574);
+}
+
+.table-striped-blanco {
+  color: white;
+}
+.table-striped-blanco tbody tr:hover {
+  background-color: hsl(0, 0%, 145%);
+}
+.table-striped-blanco tbody tr.is-active {
+  background-color: hsl(0, 0%, 140%);
+}
+.dark .table-striped-blanco {
+  color: white;
+}
+.dark .table-striped-blanco tbody tr:hover {
+  background-color: rgb(178.5, 178.5, 178.5);
+}
+.dark .table-striped-blanco tbody tr.is-active {
+  background-color: rgb(191.25, 191.25, 191.25);
+}
+
+.table-striped-negro {
+  color: #333333;
+}
+.table-striped-negro tbody tr:hover {
+  background-color: rgb(114.75, 114.75, 114.75);
+}
+.table-striped-negro tbody tr.is-active {
+  background-color: #666666;
+}
+.dark .table-striped-negro {
+  color: rgb(216.75, 216.75, 216.75);
+}
+.dark .table-striped-negro tbody tr:hover {
+  background-color: hsl(0, 0%, -30%);
+}
+.dark .table-striped-negro tbody tr.is-active {
+  background-color: hsl(0, 0%, -25%);
+}
+
+.table-striped-athens-gray {
+  color: rgb(130.2, 144.6, 158.2);
+}
+.table-striped-athens-gray tbody tr:hover {
+  background-color: rgb(227.6824034335, 231.3519313305, 234.8175965665);
+}
+.table-striped-athens-gray tbody tr.is-active {
+  background-color: rgb(213.017167382, 218.6566523605, 223.982832618);
+}
+.dark .table-striped-athens-gray {
+  color: rgb(231.6, 234.3, 236.85);
+}
+.dark .table-striped-athens-gray tbody tr:hover {
+  background-color: rgb(33.991416309, 40.1716738197, 46.008583691);
+}
+.dark .table-striped-athens-gray tbody tr.is-active {
+  background-color: rgb(44.8261802575, 52.9763948498, 60.6738197425);
+}
+
+.table-striped-dove-gray {
+  color: #8f8f8f;
+}
+.table-striped-dove-gray tbody tr:hover {
+  background-color: rgb(229.75, 229.75, 229.75);
+}
+.table-striped-dove-gray tbody tr.is-active {
+  background-color: #d9d9d9;
+}
+.dark .table-striped-dove-gray {
+  color: #eaeaea;
+}
+.dark .table-striped-dove-gray tbody tr:hover {
+  background-color: rgb(38.5, 38.5, 38.5);
+}
+.dark .table-striped-dove-gray tbody tr.is-active {
+  background-color: rgb(51.25, 51.25, 51.25);
+}

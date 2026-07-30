@@ -1,0 +1,14 @@
+.dosl-hidden {
+  display: none !important;
+}
+
+.mayusculas {
+  text-transform: uppercase;
+}
+
+/* El icono del reloj de los <input type="time"> es un tab stop más (tras la hora y los
+   minutos) y no se le puede poner tabindex por estar en el shadow DOM: se quita. La hora
+   se sigue tecleando igual, y con flechas arriba/abajo. */
+.sin-selector-hora::-webkit-calendar-picker-indicator {
+  display: none;
+}

@@ -1,0 +1,52 @@
+@use "sass:map";
+@use "./parciales/listaColores" as *;
+
+@at-root {
+  /*! 
+  
+  Generado automáticamente. No modificar directamente.
+  Viene de resources/scss/correo.scss
+  
+  */
+}
+// $frutas: listaColores.$frutas;
+// $minerales: listaColores.$minerales;
+// $colores-extra: listaColores.$colores-extra;
+
+// =======================
+// Variables CSS en :root
+// =======================
+:root {
+  // Frutas
+  @each $nombre, $color in $frutas {
+    --#{$nombre}: #{$color};
+  }
+
+  // Minerales
+  @each $nombre, $color in $minerales {
+    --#{$nombre}: #{$color};
+  }
+
+  // Extra
+  @each $nombre, $color in $colores-extra {
+    --#{$nombre}: #{$color};
+  }
+}
+
+// =======================
+// Unir mapas (sin funciones globales)
+// =======================
+$colores: map.merge(map.merge($frutas, $minerales), $colores-extra);
+
+// =======================
+// Clases utilitarias (fondo y texto)
+// =======================
+@each $nombre, $color in $colores {
+  .fondo-#{$nombre} {
+    background-color: var(--#{$nombre});
+  }
+
+  .texto-#{$nombre} {
+    color: var(--#{$nombre});
+  }
+}

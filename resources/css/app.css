@@ -1,0 +1,72 @@
+@import "./fontawesome.css";
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+@import './theme.css';
+@import './colores.css';
+@import './doslago.css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+@source '../../vendor/tallstackui/tallstackui/**/*.php'; 
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: Inter, sans-serif;
+}
+
+/* @layer theme {
+    .dark {
+        --color-accent: var(--color-white);
+        --color-accent-content: var(--color-white);
+        --color-accent-foreground: var(--color-neutral-800);
+    }
+} */
+
+@layer base {
+
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+    @apply grid gap-2;
+}
+
+[data-flux-label] {
+    @apply  !mb-0 !leading-tight;
+}
+
+input:focus[data-flux-control],
+textarea:focus[data-flux-control],
+select:focus[data-flux-control] {
+    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+}
+
+/* \[:where(&)\]:size-4 {
+    @apply size-4;
+} */
+
+[x-cloak] {
+    display: none;
+}
+
+/* Menú lateral: al colapsar en escritorio, ocultarlo del todo (no dejar el rail
+   de iconos w-14). El main reflota solo porque Flux ya reajusta el grid. */
+[data-flux-sidebar][data-flux-sidebar-collapsed-desktop] {
+    width: 0 !important;
+    min-width: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-right-width: 0 !important;
+    overflow: hidden !important;
+}

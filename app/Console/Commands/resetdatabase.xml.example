@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Escuelas que puede recrear el comando `xestionmusical:db-reset` (ver
+    app/Console/Commands/ResetDatabase.php).
+
+    Cada <escuela>:
+
+      - id       : nombre que se muestra al elegir y en los avisos.
+      - env_file : .env de la escuela (datos de conexión y TIPO_* propios),
+                   se copia como .env antes de migrar.
+
+    Cuenta con permisos para crear/borrar la BD (evita pedir la de root):
+      - createaccess="1" (atributo de <escuela>) : basta el propio usuario del
+        .env, ya tiene permisos.
+      - si no, createaccessname + createaccesspassword : se usa esa cuenta.
+      - si no hay nada : se piden usuario y contraseña por pantalla.
+
+    createdatabase="1" (atributo de <escuela>): el .env resultante NO hereda
+    DB_DATABASE/DB_USERNAME/DB_PASSWORD del env_file (que viaja por git), sino
+    de createaccessname + createaccesspassword + createaccessdatabase de aquí
+    (fichero local, en .gitignore); esa misma cuenta hace de admin (crea/borra
+    la BD) y de conexión de la app. Lo que falte se pide por pantalla. Además,
+    siempre se genera un APP_KEY nuevo (nunca el del env_file versionado).
+-->
+<escuelas>
+    <escuela id="Chapela" createaccess="1">
+        <env_file>.env.chapela</env_file>
+    </escuela>
+    <escuela id="Bembrive" createaccess="0" createdatabase="1">
+        <env_file>.env.bembrive</env_file>
+        <createaccessname>admin</createaccessname>
+        <createaccesspassword>secreto</createaccesspassword>
+        <createaccessdatabase>ateneoxestion</createaccessdatabase>
+    </escuela>
+</escuelas>

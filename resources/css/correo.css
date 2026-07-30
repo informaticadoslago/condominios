@@ -1,0 +1,342 @@
+@charset "UTF-8";
+/*! 
+
+Generado automáticamente. No modificar directamente.
+Viene de resources/scss/correo.scss
+
+*/
+:root {
+  --fresa: #ff4757;
+  --naranja: #ff6348;
+  --limon: #fffa65;
+  --kiwi: #7bed9f;
+  --arandano: #5352ed;
+  --uva: #8e44ad;
+  --melocoton: #ffb8b8;
+  --cereza: #c0392b;
+  --manzana: #27ae60;
+  --coco: #f5f3f0;
+  --platano: #f1c40f;
+  --mora: #2c2c54;
+  --zafiro: #0066cc;
+  --rubi: #e74c3c;
+  --esmeralda: #00a085;
+  --amatista: #9b59b6;
+  --topacio: #f39c12;
+  --diamante: #ecf0f1;
+  --obsidiana: #2c3e50;
+  --malaquita: #16a085;
+  --cuarzo: #bdc3c7;
+  --onix: #34495e;
+  --jade: #2ecc71;
+  --opalo: #e8f8f5;
+  --nuevo: #0066cc;
+  --editar: #00a085;
+  --eliminar: #c0392b;
+  --cancelar: #f39c12;
+  --cerrar: #f1c40f;
+  --guardar: #27ae60;
+  --confirmar: #8e44ad;
+  --azulgoro: #0f2fe7;
+  --rojogoro: #f83427;
+  --blanco: #ffffff;
+  --negro: #000000;
+  --athens-gray: #637586;
+  --dove-gray: #737373;
+}
+
+.fondo-fresa {
+  background-color: var(--fresa);
+}
+
+.texto-fresa {
+  color: var(--fresa);
+}
+
+.fondo-naranja {
+  background-color: var(--naranja);
+}
+
+.texto-naranja {
+  color: var(--naranja);
+}
+
+.fondo-limon {
+  background-color: var(--limon);
+}
+
+.texto-limon {
+  color: var(--limon);
+}
+
+.fondo-kiwi {
+  background-color: var(--kiwi);
+}
+
+.texto-kiwi {
+  color: var(--kiwi);
+}
+
+.fondo-arandano {
+  background-color: var(--arandano);
+}
+
+.texto-arandano {
+  color: var(--arandano);
+}
+
+.fondo-uva {
+  background-color: var(--uva);
+}
+
+.texto-uva {
+  color: var(--uva);
+}
+
+.fondo-melocoton {
+  background-color: var(--melocoton);
+}
+
+.texto-melocoton {
+  color: var(--melocoton);
+}
+
+.fondo-cereza {
+  background-color: var(--cereza);
+}
+
+.texto-cereza {
+  color: var(--cereza);
+}
+
+.fondo-manzana {
+  background-color: var(--manzana);
+}
+
+.texto-manzana {
+  color: var(--manzana);
+}
+
+.fondo-coco {
+  background-color: var(--coco);
+}
+
+.texto-coco {
+  color: var(--coco);
+}
+
+.fondo-platano {
+  background-color: var(--platano);
+}
+
+.texto-platano {
+  color: var(--platano);
+}
+
+.fondo-mora {
+  background-color: var(--mora);
+}
+
+.texto-mora {
+  color: var(--mora);
+}
+
+.fondo-zafiro {
+  background-color: var(--zafiro);
+}
+
+.texto-zafiro {
+  color: var(--zafiro);
+}
+
+.fondo-rubi {
+  background-color: var(--rubi);
+}
+
+.texto-rubi {
+  color: var(--rubi);
+}
+
+.fondo-esmeralda {
+  background-color: var(--esmeralda);
+}
+
+.texto-esmeralda {
+  color: var(--esmeralda);
+}
+
+.fondo-amatista {
+  background-color: var(--amatista);
+}
+
+.texto-amatista {
+  color: var(--amatista);
+}
+
+.fondo-topacio {
+  background-color: var(--topacio);
+}
+
+.texto-topacio {
+  color: var(--topacio);
+}
+
+.fondo-diamante {
+  background-color: var(--diamante);
+}
+
+.texto-diamante {
+  color: var(--diamante);
+}
+
+.fondo-obsidiana {
+  background-color: var(--obsidiana);
+}
+
+.texto-obsidiana {
+  color: var(--obsidiana);
+}
+
+.fondo-malaquita {
+  background-color: var(--malaquita);
+}
+
+.texto-malaquita {
+  color: var(--malaquita);
+}
+
+.fondo-cuarzo {
+  background-color: var(--cuarzo);
+}
+
+.texto-cuarzo {
+  color: var(--cuarzo);
+}
+
+.fondo-onix {
+  background-color: var(--onix);
+}
+
+.texto-onix {
+  color: var(--onix);
+}
+
+.fondo-jade {
+  background-color: var(--jade);
+}
+
+.texto-jade {
+  color: var(--jade);
+}
+
+.fondo-opalo {
+  background-color: var(--opalo);
+}
+
+.texto-opalo {
+  color: var(--opalo);
+}
+
+.fondo-nuevo {
+  background-color: var(--nuevo);
+}
+
+.texto-nuevo {
+  color: var(--nuevo);
+}
+
+.fondo-editar {
+  background-color: var(--editar);
+}
+
+.texto-editar {
+  color: var(--editar);
+}
+
+.fondo-eliminar {
+  background-color: var(--eliminar);
+}
+
+.texto-eliminar {
+  color: var(--eliminar);
+}
+
+.fondo-cancelar {
+  background-color: var(--cancelar);
+}
+
+.texto-cancelar {
+  color: var(--cancelar);
+}
+
+.fondo-cerrar {
+  background-color: var(--cerrar);
+}
+
+.texto-cerrar {
+  color: var(--cerrar);
+}
+
+.fondo-guardar {
+  background-color: var(--guardar);
+}
+
+.texto-guardar {
+  color: var(--guardar);
+}
+
+.fondo-confirmar {
+  background-color: var(--confirmar);
+}
+
+.texto-confirmar {
+  color: var(--confirmar);
+}
+
+.fondo-azulgoro {
+  background-color: var(--azulgoro);
+}
+
+.texto-azulgoro {
+  color: var(--azulgoro);
+}
+
+.fondo-rojogoro {
+  background-color: var(--rojogoro);
+}
+
+.texto-rojogoro {
+  color: var(--rojogoro);
+}
+
+.fondo-blanco {
+  background-color: var(--blanco);
+}
+
+.texto-blanco {
+  color: var(--blanco);
+}
+
+.fondo-negro {
+  background-color: var(--negro);
+}
+
+.texto-negro {
+  color: var(--negro);
+}
+
+.fondo-athens-gray {
+  background-color: var(--athens-gray);
+}
+
+.texto-athens-gray {
+  color: var(--athens-gray);
+}
+
+.fondo-dove-gray {
+  background-color: var(--dove-gray);
+}
+
+.texto-dove-gray {
+  color: var(--dove-gray);
+}

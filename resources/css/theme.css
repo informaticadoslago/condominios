@@ -1,0 +1,73 @@
+@charset "UTF-8";
+/*! 
+
+Generado automáticamente. No modificar directamente.
+Viene de resources/scss/theme.scss
+*/
+/* === 1. Color base === */
+/* === 2. Escalas de color === */
+@theme {
+  --color-gray-50: rgb(240.8, 240.8, 241.7);
+  --color-gray-100: rgb(226.6, 226.6, 228.4);
+  --color-gray-200: rgb(205.3, 205.3, 208.45);
+  --color-gray-300: rgb(184, 184, 188.5);
+  --color-gray-400: rgb(162.7, 162.7, 168.55);
+  --color-gray-500: #71717a;
+  --color-gray-600: rgb(101.7, 101.7, 109.8);
+  --color-gray-700: rgb(84.75, 84.75, 91.5);
+  --color-gray-800: rgb(67.8, 67.8, 73.2);
+  --color-gray-900: rgb(50.85, 50.85, 54.9);
+  --color-gray-950: rgb(33.9, 33.9, 36.6);
+}
+@theme {
+  --color-accent-50: rgb(235.2, 239.4, 253);
+  --color-accent-100: rgb(215.4, 223.8, 251);
+  --color-accent-200: rgb(185.7, 200.4, 248);
+  --color-accent-300: #9cb1f5;
+  --color-accent-400: rgb(126.3, 153.6, 242);
+  --color-accent-500: #3963eb;
+  --color-accent-600: rgb(51.3, 89.1, 211.5);
+  --color-accent-700: rgb(42.75, 74.25, 176.25);
+  --color-accent-800: rgb(34.2, 59.4, 141);
+  --color-accent-900: rgb(25.65, 44.55, 105.75);
+  --color-accent-950: rgb(17.1, 29.7, 70.5);
+}
+@theme {
+  --color-verdedosl-50: rgb(231.7, 245.8, 236.9);
+  --color-verdedosl-100: rgb(208.4, 236.6, 218.8);
+  --color-verdedosl-200: rgb(173.45, 222.8, 191.65);
+  --color-verdedosl-300: rgb(138.5, 209, 164.5);
+  --color-verdedosl-400: rgb(103.55, 195.2, 137.35);
+  --color-verdedosl-500: #16a34a;
+  --color-verdedosl-600: rgb(19.8, 146.7, 66.6);
+  --color-verdedosl-700: rgb(16.5, 122.25, 55.5);
+  --color-verdedosl-800: rgb(13.2, 97.8, 44.4);
+  --color-verdedosl-900: rgb(9.9, 73.35, 33.3);
+  --color-verdedosl-950: rgb(6.6, 48.9, 22.2);
+}
+@theme {
+  --color-zinc-50: var(--color-gray-50);
+  --color-zinc-100: var(--color-gray-100);
+  --color-zinc-200: var(--color-gray-200);
+  --color-zinc-300: var(--color-gray-300);
+  --color-zinc-400: var(--color-gray-400);
+  --color-zinc-500: var(--color-gray-500);
+  --color-zinc-600: var(--color-gray-600);
+  --color-zinc-700: var(--color-gray-700);
+  --color-zinc-800: var(--color-gray-800);
+  --color-zinc-900: var(--color-gray-900);
+  --color-zinc-950: var(--color-gray-950);
+}
+@theme {
+  --color-accent: var(--color-accent-600);
+  --color-accent-content: var(--color-accent-600);
+  --color-accent-foreground: var(--color-white);
+}
+/* === 3. Dark mode === */
+@layer theme {
+  .dark {
+    --color-accent: var(--color-accent-600);
+    --color-accent-content: var(--color-accent-400);
+    --color-accent-foreground: var(--color-white);
+  }
+}

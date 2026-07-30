@@ -1,0 +1,214 @@
+@use "sass:color";
+@use "sass:map";
+@use "./parciales/listaColores";
+
+@at-root {
+    /*! 
+  
+  Generado automáticamente. No modificar directamente.
+  Viene de resources/scss/colores.scss
+  */
+}
+
+// Unir frutas y minerales en un solo mapa
+// $colores: map.merge(listaColores.$frutas, listaColores.$minerales);
+// Si quieres añadir $colores-extra también:
+$colores: map.merge(
+    map.merge(listaColores.$frutas, listaColores.$minerales),
+    listaColores.$colores-extra
+);
+
+// 🎨 Colores actuales
+// $colores: (
+//   fresa: #ff4757,
+//   naranja: #ff6348,
+//   limon: #fffa65,
+//   kiwi: #7bed9f,
+//   arandano: #5352ed,
+//   uva: #8e44ad,
+//   melocoton: #ffb8b8,
+//   cereza: #c0392b,
+//   manzana: #27ae60,
+//   coco: #f5f3f0,
+//   platano: #f1c40f,
+//   mora: #2c2c54,
+//   zafiro: #0066cc,
+//   rubi: #e74c3c,
+//   esmeralda: #00a085,
+//   amatista: #9b59b6,
+//   topacio: #f39c12,
+//   diamante: #ecf0f1,
+//   obsidiana: #2c3e50,
+//   malaquita: #16a085,
+//   cuarzo: #bdc3c7,
+//   onix: #34495e,
+//   jade: #2ecc71,
+//   opalo: #e8f8f5,
+//   blanco: #ffffff,
+//   negro: #000000,
+//   verdecore: #88ab32,
+//   rojocore: #f83427
+// );
+
+// 🔢 Niveles tipo Tailwind
+$levels: (
+    50: 40%,
+    100: 30%,
+    200: 20%,
+    300: 10%,
+    400: 5%,
+    500: 0%,
+    600: -6%,
+    700: -12%,
+    800: -18%,
+    900: -24%,
+);
+
+// 🛠️ Generar botones y utilidades
+@each $name, $color in $colores {
+    // Botón principal
+    $hover-color: color.adjust($color, $lightness: -15%);
+
+    .btn-#{$name} {
+        background-color: $color;
+        color: var(--color-gray-50);
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        transition: background-color 0.2s ease, color 0.2s ease;
+
+        &:hover {
+            background-color: $hover-color;
+            color: white;
+        }
+
+        .dark & {
+            background-color: var(--color-gray-200);
+            color: $color;
+
+            &:hover {
+                color: $hover-color;
+            }
+        }
+    }
+
+    .pildora-#{$name} {
+        // Light mode
+        background-color: color.adjust($color, $lightness: 45%, $saturation: -20%);
+        color: color.adjust($color, $lightness: -20%);
+        
+        // Dark mode
+        .dark & {
+            background-color: rgba($color, 0.1);
+            color: color.adjust($color, $lightness: 20%);
+        }
+    }
+
+    // Niveles tipo Tailwind
+    @each $level, $lightness in $levels {
+        .bg-#{$name}-#{$level} {
+            background-color: color.adjust(
+                $color,
+                $lightness: $lightness
+            ) !important;
+        }
+
+        .text-#{$name}-#{$level} {
+            color: color.adjust($color, $lightness: $lightness) !important;
+        }
+
+        .border-#{$name}-#{$level} {
+            border-color: color.adjust(
+                $color,
+                $lightness: $lightness
+            ) !important;
+        }
+    }
+
+    // Clases básicas (sin nivel)
+    .bg-#{$name} {
+        background-color: $color !important;
+    }
+    .text-#{$name} {
+        color: $color !important;
+    }
+    .border-#{$name} {
+        border-color: $color !important;
+    }
+}
+
+// -----------------------------
+// Tabla base: fondos par/impar y color default
+// -----------------------------
+.table-striped {
+  color: var(--color-gray-700); // Texto en light mode
+
+  tbody tr:nth-child(odd) {
+    background-color: var(--color-gray-50);
+  }
+
+  tbody tr:nth-child(even) {
+    background-color: var(--color-gray-100);
+  }
+
+  tbody tr:hover {
+    background-color: color-mix(in srgb, #000 4%, var(--color-gray-50));
+  }
+
+  tbody tr.is-active {
+    background-color: var(--color-gray-200);
+    font-weight: 600;
+  }
+
+  // -----------------------------
+  // Dark mode
+  // -----------------------------
+  .dark & {
+    color: var(--color-gray-100); // Texto claro en dark mode
+
+    tbody tr:nth-child(odd) {
+      background-color: var(--color-gray-800);
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: var(--color-gray-700);
+    }
+
+    tbody tr:hover {
+      background-color: color-mix(in srgb, #fff 6%, var(--color-gray-800));
+    }
+
+    tbody tr.is-active {
+      background-color: var(--color-gray-600);
+    }
+  }
+}
+
+// -----------------------------
+// Variantes por color de letra
+// -----------------------------
+@each $name, $color in $colores {
+  .table-striped-#{$name} {
+    color: color.mix(white, $color, 20%); // light mode: 20% blanco
+
+    tbody tr:hover {
+      background-color: color.adjust($color, $lightness: 45%);
+    }
+
+    tbody tr.is-active {
+      background-color: color.adjust($color, $lightness: 40%);
+    }
+
+    .dark & {
+      color: color.mix(white, $color, 85%); // dark mode: 85% blanco
+
+      tbody tr:hover {
+        background-color: color.adjust($color, $lightness: -30%);
+      }
+
+      tbody tr.is-active {
+        background-color: color.adjust($color, $lightness: -25%);
+      }
+    }
+  }
+}
