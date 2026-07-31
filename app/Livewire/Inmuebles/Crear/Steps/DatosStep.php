@@ -26,6 +26,12 @@ class DatosStep extends CrearInmuebleStep
         return ['label' => __('Datos del inmueble')];
     }
 
+    /** Admite coma o punto como separador decimal: se normaliza a punto antes de validar. */
+    public function updatedCoeficiente($value)
+    {
+        $this->coeficiente = str_replace(',', '.', $value);
+    }
+
     protected function rules()
     {
         return [
@@ -33,7 +39,7 @@ class DatosStep extends CrearInmuebleStep
             'ocupacion_id'         => ['required', 'exists:tipo_ocupaciones,id'],
             'tipo_inmueble_id'     => ['required', 'exists:tipo_inmuebles,id'],
             'planta'               => ['required', 'integer', 'between:-99,99'],
-            'puerta'               => ['required', 'string', 'max:5'],
+            'puerta'               => ['nullable', 'string', 'max:5'],
             'coeficiente'          => ['required', 'numeric', 'min:0.01', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
             'referencia_catastral' => ['nullable', 'string', 'max:20'],
         ];

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('ocupacion_id')->index('inmuebles_ocupacion_id_foreign');
             $table->unsignedBigInteger('tipo_inmueble_id')->index('inmuebles_tipo_inmueble_id_foreign');
             $table->tinyInteger('planta');
-            $table->string('puerta', 5);
+            $table->string('puerta', 5)->nullable();
             $table->decimal('coeficiente', 5, 2);
             $table->string('referencia_catastral', 20)->nullable();
             $table->timestamps();

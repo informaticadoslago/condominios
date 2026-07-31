@@ -74,6 +74,17 @@ class PropietariosStep extends CrearInmuebleStep
         }
     }
 
+    /** Admiten coma o punto como separador decimal: se normalizan a punto antes de validar. */
+    public function updatedCuotaPercent($value)
+    {
+        $this->cuota_percent = str_replace(',', '.', $value);
+    }
+
+    public function updatedEditCuotaPercent($value)
+    {
+        $this->edit_cuota_percent = str_replace(',', '.', $value);
+    }
+
     public function causas(): array
     {
         return [
