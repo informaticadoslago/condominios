@@ -10,10 +10,9 @@ class FormaDePago extends Model
     ESTADO_ACTIVO = 1,
     ESTADO_BAJA = 2;
 
-    // Ids conservados de tipos_de_tipos (grupo 152).
     const
-    RECIBO_BANCARIO = 153,
-    EFECTIVO = 154;
+    RECIBO_BANCARIO = 1,
+    EFECTIVO = 2;
 
     protected $table = 'formas_de_pago';
 

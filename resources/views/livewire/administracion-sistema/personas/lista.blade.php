@@ -52,20 +52,6 @@
                                                 <i class="fa-solid fa-user-gear"></i> {{ __('Usuario') }}
                                             </button>
                                         @endif
-                                        @if ($persona->socio)
-                                            {{-- T: hacer botón cuando exista el edit de socios --}}
-                                            <span class="btn text-xs px-2 py-1 mr-1 opacity-60 cursor-default"
-                                                title="{{ __('Edición de socios pendiente') }}">
-                                                <i class="fa-solid fa-id-card"></i> {{ __('Socio') }}
-                                            </span>
-                                        @endif
-                                        @if ($persona->alumno)
-                                            {{-- T: hacer botón cuando exista el edit de alumnos --}}
-                                            <span class="btn text-xs px-2 py-1 mr-1 opacity-60 cursor-default"
-                                                title="{{ __('Edición de alumnos pendiente') }}">
-                                                <i class="fa-solid fa-graduation-cap"></i> {{ __('Alumno') }}
-                                            </span>
-                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Escuelas que puede recrear el comando `xestionmusical:db-reset` (ver
+    Escuelas que puede recrear el comando `doslago:db-reset` (ver
     app/Console/Commands/ResetDatabase.php).
 
     Cada <escuela>:

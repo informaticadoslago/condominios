@@ -10,7 +10,6 @@ trait WithDireccion
 public $paises;
     public bool $pais_is_spain = false;
 
-    public $tipovias;
     public $provincias;
 
     public function updatedFormularioPaisId($value): bool
@@ -26,11 +25,6 @@ public $paises;
     protected function setProvincias(): void
     {
         $this->provincias = Provincia::ordenaPorNombre()->get();
-    }
-
-    private function setTipoVias(): void
-    {
-        $this->tipovias = TipoVia::ordenaPorNombre()->get();
     }
 
     public function updatedFormularioCodigoPostal($value){                         

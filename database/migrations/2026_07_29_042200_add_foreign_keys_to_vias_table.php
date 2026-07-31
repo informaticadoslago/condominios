@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::table('vias', function (Blueprint $table) {
             $table->foreign(['municipio_id'])->references(['id'])->on('municipios')->onUpdate('restrict')->onDelete('restrict');
-            $table->foreign(['tipodevia_id'])->references(['id'])->on('tiposdevias')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 
@@ -24,7 +23,6 @@ return new class extends Migration
     {
         Schema::table('vias', function (Blueprint $table) {
             $table->dropForeign('vias_municipio_id_foreign');
-            $table->dropForeign('vias_tipodevia_id_foreign');
         });
     }
 };

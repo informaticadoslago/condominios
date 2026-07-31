@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\File;
 
 class DbConfig extends Command
 {
-    protected $signature   = 'xestionmusical:db-config';
+    protected $signature   = 'doslago:db-config';
     protected $description = 'Crea (o recrea) la base de datos y el usuario, y escribe la configuración en .env';
 
     /**

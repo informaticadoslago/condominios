@@ -4,6 +4,9 @@ namespace App\Livewire\Traits;
 use App\Models\Pais;
 use App\Models\Persona;
 use App\Models\TipoDocumentoIdentificativo;
+use App\Rules\IsCifRule;
+use App\Rules\IsNieRule;
+use App\Rules\IsNifRule;
 
 /**
  * Titular de una cuenta bancaria. Siempre es una PERSONA: puede estar ya en el sistema
@@ -44,7 +47,7 @@ trait ConTitularCuenta
             return;
         }
 
-        $this->titularResultados = Persona::where(fn ($persona) => $persona
+        $this->titularResultados = Persona::visible()->where(fn ($persona) => $persona
             ->buscarNombreCompleto($busqueda)
             ->orWhere('documento_identificativo', 'like', "%{$busqueda}%"))
             ->limit(8)->get()
@@ -106,13 +109,25 @@ trait ConTitularCuenta
     /** Comprueba el documento: si la persona ya existe, se vincula; si no, se deja crearla. */
     public function comprobarTitular()
     {
-        $this->validate([
+        $rules = [
             'titular_documento_pais_id' => ['required', 'exists:paises,id'],
             'titular_tipo_documento_id' => ['required', 'exists:tipo_documento_identificativos,id'],
             'titular_documento_identificativo' => ['required', 'string', 'max:40'],
-        ]);
+        ];
 
-        $persona = Persona::where('documento_identificativo', $this->titular_documento_identificativo)->first();
+        if ($this->titular_documento_pais_id == Pais::ESPAÑA) {
+            if ($this->titular_tipo_documento_id == TipoDocumentoIdentificativo::DOCUMENTO_NIF) {
+                $rules['titular_documento_identificativo'][] = new IsNifRule();
+            } elseif ($this->titular_tipo_documento_id == TipoDocumentoIdentificativo::DOCUMENTO_NIE) {
+                $rules['titular_documento_identificativo'][] = new IsNieRule();
+            } elseif ($this->titular_tipo_documento_id == TipoDocumentoIdentificativo::DOCUMENTO_CIF) {
+                $rules['titular_documento_identificativo'][] = new IsCifRule();
+            }
+        }
+
+        $this->validate($rules);
+
+        $persona = Persona::visible()->where('documento_identificativo', $this->titular_documento_identificativo)->first();
 
         if ($persona) {
             $this->seleccionarTitular($persona->id);

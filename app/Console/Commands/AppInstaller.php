@@ -11,7 +11,7 @@ use Symfony\Component\Process\Process;
 
 class AppInstaller extends Command
 {
-    protected $signature   = 'xestionmusical:install
+    protected $signature   = 'doslago:install
         {--skip-db-config : Omite la pregunta de configuración de BD (uso interno al relanzarse)}';
     protected $description = 'Instalación via CLI';
 
@@ -279,7 +279,7 @@ ASCII;
 
         // Paso 1: configuración de la base de datos.
         //
-        // Se ejecuta en un comando/proceso aparte (xestionmusical:db-config)
+        // Se ejecuta en un comando/proceso aparte (doslago:db-config)
         // porque el .env se carga al arrancar el framework: si lo creásemos a
         // mitad de este proceso, el Paso 2 seguiría sin ver la nueva conexión.
         // Tras configurarla, nos relanzamos en un proceso nuevo que ya lee el
@@ -287,7 +287,7 @@ ASCII;
         if (! $this->option('skip-db-config')
             && $this->confirm('¿Deseas cambiar la configuración de la base de datos?', false)) {
 
-            if (! $this->runArtisan(['xestionmusical:db-config'])) {
+            if (! $this->runArtisan(['doslago:db-config'])) {
                 $this->error('No se pudo configurar la base de datos. Instalación detenida.');
                 return Command::FAILURE;
             }
@@ -296,7 +296,7 @@ ASCII;
             $this->info('Continuando la instalación con la nueva configuración...');
             $this->newLine();
 
-            return $this->runArtisan(['xestionmusical:install', '--skip-db-config'])
+            return $this->runArtisan(['doslago:install', '--skip-db-config'])
                 ? Command::SUCCESS
                 : Command::FAILURE;
         }

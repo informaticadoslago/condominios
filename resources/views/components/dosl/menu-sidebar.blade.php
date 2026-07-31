@@ -35,6 +35,17 @@
                             @continue
                         @endif
 
+                        {{-- device: 'desktop'/'mobile' oculta el item en el otro tamaño sin
+                             romper el grid/flex del padre (display:contents cuando se ve). --}}
+                        @php
+                            $deviceClass = match ($item['device'] ?? null) {
+                                'desktop' => 'hidden lg:contents',
+                                'mobile'  => 'contents lg:hidden',
+                                default   => 'contents',
+                            };
+                        @endphp
+                        <div class="{{ $deviceClass }}">
+
                         @if (($item['type'] ?? 'item') === 'group')
                             @php
                                 // Abrir por defecto solo el grupo que contiene la ruta actual.
@@ -127,6 +138,7 @@
                             </flux:sidebar.item>
 
                         @endif
+                        </div>
                     @endforeach
                     </ui-disclosure-group>
                 </flux:sidebar.nav>

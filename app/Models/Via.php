@@ -16,17 +16,12 @@ class Via extends Model
     protected $table = 'vias';
 
     protected $fillable = [
-        'municipio_id', 'codigo', 'tipodevia_id', 'posiciontvia', 'nombre', 'nombrecorto',
+        'municipio_id', 'codigo', 'posiciontvia', 'nombre', 'nombrecorto',
     ];
 
     public function municipio()
     {
         return $this->belongsTo(Municipio::class);
-    }
-
-    public function tipoVia()
-    {
-        return $this->belongsTo(TipoVia::class, 'tipodevia_id');
     }
 
     public function scopeDeMunicipio(Builder $query, $municipio_id): void

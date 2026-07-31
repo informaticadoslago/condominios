@@ -1,0 +1,208 @@
+<div class="flex flex-col min-h-[calc(100vh-12rem)]">
+    @include('livewire.inmuebles.crear.navigation')
+
+    <div class="flex-1 space-y-4">
+        {{-- Lista de propietarios ya asignados --}}
+        <div>
+            @php($sumaCuotas = collect($propietarios)->sum('cuota_percent'))
+            <div class="flex items-center justify-between">
+                <x-label :value="__('Propietarios')" />
+                <span class="text-sm {{ abs($sumaCuotas - 100) > 0.01 ? 'text-red-600' : 'text-green-600' }}">
+                    {{ __('Suma de cuotas') }}: {{ number_format($sumaCuotas, 2) }}%
+                </span>
+            </div>
+            @if (count($propietarios))
+                <ul class="border rounded mt-1 divide-y">
+                    @foreach ($propietarios as $propietario)
+                        <li class="px-3 py-2">
+                            @if ($editandoId === $propietario['titularidad_id'])
+                                <div class="flex items-end gap-2">
+                                    <div class="flex-1">
+                                        <span class="mayusculas">{{ $propietario['nombre'] }}</span>
+                                    </div>
+                                    <div class="w-1/6">
+                                        <x-label :value="__('Cuota %')" />
+                                        <x-input type="text" class="block mt-1 w-full" wire:model="edit_cuota_percent" />
+                                    </div>
+                                    <div class="w-1/4">
+                                        <x-label :value="__('Causa')" />
+                                        <x-select class="block mt-1 w-full py-3" wire:model="edit_causa">
+                                            @foreach ($causas as $valor => $etiqueta)
+                                                <option value="{{ $valor }}">{{ $etiqueta }}</option>
+                                            @endforeach
+                                        </x-select>
+                                    </div>
+                                    <div class="w-1/5">
+                                        <x-label :value="__('Fecha inicio')" />
+                                        <x-input type="date" class="block mt-1 w-full" wire:model="edit_fecha_inicio" />
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <x-button type="button" wire:click="guardarEdicion" class="btn">{{ __('Guardar') }}</x-button>
+                                        <button type="button" wire:click="cancelarEdicion" class="text-sm text-gray-500 hover:text-gray-800 px-2">{{ __('Cancelar') }}</button>
+                                    </div>
+                                </div>
+                                <x-input-error for="edit_cuota_percent" class="mt-2" />
+                                <x-input-error for="edit_causa" class="mt-2" />
+                                <x-input-error for="edit_fecha_inicio" class="mt-2" />
+                            @else
+                                <div class="flex items-center gap-2">
+                                    <span class="mayusculas flex-1">{{ $propietario['nombre'] }}</span>
+                                    <span class="text-sm text-gray-500">{{ number_format($propietario['cuota_percent'], 2) }}%</span>
+                                    <span class="text-sm text-gray-500">{{ $propietario['causa'] }}</span>
+                                    <button type="button" wire:click="confirmarEditar({{ $propietario['titularidad_id'] }})"
+                                        class="text-gray-500 hover:text-indigo-600" title="{{ __('Editar (solo si fue un error)') }}">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button type="button" wire:click="confirmarCerrar({{ $propietario['titularidad_id'] }})"
+                                        class="text-gray-500 hover:text-red-600" title="{{ __('Dar de baja') }}">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <p class="mt-1 text-sm text-gray-500">{{ __('Sin propietarios todavía.') }}</p>
+            @endif
+            <x-input-error for="persona_id" class="mt-2" />
+        </div>
+
+        {{-- Alta de un propietario --}}
+        <div class="border rounded p-3 space-y-3">
+            <p class="text-sm font-semibold text-gray-600 dark:text-gray-300">{{ __('Añadir propietario') }}</p>
+
+            @if ($persona_id)
+                <div class="flex items-center gap-2">
+                    <span class="mayusculas flex-1">{{ $personaNombre }}</span>
+                    <button type="button" wire:click="quitarSeleccion" class="text-gray-500 hover:text-gray-800" title="{{ __('Quitar') }}">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            @elseif ($personaNueva)
+                <div class="flex items-end gap-2">
+                    <div class="w-1/5">
+                        <x-label :value="__('País')" />
+                        <x-select class="block mt-1 w-full py-3 mayusculas" wire:model="prop_documento_pais_id" :disabled="$personaComprobada">
+                            @foreach ($paisesPropietario as $pais)
+                                <option value="{{ $pais->id }}">{{ $pais->nombre }}</option>
+                            @endforeach
+                        </x-select>
+                    </div>
+                    <div class="w-1/5">
+                        <x-label :value="__('Tipo doc.')" />
+                        <x-select class="block mt-1 w-full py-3 mayusculas" wire:model="prop_tipo_documento_id" :disabled="$personaComprobada">
+                            @foreach ($tiposPropietario as $tipoDocumento)
+                                <option value="{{ $tipoDocumento->id }}">{{ $tipoDocumento->nombre }}</option>
+                            @endforeach
+                        </x-select>
+                    </div>
+                    <div class="w-2/5">
+                        <x-label :value="__('Documento')" />
+                        <x-input type="text" class="block mt-1 w-full mayusculas" wire:model="prop_documento_identificativo" forzar-may :readonly="$personaComprobada" />
+                        <x-input-error for="prop_documento_identificativo" class="mt-2" />
+                    </div>
+                    <div class="w-1/5">
+                        @if (! $personaComprobada)
+                            <x-button type="button" wire:click="comprobarPersona" class="btn w-full">{{ __('Comprobar') }}</x-button>
+                        @endif
+                    </div>
+                </div>
+
+                @if ($personaComprobada)
+                    <div class="flex gap-2">
+                        <div class="w-1/3">
+                            <x-label :value="__('Nombre')" />
+                            <x-input class="block mt-1 w-full mayusculas" wire:model="prop_nombre" />
+                            <x-input-error for="prop_nombre" class="mt-2" />
+                        </div>
+                        <div class="w-1/3">
+                            <x-label :value="__('Apellido 1')" />
+                            <x-input class="block mt-1 w-full mayusculas" wire:model="prop_apellido1" />
+                            <x-input-error for="prop_apellido1" class="mt-2" />
+                        </div>
+                        <div class="w-1/3">
+                            <x-label :value="__('Apellido 2')" />
+                            <x-input class="block mt-1 w-full mayusculas" wire:model="prop_apellido2" />
+                            <x-input-error for="prop_apellido2" class="mt-2" />
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="w-1/3">
+                            <x-label :value="__('Fecha de nacimiento')" />
+                            <x-input type="date" max="{{ date('Y-m-d') }}" class="block mt-1 w-full" wire:model="prop_fecha_nacimiento" />
+                            <x-input-error for="prop_fecha_nacimiento" class="mt-2" />
+                        </div>
+                        <div class="w-1/3">
+                            <x-label :value="__('Género')" />
+                            <x-select class="block mt-1 w-full py-3" wire:model="prop_genero_id">
+                                <option value="">{{ __('--') }}</option>
+                                @foreach ($generos as $genero)
+                                    <option value="{{ $genero->id }}">{{ $genero->nombre }}</option>
+                                @endforeach
+                            </x-select>
+                            <x-input-error for="prop_genero_id" class="mt-2" />
+                        </div>
+                    </div>
+                @endif
+
+                <div class="text-right">
+                    <button type="button" wire:click="cancelarNuevaPersona" class="text-sm text-gray-500 hover:text-gray-800">{{ __('Cancelar') }}</button>
+                </div>
+            @else
+                <x-input type="text" class="block w-full" placeholder="{{ __('Buscar propietario por nombre o NIF…') }}" wire:model.live="personaBusqueda" />
+                @if (! empty($personaResultados))
+                    <ul class="border rounded mt-1 divide-y max-h-48 overflow-y-auto">
+                        @foreach ($personaResultados as $resultado)
+                            <li>
+                                <button type="button" wire:click="seleccionarPersona({{ $resultado['id'] }})"
+                                    class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 mayusculas">
+                                    {{ $resultado['texto'] }}
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+                <div class="mt-1">
+                    <button type="button" wire:click="nuevaPersona" class="text-sm text-indigo-600 hover:underline">
+                        <i class="fa-solid fa-plus"></i> {{ __('No existe: dar de alta un propietario nuevo') }}
+                    </button>
+                </div>
+            @endif
+
+            <div class="flex items-end gap-2">
+                <div class="w-1/6">
+                    <x-label :value="__('Cuota %')" />
+                    <x-input type="text" class="block mt-1 w-full" wire:model="cuota_percent" placeholder="0,00-100" />
+                    <x-input-error for="cuota_percent" class="mt-2" />
+                </div>
+                <div class="w-1/4">
+                    <x-label :value="__('Causa')" />
+                    <x-select class="block mt-1 w-full py-3" wire:model="causa">
+                        @foreach ($causas as $valor => $etiqueta)
+                            <option value="{{ $valor }}">{{ $etiqueta }}</option>
+                        @endforeach
+                    </x-select>
+                </div>
+                <div class="flex-1 text-right">
+                    <x-button type="button" wire:click="agregarPropietario" class="btn">
+                        <i class="fa-solid fa-plus"></i> {{ __('Añadir') }}
+                    </x-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between border-t pt-4 mt-4">
+        <div>
+            @if ($this->hasPreviousStep())
+                <x-button type="button" wire:click="stepBack" class="bg-gray-500 hover:bg-gray-600 text-white">
+                    {{ __('Anterior') }}
+                </x-button>
+            @endif
+        </div>
+        <div class="flex gap-2">
+            <x-button type="button" wire:click="terminar">{{ __('Terminar') }}</x-button>
+        </div>
+    </div>
+</div>

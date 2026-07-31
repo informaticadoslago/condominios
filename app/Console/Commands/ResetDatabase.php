@@ -21,7 +21,7 @@ use Symfony\Component\Process\Process;
  */
 class ResetDatabase extends Command
 {
-    protected $signature = 'xestionmusical:db-reset';
+    protected $signature = 'doslago:db-reset';
 
     protected $description = 'Recrea la BD de una escuela a partir de su .env y aplica las migraciones de L12';
 

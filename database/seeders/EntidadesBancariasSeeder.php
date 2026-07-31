@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class EntidadesBancariasSeeder extends Seeder
 {
@@ -238,7 +237,6 @@ $entidades_bancarias = [
 
 // Preparar los datos para inserción
         $entidades = [];
-        $now = Carbon::now();
 
         foreach ($entidades_bancarias as $entidad) {
             $entidades[] = [

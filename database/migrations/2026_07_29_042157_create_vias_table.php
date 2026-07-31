@@ -15,7 +15,6 @@ return new class extends Migration
             $table->bigIncrements('id');
             $table->unsignedBigInteger('municipio_id')->nullable()->index('vias_municipio_id_foreign');
             $table->string('codigo', 5);
-            $table->unsignedBigInteger('tipodevia_id')->nullable()->index('vias_tipodevia_id_foreign');
             $table->tinyInteger('posiciontvia');
             $table->string('nombre', 50);
             $table->string('nombrecorto', 25);

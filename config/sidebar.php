@@ -16,11 +16,25 @@ return [
             'type'  => 'nav',
             'items' => [
                 ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.dashboard'), 'route' => 'dashboard'],
+                ['icon' => 'fa-regular fa-clock', 'label' => trans_key('menu.Fichar'), 'href' => '#', 'device' => 'mobile'],
+                [
+                    'type'  => 'group',
+                    'icon'  => 'fa-solid fa-building-user',
+                    'label' => trans_key('menu.Gestión administrativa'),
+                    'can'   => 'menu-administracion-sistema',
+                    'items' => [
+                        ['icon' => 'fa-solid fa-city', 'label' => trans_key('menu.Comunidades'), 'route' => 'comunidades.index'],
+                        ['icon' => 'fa-solid fa-user-tie', 'label' => trans_key('menu.Propietarios'), 'route' => 'propietarios.index'],
+                        ['icon' => 'fa-solid fa-truck', 'label' => trans_key('menu.Proveedores'), 'route' => 'proveedores.index'],
+                        ['icon' => 'fa-solid fa-door-open', 'label' => trans_key('menu.Inmuebles'), 'route' => 'inmuebles.index'],
+                    ],
+                ],
                 [
                     'type'  => 'group',
                     'icon'  => 'fa-solid fa-building-columns',
                     'label' => trans_key('menu.Maestros de la música'),
                     'can'   => 'menu-maestros',
+                    'device' => 'desktop',
                     'items' => [
                         ['icon' => 'fa-solid fa-building-columns', 'label' => trans_key('menu.Entidades financieras'), 'route' => 'entidades-bancarias.index'],
                         ['icon' => 'fa-solid fa-money-bill', 'label' => trans_key('menu.Formas de pago'), 'route' => 'formas-de-pago.index'],
@@ -72,7 +86,7 @@ return [
         [
             'type'  => 'nav',
             'items' => [
-                ['icon' => 'fa-regular fa-gear', 'label' => trans_key('menu.settings'), 'can' => 'global-configuracion', 'action' => 'abrir-configuracion'],
+                ['icon' => 'fa-regular fa-gear', 'label' => trans_key('menu.settings'), 'can' => 'global-configuracion', 'action' => 'abrir-configuracion', 'device' => 'desktop'],
             ],
         ],
     ],

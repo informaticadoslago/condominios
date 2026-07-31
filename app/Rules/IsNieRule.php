@@ -4,6 +4,7 @@ namespace App\Rules;
 
 use Illuminate\Contracts\Validation\Rule;
 use App\Rules\Includes\ValidadorDocumentoId;
+use App\Models\Persona;
 
 class IsNieRule implements Rule {
 
@@ -25,6 +26,12 @@ class IsNieRule implements Rule {
      */
     public function passes($attribute, $value) {
         $validador = new ValidadorDocumentoId();
+
+        // Un documento de una persona 'invisible' (p. ej. el superadmin) se rechaza
+        // igual que uno mal formado: no hay pista de que exista.
+        if (Persona::where('documento_identificativo', $value)->where('invisible', true)->exists()) {
+            return false;
+        }
 
         return $validador->isValidNIE($value);
     }

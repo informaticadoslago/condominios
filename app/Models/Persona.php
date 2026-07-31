@@ -22,10 +22,6 @@ class Persona extends Model
     ESTADO_BAJA = 2,
     ESTADO_ANONIMA = 4;
 
-    protected $hidden = [
-        'estado', // T-L9-L12 : Eliminar cuando se borre la columna de la BD
-    ];
-
     protected $fillable = [
         'nombre',
         'apellido1',
@@ -40,6 +36,7 @@ class Persona extends Model
         'nacionalidad_id',
         'estado_id',
         'estados_previos',
+        'invisible',
     ];
     protected $casts = [
         'fecha_nacimiento' => 'date',
@@ -96,41 +93,6 @@ class Persona extends Model
     public function usuario()
     {
         return $this->hasOne(User::class);
-    }
-
-    public function socio()
-    {
-        return $this->hasOne(Socio::class);
-    }
-
-    public function alumno()
-    {
-        return $this->hasOne(Alumno::class);
-    }
-
-    /** Representantes de esta persona (jurídica o menor), del más reciente al más antiguo. */
-    public function representantes()
-    {
-        return $this->hasMany(Representante::class, 'persona_id')->orderByDesc('fecha_inicio');
-    }
-
-    /** Personas a las que esta persona representa (es tutora de ellas). */
-    public function representa()
-    {
-        return $this->hasMany(Representante::class, 'representante_id')->orderByDesc('fecha_inicio');
-    }
-
-    /**
-     * Representante vigente: el de mayor fecha_inicio ≤ hoy (uno solo).
-     * La "baja" de un representante es la fecha_inicio del siguiente, así que el
-     * activo es simplemente el último que arrancó. Método (no relación).
-     */
-    public function representanteActivo(): ?Representante
-    {
-        return $this->representantes()
-            ->whereDate('fecha_inicio', '<=', now())
-            ->orderByDesc('fecha_inicio')
-            ->first();
     }
 
     public function tipoDocumentoIdentificativo()
@@ -210,20 +172,6 @@ class Persona extends Model
             : trim("$apellido1 $apellido2") . ", $nombre";
     }
 
-    protected function nombrePersona(): Attribute
-    {
-        return Attribute::make(
-            get: (function ($value, $attributes) {
-                $orden = config('settings.list_nombre_completo', env('LIST_NOMBRECOMPLETO', 1)); //{1=Nombre+apellidos, 2=apellidos,Nombre}
-                if ($this->tipo_documento_id == TipoDocumentoIdentificativo::DOCUMENTO_CIF) {
-                    return $attributes['razon_social'];
-                } else {
-                    return $this->getNombreApellidos($orden);
-                }
-            }),
-        );
-    }
-
     // public function getNombreYApellidosAttribute()
     // {
     //     return $this->getNombreApellidos(1);
@@ -246,6 +194,10 @@ class Persona extends Model
     protected function nombreCompleto(): Attribute
     {
         return Attribute::get(function () {
+            if ($this->tipo_documento_id == TipoDocumentoIdentificativo::DOCUMENTO_CIF) {
+                return $this->razon_social;
+            }
+
             $orden = config('settings.nombrecompleto.apellidosnombre', env('LIST_NOMBRECOMPLETO', 1));
             return $this->getNombreApellidos($orden);
         });
@@ -256,6 +208,17 @@ class Persona extends Model
         return Attribute::make(
             get: fn() => trim(($this->attributes['apellido1'] ?? '') . ' ' . $this->attributes['apellido2']),
         );
+    }
+
+    /**
+     * Excluye a las personas marcadas 'invisible' (p. ej. el superadmin): no pueden
+     * salir en buscadores ni ser asignadas a ningún rol (propietario, proveedor…).
+     * No se aplica como global scope a propósito: los listados de administración de
+     * personas/usuarios sí necesitan poder verlas y gestionarlas.
+     */
+    public function scopeVisible($query)
+    {
+        return $query->where('invisible', false);
     }
 
     public function scopeBuscarNombreCompleto($q, ?string $search)

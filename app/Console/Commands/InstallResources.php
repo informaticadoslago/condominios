@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\File;
  */
 class InstallResources extends Command
 {
-    protected $signature = 'xestionmusical:installresources';
+    protected $signature = 'doslago:installresources';
 
     protected $description = 'Copia los logos de resources/images a public para que se vean en las vistas';
 

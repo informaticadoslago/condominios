@@ -39,6 +39,8 @@ class CreateSuperUserSeeder extends Seeder
                 'genero_id'         => 3,
                 'fecha_nacimiento'  => $hoy,
                 'nif_pais_id'       => config('doslago.pais.inicial', Pais::ESPAÑA),
+                // El superadmin no puede salir como propietario/proveedor/etc: invisible.
+                'invisible'         => true,
             ]);
         $this->command->info('Creando  usuario superadmin.');
         $user = $persona->usuario()->updateOrCreate(['login' => config('doslago.superadmin.login')],
@@ -66,7 +68,10 @@ class CreateSuperUserSeeder extends Seeder
             'apellido1'         => 'doslago',
             'genero_id'         => 3,
             'fecha_nacimiento'  => $hoy,
-            'nif_pais_id'       => config('doslago.pais.inicial', Pais::ESPAÑA)]);
+            'nif_pais_id'       => config('doslago.pais.inicial', Pais::ESPAÑA),
+            // El superadmin no puede salir como propietario/proveedor/etc: invisible.
+            'invisible'         => true,
+        ]);
 
         $this->command->info('Creando  usuario superalagoro');
         $user = $persona->usuario()->updateOrCreate(['login' => 'superalagoro'], [

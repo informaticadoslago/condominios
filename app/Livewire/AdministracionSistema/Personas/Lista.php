@@ -38,7 +38,7 @@ class Lista extends ListaComponent
         $search   = trim($this->search); // lo que viene del input
         $personas = $this->aplicarOrden(
             Persona::query()
-                ->with(['usuario', 'socio', 'alumno'])
+                ->with(['usuario'])
                 ->buscarNombreCompleto($search)
         )->paginate($this->lineasXPagina);
         return view('livewire.administracion-sistema.personas.lista', compact('personas'));

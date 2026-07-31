@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+
+class CuentaBancaria extends Model
+{
+    protected $table = 'cuentas_bancarias';
+
+    protected $fillable = [
+        'titular_type',
+        'titular_id',
+    ];
+
+    public function titular(): MorphTo
+    {
+        return $this->morphTo();
+    }
+}
