@@ -25,7 +25,7 @@ class CreateSuperUserSeeder extends Seeder
 
         $this->command->info('Creando  uno.');
 
-        $persona = Persona::firstOrCreate(['documento_identificativo' => '36000000D'],
+        $persona = Persona::updateOrCreate(['documento_identificativo' => '36000000D'],
             [
                 'tipo_documento_id' => TipoDocumentoIdentificativo::DOCUMENTO_NIF,
                 'nombre'            => 'Administrador',
@@ -33,6 +33,7 @@ class CreateSuperUserSeeder extends Seeder
                 'genero_id'         => 3,
                 'fecha_nacimiento'  => $hoy,
                 'nif_pais_id'       => config('doslago.pais.inicial', Pais::ESPAÑA),
+                'documento_pais_id' => config('doslago.pais.inicial', Pais::ESPAÑA),
                 // El superadmin no puede salir como propietario/proveedor/etc: invisible.
                 'invisible'         => true,
             ]);
@@ -45,7 +46,7 @@ class CreateSuperUserSeeder extends Seeder
                 'estado_id'         => EstadoUsuario::USUARIO_INACTIVO,
                 'estado'         => EstadoUsuario::USUARIO_INACTIVO,
             ]);
-        $user->syncRoles([config('doslago.superadmin.nombre_rol')]);
+        $user->syncRoles([config('doslago.superadmin.nombre_rol'), 'user', 'global']);
 
         $this->command->info('Creando  Admin con TODOS los permisos.');
 
@@ -56,13 +57,14 @@ class CreateSuperUserSeeder extends Seeder
         $rol = Role::firstOrCreate(['name' => $superadmin_rol_name]);
 
         $this->command->info('Creando  Admin doslago.');
-        $persona = Persona::firstOrCreate(['documento_identificativo' => '36000023D'], [
+        $persona = Persona::updateOrCreate(['documento_identificativo' => '36000023D'], [
             'tipo_documento_id' => TipoDocumentoIdentificativo::DOCUMENTO_NIF,
             'nombre'            => 'Administrador1',
             'apellido1'         => 'doslago',
             'genero_id'         => 3,
             'fecha_nacimiento'  => $hoy,
             'nif_pais_id'       => config('doslago.pais.inicial', Pais::ESPAÑA),
+            'documento_pais_id' => config('doslago.pais.inicial', Pais::ESPAÑA),
             // El superadmin no puede salir como propietario/proveedor/etc: invisible.
             'invisible'         => true,
         ]);
@@ -76,7 +78,7 @@ class CreateSuperUserSeeder extends Seeder
             'estado'         => EstadoUsuario::USUARIO_ACTIVO,
         ]);
 
-        $user->assignRole($superadmin_rol_name);
+        $user->syncRoles([$superadmin_rol_name, 'user', 'global']);
 
         $this->command->info('Autorizado Admin con TODOS los permisos.');
         $this->command->info($user->password . '<--->' . Hash::check('Aa123456', $user->password));
