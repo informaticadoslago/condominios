@@ -8,12 +8,12 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 class Propietario extends Model
 {
     protected $fillable = [
-        'persona_id',
+        'persona_comunidad_id',
     ];
 
     public function persona()
     {
-        return $this->belongsTo(Persona::class);
+        return $this->belongsTo(PersonaComunidad::class, 'persona_comunidad_id');
     }
 
     /** Inmuebles de los que es propietario VIGENTE. Para el histórico, ver titularidades(). */

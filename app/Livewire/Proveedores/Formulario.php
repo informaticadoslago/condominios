@@ -33,6 +33,7 @@ class Formulario extends Component
     {
         $this->formulario->proveedor = new Proveedor();
         $this->formulario->resetForm();
+        $this->formulario->comunidad_id = session('comunidad_actual_id');
         $this->abrir = true;
     }
 
@@ -40,7 +41,7 @@ class Formulario extends Component
     public function editar($id)
     {
         $proveedor = Proveedor::with('persona')->find($id);
-        if (! $proveedor) {
+        if (! $proveedor || $proveedor->persona->comunidad_id != session('comunidad_actual_id')) {
             return;
         }
 
@@ -49,8 +50,23 @@ class Formulario extends Component
         $this->abrir = true;
     }
 
+    public function comprobarDocumento()
+    {
+        $this->formulario->comunidad_id = session('comunidad_actual_id');
+        $this->formulario->comprobarDocumento();
+    }
+
+    public function cambiarDocumento()
+    {
+        $this->formulario->cambiarDocumento();
+    }
+
     public function guardar()
     {
+        // Nunca confiar en lo que traiga ya el formulario: se fuerza aquí, justo
+        // antes de validar/guardar, a la comunidad real de la sesión.
+        $this->formulario->comunidad_id = session('comunidad_actual_id');
+
         $validated = $this->formulario->validate();
 
         if ($this->formulario->proveedor?->exists) {

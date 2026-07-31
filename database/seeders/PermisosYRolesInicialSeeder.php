@@ -122,6 +122,10 @@ class PermisosYRolesInicialSeeder extends Seeder
 
         $this->crearpermisos($permisos_noadmin);
 
+        // Rol puerta de entrada: quien lo tenga accede a TODAS las comunidades, sin
+        // permisos propios (esos los dan los demás roles). No se poda como los permisos.
+        $this->crearRol('global');
+
         $permisos_usuario = [
             'usuario-perfil',
         ];

@@ -3,18 +3,12 @@
 
     <div class="flex-1 space-y-4">
         <div class="flex w-full">
-            <div class="mt-2 w-2/5">
-                <x-label for="select-inmueble-comunidad" :value="__('Comunidad')" />
-                <x-select id="select-inmueble-comunidad" class="block mt-1 w-full mayusculas" name="comunidad"
-                    wire:model="comunidad_id">
-                    <option value="">{{ __('--') }}</option>
-                    @foreach ($comunidades as $comunidad)
-                        <option value="{{ $comunidad->id }}">{{ $comunidad->nombre }}</option>
-                    @endforeach
-                </x-select>
-                <x-input-error for="comunidad_id" class="mt-2" />
+            <div class="mt-2 w-[30%]">
+                <x-label for="input-inmueble-comunidad" :value="__('Comunidad')" />
+                <x-input id="input-inmueble-comunidad" class="block mt-1 w-full mayusculas" type="text"
+                    value="{{ $comunidadActual?->nombre }}" disabled />
             </div>
-            <div class="mt-2 ml-2 w-[30%]">
+            <div class="mt-2 ml-2 w-[35%]">
                 <x-label for="select-inmueble-tipo" :value="__('Tipo de inmueble')" />
                 <x-select id="select-inmueble-tipo" class="block mt-1 w-full mayusculas" name="tipo_inmueble"
                     wire:model="tipo_inmueble_id">
@@ -25,7 +19,7 @@
                 </x-select>
                 <x-input-error for="tipo_inmueble_id" class="mt-2" />
             </div>
-            <div class="mt-2 ml-2 w-[30%]">
+            <div class="mt-2 ml-2 w-[35%]">
                 <x-label for="select-inmueble-ocupacion" :value="__('Ocupación')" />
                 <x-select id="select-inmueble-ocupacion" class="block mt-1 w-full mayusculas" name="ocupacion"
                     wire:model="ocupacion_id">
@@ -42,7 +36,7 @@
             <div class="w-1/5">
                 <x-label for="input-inmueble-planta" :value="__('Planta')" />
                 <x-input id="input-inmueble-planta" class="block mt-1 w-full" type="number" name="planta"
-                    wire:model="planta" />
+                    wire:model="planta" autofocus />
                 <x-input-error for="planta" class="mt-2" />
             </div>
             <div class="ml-2 w-1/5">
@@ -75,7 +69,14 @@
             @endif
         </div>
         <div class="flex gap-2">
-            <x-button type="button" tabindex="-1" wire:click="salir" class="bg-gray-500 hover:bg-gray-600 text-white">{{ __('Salir') }}</x-button>
+            <span x-data="{ shift: false }" @keydown.shift.window="shift = true" @keyup.shift.window="shift = false" x-on:blur.window="shift = false">
+                <x-button type="button" tabindex="-1" wire:click="salir($event.shiftKey)"
+                    x-bind:class="shift ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-500 hover:bg-gray-600'" class="text-white">
+                    <i class="fa-solid" x-bind:class="shift ? 'fa-trash' : 'fa-arrow-right-from-bracket'"></i>
+                    <span x-show="!shift">{{ __('Salir') }}</span>
+                    <span x-show="shift" x-cloak>{{ __('Salir y eliminar borrador') }}</span>
+                </x-button>
+            </span>
             <x-button type="button" wire:click="submit">{{ __('Siguiente') }}</x-button>
         </div>
     </div>

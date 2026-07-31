@@ -10,12 +10,12 @@ class Proveedor extends Model
     protected $table = 'proveedores';
 
     protected $fillable = [
-        'persona_id',
+        'persona_comunidad_id',
     ];
 
     public function persona()
     {
-        return $this->belongsTo(Persona::class);
+        return $this->belongsTo(PersonaComunidad::class, 'persona_comunidad_id');
     }
 
     public function cuentasBancarias(): MorphMany

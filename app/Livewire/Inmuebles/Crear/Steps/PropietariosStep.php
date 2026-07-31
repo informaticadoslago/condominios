@@ -4,32 +4,38 @@ namespace App\Livewire\Inmuebles\Crear\Steps;
 
 use App\Livewire\Inmuebles\Crear\CrearInmuebleStep;
 use App\Livewire\Traits\WithGenero;
+use App\Models\Borrador;
 use App\Models\Inmueble;
 use App\Models\Pais;
-use App\Models\Persona;
+use App\Models\PersonaComunidad;
 use App\Models\Propietario;
 use App\Models\TipoDocumentoIdentificativo;
 use App\Models\Titularidad;
 use App\Rules\IsCifRule;
 use App\Rules\IsNieRule;
 use App\Rules\IsNifRule;
-use Livewire\Attributes\On;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Paso: propietarios del inmueble. El inmueble ya existe (se creó en el paso
- * anterior), así que cada alta se persiste al momento como una Titularidad
- * (cuota %, fecha_inicio, causa). La historia es inmutable: "quitar" (🗑️) NUNCA
- * borra una titularidad, le pone fecha_fin (hoy). "Editar" (✏️) solo corrige un
- * error de captura en una fila (no representa un cambio real de propiedad: eso
- * es cerrar + añadir una nueva).
+ * Paso: propietarios del inmueble.
+ *
+ * Nada de esto es real hasta "Terminar": las líneas que se van añadiendo (o
+ * quitando, o editando) se acumulan en el borrador (payload JSON), tanto en
+ * alta nueva como editando un inmueble ya existente (cuyo estado se copió al
+ * borrador al entrar, ver Inmuebles\Formulario). Por eso "quitar"/"editar" aquí
+ * son reversibles sin más: solo tocan el array en memoria + el borrador, no
+ * ninguna Titularidad real. La reconciliación con lo que hay en BD (crear lo
+ * nuevo, actualizar lo que cambió, cerrar lo que ya no está) pasa una única vez,
+ * en terminar().
  */
 class PropietariosStep extends CrearInmuebleStep
 {
     use WithGenero;
 
     public ?int $inmuebleId = null;
+    public ?int $comunidad_id = null;
 
-    /** Lista en memoria (reflejo de lo ya persistido): [['titularidad_id','nombre','cuota_percent','causa'], …] */
+    /** [['ref', 'titularidad_id', 'persona_comunidad_id', 'persona_nueva', 'nombre', 'cuota_percent', 'causa'], …] */
     public array $propietarios = [];
     public bool $cargado = false;
 
@@ -39,7 +45,7 @@ class PropietariosStep extends CrearInmuebleStep
     public string $personaBusqueda  = '';
     public array $personaResultados = [];
 
-    // Cuota y causa de la titularidad que se va a abrir.
+    // Cuota y causa de la línea que se va a abrir.
     public $cuota_percent = null;
     public string $causa  = Titularidad::CAUSA_COMPRAVENTA;
 
@@ -55,11 +61,10 @@ class PropietariosStep extends CrearInmuebleStep
     public ?string $prop_fecha_nacimiento         = null;
     public ?int $prop_genero_id                   = null;
 
-    // Edición de una titularidad ya existente (solo para corregir errores).
-    public ?int $editandoId       = null;
+    // Edición de una línea ya añadida (siempre en memoria/borrador).
+    public $editandoId = null;
     public $edit_cuota_percent    = null;
     public string $edit_causa     = Titularidad::CAUSA_COMPRAVENTA;
-    public ?string $edit_fecha_inicio = null;
 
     public function stepInfo(): array
     {
@@ -68,10 +73,23 @@ class PropietariosStep extends CrearInmuebleStep
 
     public function mount()
     {
+        if (! $this->comunidad_id) {
+            $this->comunidad_id = $this->inmuebleId
+                ? Inmueble::find($this->inmuebleId)?->comunidad_id
+                : session('comunidad_actual_id');
+        }
+
         $this->setGeneros();
         if (! $this->cargado) {
             $this->cargarPropietarios();
         }
+    }
+
+    private function borradorActual(): ?Borrador
+    {
+        $borradorId = session('inmueble_borrador_id');
+
+        return $borradorId ? Borrador::delUsuario()->deTipo(Borrador::TIPO_INMUEBLE)->find($borradorId) : null;
     }
 
     /** Admiten coma o punto como separador decimal: se normalizan a punto antes de validar. */
@@ -97,24 +115,7 @@ class PropietariosStep extends CrearInmuebleStep
 
     private function cargarPropietarios(): void
     {
-        if (! $this->inmuebleId) {
-            $this->cargado = true;
-
-            return;
-        }
-
-        $this->propietarios = Titularidad::vigente()
-            ->where('inmueble_id', $this->inmuebleId)
-            ->with('propietario.persona')
-            ->whereHas('propietario.persona', fn ($p) => $p->visible())
-            ->get()
-            ->map(fn (Titularidad $t) => [
-                'titularidad_id' => $t->id,
-                'nombre'         => ($t->propietario->persona->documento_identificativo ?? '').' — '.$t->propietario->persona->nombreCompleto,
-                'cuota_percent'  => $t->cuota_percent,
-                'causa'          => $this->causas()[$t->causa] ?? $t->causa,
-            ])->values()->all();
-
+        $this->propietarios = $this->borradorActual()?->payload['propietarios'] ?? [];
         $this->cargado = true;
     }
 
@@ -127,15 +128,16 @@ class PropietariosStep extends CrearInmuebleStep
 
             return;
         }
-        $this->personaResultados = Persona::visible()->where(function ($query) use ($busqueda) {
-            $query->buscarNombreCompleto($busqueda)->orWhere('documento_identificativo', 'like', "%{$busqueda}%");
-        })->limit(8)->get()
+        $this->personaResultados = PersonaComunidad::where('comunidad_id', $this->comunidad_id)
+            ->where(function ($query) use ($busqueda) {
+                $query->buscarNombreCompleto($busqueda)->orWhere('documento_identificativo', 'like', "%{$busqueda}%");
+            })->limit(8)->get()
             ->map(fn ($persona) => ['id' => $persona->id, 'texto' => ($persona->documento_identificativo ?? '').' — '.$persona->nombreCompleto])->all();
     }
 
     public function seleccionarPersona($id)
     {
-        $persona = Persona::find($id);
+        $persona = PersonaComunidad::find($id);
         if (! $persona) {
             return;
         }
@@ -199,7 +201,9 @@ class PropietariosStep extends CrearInmuebleStep
 
         $this->validate($rules);
 
-        $persona = Persona::visible()->where('documento_identificativo', $this->prop_documento_identificativo)->first();
+        $persona = PersonaComunidad::where('comunidad_id', $this->comunidad_id)
+            ->where('documento_identificativo', $this->prop_documento_identificativo)
+            ->first();
 
         if ($persona) {
             $this->seleccionarPersona($persona->id);
@@ -210,11 +214,10 @@ class PropietariosStep extends CrearInmuebleStep
         $this->personaComprobada = true;
     }
 
-    // --- Añadir a la lista: abre una titularidad nueva (persiste al momento) ---
+    // --- Añadir a la lista: acumula en el borrador, nada real todavía ---
     public function agregarPropietario()
     {
-        $personaId = $this->resolverPersona();
-        if (! $personaId) {
+        if (! $this->persona_id && ! ($this->personaNueva && $this->personaComprobada)) {
             $this->addError('persona_id', __('Selecciona o da de alta a la persona del propietario.'));
 
             return;
@@ -225,47 +228,20 @@ class PropietariosStep extends CrearInmuebleStep
             'causa'         => ['required', 'in:'.implode(',', array_keys($this->causas()))],
         ], [], ['cuota_percent' => __('cuota de propiedad')]);
 
-        $propietario = Propietario::firstOrCreate(['persona_id' => $personaId]);
-
-        $inmueble = Inmueble::findOrFail($this->inmuebleId);
-        if ($inmueble->propietarios()->where('propietarios.id', $propietario->id)->exists()) {
-            $this->addError('persona_id', __('Ese propietario ya está en este inmueble.'));
-
-            return;
-        }
-
-        Titularidad::create([
-            'inmueble_id'    => $this->inmuebleId,
-            'propietario_id' => $propietario->id,
-            'cuota_percent'  => $this->cuota_percent,
-            'causa'          => $this->causa,
-            'fecha_inicio'   => now()->toDateString(),
-            'fecha_fin'      => null,
-        ]);
-
-        $this->cargado = false;
-        $this->cargarPropietarios();
-        $this->resetFormularioPropietario();
-    }
-
-    private function resetFormularioPropietario(): void
-    {
-        $this->quitarSeleccion();
-        $this->personaNueva      = false;
-        $this->personaComprobada = false;
-        $this->cuota_percent     = null;
-        $this->causa             = Titularidad::CAUSA_COMPRAVENTA;
-        $this->resetErrorBag();
-    }
-
-    /** Persona (id) a añadir: existente seleccionada o creación de la nueva. */
-    private function resolverPersona(): ?int
-    {
         if ($this->persona_id) {
-            return $this->persona_id;
-        }
+            if (collect($this->propietarios)->contains('persona_comunidad_id', $this->persona_id)) {
+                $this->addError('persona_id', __('Ese propietario ya está en este inmueble.'));
 
-        if ($this->personaNueva && $this->personaComprobada) {
+                return;
+            }
+
+            $linea = [
+                'titularidad_id'       => null,
+                'persona_comunidad_id' => $this->persona_id,
+                'persona_nueva'        => null,
+                'nombre'               => $this->personaNombre,
+            ];
+        } else {
             $this->validate([
                 'prop_nombre'           => ['required', 'string', 'max:100'],
                 'prop_apellido1'        => ['required', 'string', 'max:100'],
@@ -279,92 +255,74 @@ class PropietariosStep extends CrearInmuebleStep
                 'prop_genero_id'        => __('género del propietario'),
             ]);
 
-            $persona = Persona::create([
-                'documento_pais_id'        => $this->prop_documento_pais_id,
-                'tipo_documento_id'        => $this->prop_tipo_documento_id,
-                'documento_identificativo' => $this->prop_documento_identificativo,
-                'nombre'                   => $this->prop_nombre,
-                'apellido1'                => $this->prop_apellido1,
-                'apellido2'                => $this->prop_apellido2,
-                'fecha_nacimiento'         => $this->prop_fecha_nacimiento,
-                'genero_id'                => $this->prop_genero_id,
-            ]);
-
-            return $persona->id;
+            $linea = [
+                'titularidad_id'       => null,
+                'persona_comunidad_id' => null,
+                'persona_nueva'        => [
+                    'comunidad_id'             => $this->comunidad_id,
+                    'documento_pais_id'        => $this->prop_documento_pais_id,
+                    'tipo_documento_id'        => $this->prop_tipo_documento_id,
+                    'documento_identificativo' => $this->prop_documento_identificativo,
+                    'nombre'                   => $this->prop_nombre,
+                    'apellido1'                => $this->prop_apellido1,
+                    'apellido2'                => $this->prop_apellido2,
+                    'fecha_nacimiento'         => $this->prop_fecha_nacimiento,
+                    'genero_id'                => $this->prop_genero_id,
+                ],
+                'nombre' => ($this->prop_documento_identificativo ?? '').' — '.trim($this->prop_nombre.' '.$this->prop_apellido1.' '.$this->prop_apellido2),
+            ];
         }
 
-        return null;
+        $linea['cuota_percent'] = (float) $this->cuota_percent;
+        $linea['causa']         = $this->causa;
+        $linea['ref']           = count($this->propietarios) ? max(array_column($this->propietarios, 'ref')) + 1 : 0;
+
+        $this->propietarios[] = $linea;
+        $this->guardarBorradorPropietarios();
+        $this->resetFormularioPropietario();
     }
 
-    // --- Quitar (🗑️): cierra la titularidad, nunca la borra ---
-    public function confirmarCerrar($titularidadId)
+    private function guardarBorradorPropietarios(): void
     {
-        $this->dispatch('swalConfirm', [
-            'title'              => __('¿Dar de baja a este propietario?'),
-            'text'               => __('Se pondrá la fecha de hoy como fin de su titularidad. No se borra: queda como historial.'),
-            'icon'               => 'warning',
-            'showCancelButton'   => true,
-            'confirmButtonColor' => '#d33',
-            'cancelButtonColor'  => '#f1c40f',
-            'confirmButtonText'  => __('Sí, dar de baja'),
-            'cancelButtonText'   => __('Cancelar'),
-            'confirmCallback'    => 'ejecutarCerrarTitularidad',
-            'cancelCallback'     => 'cerrarTitularidadCancelado',
-            'id'                 => $titularidadId,
-        ]);
-    }
-
-    #[On('ejecutarCerrarTitularidad')]
-    public function cerrarTitularidad($id)
-    {
-        Titularidad::whereKey($id)->whereNull('fecha_fin')->update(['fecha_fin' => now()->toDateString()]);
-
-        $this->cargado = false;
-        $this->cargarPropietarios();
-    }
-
-    #[On('cerrarTitularidadCancelado')]
-    public function cerrarCancelado($id = null)
-    {
-        // el usuario canceló; no hacemos nada
-    }
-
-    // --- Editar (✏️): SOLO para corregir un error de captura, nunca un cambio real ---
-    public function confirmarEditar($titularidadId)
-    {
-        $this->dispatch('swalConfirm', [
-            'title'              => __('¿Editar esta titularidad?'),
-            'text'               => __('Solo debe modificarse si hubo un error al darla de alta. Un cambio real de propiedad (venta, herencia, divorcio…) se hace dando de baja esta fila y añadiendo una nueva, no editando.'),
-            'icon'               => 'warning',
-            'showCancelButton'   => true,
-            'confirmButtonColor' => '#3085d6',
-            'cancelButtonColor'  => '#f1c40f',
-            'confirmButtonText'  => __('Sí, es un error, corregir'),
-            'cancelButtonText'   => __('Cancelar'),
-            'confirmCallback'    => 'ejecutarEditarTitularidad',
-            'cancelCallback'     => 'editarTitularidadCancelado',
-            'id'                 => $titularidadId,
-        ]);
-    }
-
-    #[On('ejecutarEditarTitularidad')]
-    public function activarEdicion($id)
-    {
-        $titularidad = Titularidad::find($id);
-        if (! $titularidad) {
+        $borrador = $this->borradorActual();
+        if (! $borrador) {
             return;
         }
-
-        $this->editandoId        = $titularidad->id;
-        $this->edit_cuota_percent = $titularidad->cuota_percent;
-        $this->edit_causa         = $titularidad->causa;
-        $this->edit_fecha_inicio  = $titularidad->fecha_inicio?->format('Y-m-d');
+        $payload = $borrador->payload ?? [];
+        $payload['propietarios'] = $this->propietarios;
+        $borrador->update(['payload' => $payload]);
     }
 
-    #[On('editarTitularidadCancelado')]
-    public function editarCancelado($id = null)
+    private function resetFormularioPropietario(): void
     {
-        // el usuario canceló; no hacemos nada
+        $this->quitarSeleccion();
+        $this->personaNueva      = false;
+        $this->personaComprobada = false;
+        $this->cuota_percent     = null;
+        $this->causa             = Titularidad::CAUSA_COMPRAVENTA;
+        $this->resetErrorBag();
+    }
+
+    // --- Quitar: solo saca la línea del borrador, no toca nada real ---
+    public function quitarPropietario($ref)
+    {
+        $this->propietarios = array_values(array_filter(
+            $this->propietarios,
+            fn ($p) => $p['ref'] !== $ref
+        ));
+        $this->guardarBorradorPropietarios();
+    }
+
+    // --- Editar: cambia cuota/causa de una línea ya añadida ---
+    public function activarEdicion($ref)
+    {
+        $linea = collect($this->propietarios)->firstWhere('ref', $ref);
+        if (! $linea) {
+            return;
+        }
+        $this->editandoId         = $ref;
+        $this->edit_cuota_percent = $linea['cuota_percent'];
+        $this->edit_causa         = $linea['causa'];
     }
 
     public function cancelarEdicion()
@@ -378,30 +336,84 @@ class PropietariosStep extends CrearInmuebleStep
         $this->validate([
             'edit_cuota_percent' => ['required', 'numeric', 'min:0.01', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
             'edit_causa'         => ['required', 'in:'.implode(',', array_keys($this->causas()))],
-            'edit_fecha_inicio'  => ['required', 'date'],
         ], [], ['edit_cuota_percent' => __('cuota de propiedad')]);
 
-        Titularidad::whereKey($this->editandoId)->update([
-            'cuota_percent' => $this->edit_cuota_percent,
-            'causa'         => $this->edit_causa,
-            'fecha_inicio'  => $this->edit_fecha_inicio,
-        ]);
+        foreach ($this->propietarios as &$linea) {
+            if ($linea['ref'] === $this->editandoId) {
+                $linea['cuota_percent'] = (float) $this->edit_cuota_percent;
+                $linea['causa']         = $this->edit_causa;
+            }
+        }
+        unset($linea);
 
+        $this->guardarBorradorPropietarios();
         $this->editandoId = null;
-        $this->cargado     = false;
-        $this->cargarPropietarios();
     }
 
-    /** "Terminar": no deja salir si las cuotas vigentes no suman 100%. */
+    /** "Terminar": no deja salir si las cuotas no suman 100%. Graba todo de golpe. */
     public function terminar()
     {
-        $suma = Titularidad::vigente()->where('inmueble_id', $this->inmuebleId)->sum('cuota_percent');
+        $suma = collect($this->propietarios)->sum('cuota_percent');
 
         if (abs((float) $suma - 100) > 0.01) {
             $this->addError('cuota_percent', __('Los propietarios deben sumar el 100% de la propiedad (ahora mismo: :suma%).', ['suma' => $suma]));
 
             return;
         }
+
+        $borrador = $this->borradorActual();
+        if (! $borrador || empty($borrador->payload['datos'])) {
+            $this->addError('cuota_percent', __('Faltan los datos del inmueble. Vuelve al paso anterior.'));
+
+            return;
+        }
+
+        DB::transaction(function () use ($borrador) {
+            if ($this->inmuebleId) {
+                $inmueble = Inmueble::findOrFail($this->inmuebleId);
+                $inmueble->update($borrador->payload['datos']);
+            } else {
+                $inmueble = Inmueble::create($borrador->payload['datos']);
+                $this->inmuebleId = $inmueble->id;
+            }
+
+            $titularidadIdsVigentes = [];
+
+            foreach ($this->propietarios as $linea) {
+                $personaId = $linea['persona_comunidad_id']
+                    ?? PersonaComunidad::create($linea['persona_nueva'])->id;
+
+                $propietario = Propietario::firstOrCreate(['persona_comunidad_id' => $personaId]);
+
+                if ($linea['titularidad_id']) {
+                    Titularidad::whereKey($linea['titularidad_id'])->update([
+                        'cuota_percent' => $linea['cuota_percent'],
+                        'causa'         => $linea['causa'],
+                    ]);
+                    $titularidadIdsVigentes[] = $linea['titularidad_id'];
+                } else {
+                    $titularidad = Titularidad::create([
+                        'inmueble_id'    => $inmueble->id,
+                        'propietario_id' => $propietario->id,
+                        'cuota_percent'  => $linea['cuota_percent'],
+                        'causa'          => $linea['causa'],
+                        'fecha_inicio'   => now()->toDateString(),
+                        'fecha_fin'      => null,
+                    ]);
+                    $titularidadIdsVigentes[] = $titularidad->id;
+                }
+            }
+
+            // Las titularidades vigentes que ya no están en la lista final se cierran
+            // (nunca se borran: queda como historial de que dejó de ser propietario).
+            Titularidad::vigente()
+                ->where('inmueble_id', $inmueble->id)
+                ->whereNotIn('id', $titularidadIdsVigentes)
+                ->update(['fecha_fin' => now()->toDateString()]);
+        });
+
+        $borrador->delete();
+        session()->forget('inmueble_borrador_id');
 
         $this->salir();
     }

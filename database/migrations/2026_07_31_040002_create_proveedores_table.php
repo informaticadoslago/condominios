@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('propietarios', function (Blueprint $table) {
+        Schema::create('proveedores', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('persona_id')->index('propietarios_persona_id_foreign');
+            $table->unsignedBigInteger('persona_comunidad_id')->index('proveedores_persona_comunidad_id_foreign');
             $table->timestamps();
 
-            $table->foreign('persona_id')->references('id')->on('personas')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign('persona_comunidad_id')->references('id')->on('personas_comunidad')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('propietarios');
+        Schema::dropIfExists('proveedores');
     }
 };

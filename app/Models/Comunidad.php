@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Spatie\Permission\Models\Role;
 
 class Comunidad extends Model
 {
@@ -19,6 +20,19 @@ class Comunidad extends Model
     ];
 
     protected $with = ['persona'];
+
+    /** Nombre del rol de acceso a esta comunidad (puerta de entrada, no permisos). */
+    public function nombreRol(): string
+    {
+        return 'comunidad-'.$this->id;
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (self $comunidad) {
+            Role::firstOrCreate(['name' => $comunidad->nombreRol(), 'guard_name' => 'web']);
+        });
+    }
 
     public function persona()
     {

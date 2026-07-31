@@ -40,7 +40,9 @@ class Lista extends ListaComponent
     #[On('ejecutarEliminarPropietario')]
     public function ejecutarEliminar($id)
     {
-        Propietario::whereKey($id)->delete();
+        Propietario::whereKey($id)
+            ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+            ->delete();
         $this->dispatch('toast-success', ['title' => __('Propietario eliminado')]);
     }
 
@@ -55,7 +57,7 @@ class Lista extends ListaComponent
         $search = trim($this->search ?? '');
 
         $items = Propietario::with('persona')
-            ->whereHas('persona', fn ($p) => $p->visible())
+            ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
             ->when($search, function ($q) use ($search) {
                 $q->whereHas('persona', fn ($p) => $p
                     ->buscarNombreCompleto($search)

@@ -5,7 +5,7 @@
         </h1>
 
         @livewire('inmuebles.crear.crear-inmueble',
-            ['inmuebleId' => $inmuebleId],
+            ['inmuebleId' => $inmuebleId, 'comunidadId' => $comunidadId],
             key('inmueble-' . ($inmuebleId ?? 'nuevo')))
     </div>
 </div>

@@ -10,7 +10,15 @@
                 </button>
             </div>
             <flux:spacer />
-            @if (config('flux.appearance.enabled'))                
+            @php $comunidadActual = session('comunidad_actual_id') ? \App\Models\Comunidad::find(session('comunidad_actual_id')) : null; @endphp
+            @if ($comunidadActual)
+                <flux:badge color="blue" class="mayusculas">
+                    <i class="fa-solid fa-city mr-1"></i>{{ $comunidadActual->nombre }}
+                </flux:badge>
+                <flux:button href="{{ route('comunidad.salir') }}" icon="x-mark" variant="subtle"
+                    title="{{ __('Salir de la comunidad') }}" aria-label="{{ __('Salir de la comunidad') }}" />
+            @endif
+            @if (config('flux.appearance.enabled'))
                     <flux:button x-data x-on:click="$flux.dark = ! $flux.dark" x-show="!$flux.dark" icon="moon"
                         variant="subtle" aria-label="Toggle dark mode" />
                     <flux:button x-data x-on:click="$flux.dark = ! $flux.dark" x-show="$flux.dark" icon="sun"

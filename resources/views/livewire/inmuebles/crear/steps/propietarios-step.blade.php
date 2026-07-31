@@ -15,7 +15,7 @@
                 <ul class="border rounded mt-1 divide-y">
                     @foreach ($propietarios as $propietario)
                         <li class="px-3 py-2">
-                            @if ($editandoId === $propietario['titularidad_id'])
+                            @if ($editandoId === $propietario['ref'])
                                 <div class="flex items-end gap-2">
                                     <div class="flex-1">
                                         <span class="mayusculas">{{ $propietario['nombre'] }}</span>
@@ -32,10 +32,6 @@
                                             @endforeach
                                         </x-select>
                                     </div>
-                                    <div class="w-1/5">
-                                        <x-label :value="__('Fecha inicio')" />
-                                        <x-input type="date" class="block mt-1 w-full" wire:model="edit_fecha_inicio" />
-                                    </div>
                                     <div class="flex gap-1">
                                         <x-button type="button" wire:click="guardarEdicion" class="btn">{{ __('Guardar') }}</x-button>
                                         <button type="button" wire:click="cancelarEdicion" class="text-sm text-gray-500 hover:text-gray-800 px-2">{{ __('Cancelar') }}</button>
@@ -43,18 +39,17 @@
                                 </div>
                                 <x-input-error for="edit_cuota_percent" class="mt-2" />
                                 <x-input-error for="edit_causa" class="mt-2" />
-                                <x-input-error for="edit_fecha_inicio" class="mt-2" />
                             @else
                                 <div class="flex items-center gap-2">
                                     <span class="mayusculas flex-1">{{ $propietario['nombre'] }}</span>
                                     <span class="text-sm text-gray-500">{{ number_format($propietario['cuota_percent'], 2) }}%</span>
                                     <span class="text-sm text-gray-500">{{ $propietario['causa'] }}</span>
-                                    <button type="button" wire:click="confirmarEditar({{ $propietario['titularidad_id'] }})"
-                                        class="text-gray-500 hover:text-indigo-600" title="{{ __('Editar (solo si fue un error)') }}">
+                                    <button type="button" wire:click="activarEdicion({{ $propietario['ref'] }})"
+                                        class="text-gray-500 hover:text-indigo-600" title="{{ __('Editar') }}">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
-                                    <button type="button" wire:click="confirmarCerrar({{ $propietario['titularidad_id'] }})"
-                                        class="text-gray-500 hover:text-red-600" title="{{ __('Dar de baja') }}">
+                                    <button type="button" wire:click="quitarPropietario({{ $propietario['ref'] }})"
+                                        class="text-gray-500 hover:text-red-600" title="{{ __('Quitar') }}">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </div>
@@ -202,6 +197,14 @@
             @endif
         </div>
         <div class="flex gap-2">
+            <span x-data="{ shift: false }" @keydown.shift.window="shift = true" @keyup.shift.window="shift = false" x-on:blur.window="shift = false">
+                <x-button type="button" tabindex="-1" wire:click="salir($event.shiftKey)"
+                    x-bind:class="shift ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-500 hover:bg-gray-600'" class="text-white">
+                    <i class="fa-solid" x-bind:class="shift ? 'fa-trash' : 'fa-arrow-right-from-bracket'"></i>
+                    <span x-show="!shift">{{ __('Salir') }}</span>
+                    <span x-show="shift" x-cloak>{{ __('Salir y eliminar borrador') }}</span>
+                </x-button>
+            </span>
             <x-button type="button" wire:click="terminar">{{ __('Terminar') }}</x-button>
         </div>
     </div>

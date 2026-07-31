@@ -33,6 +33,7 @@ class Formulario extends Component
     {
         $this->formulario->propietario = new Propietario();
         $this->formulario->resetForm();
+        $this->formulario->comunidad_id = session('comunidad_actual_id');
         $this->abrir = true;
     }
 
@@ -40,7 +41,7 @@ class Formulario extends Component
     public function editar($id)
     {
         $propietario = Propietario::with('persona')->find($id);
-        if (! $propietario) {
+        if (! $propietario || $propietario->persona->comunidad_id != session('comunidad_actual_id')) {
             return;
         }
 
@@ -51,6 +52,7 @@ class Formulario extends Component
 
     public function comprobarDocumento()
     {
+        $this->formulario->comunidad_id = session('comunidad_actual_id');
         $this->formulario->comprobarDocumento();
     }
 
@@ -61,6 +63,10 @@ class Formulario extends Component
 
     public function guardar()
     {
+        // Nunca confiar en lo que traiga ya el formulario: se fuerza aquí, justo
+        // antes de validar/guardar, a la comunidad real de la sesión.
+        $this->formulario->comunidad_id = session('comunidad_actual_id');
+
         $validated = $this->formulario->validate();
 
         if ($this->formulario->propietario?->exists) {

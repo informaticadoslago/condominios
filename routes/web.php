@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BackupDescargaController;
+use App\Http\Controllers\ComunidadContextoController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Livewire\AdministracionSistema\Backups\Lista as BackupsLista;
 use App\Livewire\AdministracionSistema\Empresa\Editar as EmpresaEditar;
@@ -42,6 +43,10 @@ Route::middleware([
         return view('dashboard');
     })->name('dashboard');
 
+    // Cambio de contexto: entrar/salir de una comunidad
+    Route::get('/comunidad/{comunidad}/entrar', [ComunidadContextoController::class, 'entrar'])->name('comunidad.entrar');
+    Route::get('/comunidad/salir', [ComunidadContextoController::class, 'salir'])->name('comunidad.salir');
+
     // Rutas de Administración del Sistema
     Route::prefix('administracion-sistema')->name('sysadmin.')->group(function () {
         Route::get('/personas', PersonasLista::class)
@@ -67,11 +72,15 @@ Route::middleware([
     });
 
     Route::get('/comunidades', ComunidadesLista::class)->name('comunidades.index');
-    Route::get('/propietarios', PropietariosLista::class)->name('propietarios.index');
-    Route::get('/proveedores', ProveedoresLista::class)->name('proveedores.index');
-    Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');
-    Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
-    Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');
+
+    // Rutas de una comunidad: exigen comunidad activa en sesión y acceso a ella.
+    Route::middleware('comunidad.activa')->group(function () {
+        Route::get('/propietarios', PropietariosLista::class)->name('propietarios.index');
+        Route::get('/proveedores', ProveedoresLista::class)->name('proveedores.index');
+        Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');
+        Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
+        Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');
+    });
 
     // Maestros de la música
     Route::get('/entidades-bancarias', EntidadesBancariasLista::class)->name('entidades-bancarias.index');

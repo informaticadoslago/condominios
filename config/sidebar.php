@@ -24,9 +24,6 @@ return [
                     'can'   => 'menu-administracion-sistema',
                     'items' => [
                         ['icon' => 'fa-solid fa-city', 'label' => trans_key('menu.Comunidades'), 'route' => 'comunidades.index'],
-                        ['icon' => 'fa-solid fa-user-tie', 'label' => trans_key('menu.Propietarios'), 'route' => 'propietarios.index'],
-                        ['icon' => 'fa-solid fa-truck', 'label' => trans_key('menu.Proveedores'), 'route' => 'proveedores.index'],
-                        ['icon' => 'fa-solid fa-door-open', 'label' => trans_key('menu.Inmuebles'), 'route' => 'inmuebles.index'],
                     ],
                 ],
                 [

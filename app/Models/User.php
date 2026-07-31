@@ -155,4 +155,22 @@ class User extends Authenticatable
         return $this->isNotSuperadmin() && $this->isActive();
     }
 
+    /**
+     * Comunidades en las que este usuario puede entrar: todas si tiene el rol
+     * "global", o solo aquellas cuyo rol puerta (Comunidad::nombreRol()) tenga.
+     */
+    public function comunidadesAccesibles()
+    {
+        if ($this->hasRole('global')) {
+            return Comunidad::activa()->get();
+        }
+
+        $ids = $this->roles()
+            ->where('name', 'like', 'comunidad-%')
+            ->pluck('name')
+            ->map(fn ($nombre) => (int) str_replace('comunidad-', '', $nombre));
+
+        return Comunidad::activa()->whereIn('id', $ids)->get();
+    }
+
 }

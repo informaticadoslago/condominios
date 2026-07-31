@@ -27,7 +27,37 @@
 
     {{-- ===== SIDEBAR ===== --}}
     {{-- @include('layouts.menu_flux_sidebar') --}}
-    <x-dosl.menu-sidebar :menu="config('sidebar')" />
+    @php
+        $comunidadActual = session('comunidad_actual_id')
+            ? \App\Models\Comunidad::find(session('comunidad_actual_id'))
+            : null;
+
+        if ($comunidadActual) {
+            $menuLateral = config('menu_comunidad');
+        } else {
+            $menuLateral = config('sidebar');
+            $comunidadesAccesibles = auth()->user()->comunidadesAccesibles();
+
+            if ($comunidadesAccesibles->count()) {
+                array_unshift($menuLateral['content'], [
+                    'type'  => 'nav',
+                    'items' => [
+                        [
+                            'type'  => 'group',
+                            'icon'  => 'fa-solid fa-city',
+                            'label' => trans_key('menu.Comunidades'),
+                            'items' => $comunidadesAccesibles->map(fn ($c) => [
+                                'icon'  => 'fa-solid fa-city',
+                                'label' => $c->nombre,
+                                'href'  => route('comunidad.entrar', $c),
+                            ])->all(),
+                        ],
+                    ],
+                ]);
+            }
+        }
+    @endphp
+    <x-dosl.menu-sidebar :menu="$menuLateral" />
     {{-- ===== HEADER SUPERIOR ===== --}}
     <flux:header class="block! bg-white lg:bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700">
         {{-- Menú móvil --}}

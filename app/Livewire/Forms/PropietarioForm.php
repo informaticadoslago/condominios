@@ -3,7 +3,7 @@
 namespace App\Livewire\Forms;
 
 use App\Models\Pais;
-use App\Models\Persona;
+use App\Models\PersonaComunidad;
 use App\Models\Propietario;
 use App\Models\TipoDocumentoIdentificativo;
 use App\Models\TipoGenero;
@@ -17,7 +17,9 @@ use Livewire\Form;
 class PropietarioForm extends Form
 {
     public ?Propietario $propietario = null;
-    public ?Persona $persona = null;
+    public ?PersonaComunidad $persona = null;
+
+    public ?int $comunidad_id = null;
 
     // --- Datos de persona (fiscales) ---
     public $razon_social;
@@ -31,14 +33,15 @@ class PropietarioForm extends Form
     public $fecha_nacimiento;
     public $genero_id;
 
-    public int $persona_id = 0;
+    public int $persona_comunidad_id = 0;
 
     // Auxiliares para la vista
     public $tipo_documento_identificativos;
     public bool $es_tipo_documento_cif = false;
 
-    // Alta: primero se comprueba el documento. Si la persona ya existe (y no es
-    // propietario todavía) se reutiliza tal cual; si no existe, se piden sus datos.
+    // Alta: primero se comprueba el documento. Si la persona ya existe en esta
+    // comunidad (y no es propietario todavía) se reutiliza tal cual; si no existe,
+    // se piden sus datos.
     public bool $documentoComprobado = false;
     public bool $personaExistente    = false;
 
@@ -100,7 +103,9 @@ class PropietarioForm extends Form
             $rules['nombre_comercial'] = ['nullable', 'string', 'max:100'];
         }
 
-        $rules['documento_identificativo'][] = Rule::unique('personas')->ignore($this->persona_id);
+        $rules['documento_identificativo'][] = Rule::unique('personas_comunidad', 'documento_identificativo')
+            ->where(fn ($q) => $q->where('comunidad_id', $this->comunidad_id))
+            ->ignore($this->persona_comunidad_id);
 
         return $rules;
     }
@@ -116,31 +121,33 @@ class PropietarioForm extends Form
         ];
     }
 
-    /** Paso 1 del alta: mira si el documento ya pertenece a una persona. */
+    /** Paso 1 del alta: mira si el documento ya pertenece a una persona de esta comunidad. */
     public function comprobarDocumento()
     {
         $this->validate($this->reglasDocumento());
 
         $this->es_tipo_documento_cif = TipoDocumentoIdentificativo::isTipoDocumento($this->tipo_documento_id, TipoDocumentoIdentificativo::TIPO_JURIDICA);
 
-        $persona = Persona::visible()->where('documento_identificativo', $this->documento_identificativo)->first();
+        $persona = PersonaComunidad::where('comunidad_id', $this->comunidad_id)
+            ->where('documento_identificativo', $this->documento_identificativo)
+            ->first();
 
         if ($persona) {
-            if (Propietario::where('persona_id', $persona->id)->exists()) {
+            if (Propietario::where('persona_comunidad_id', $persona->id)->exists()) {
                 $this->addError('documento_identificativo', __('Esta persona ya está dada de alta como propietario.'));
 
                 return;
             }
 
-            $this->persona_id       = $persona->id;
-            $this->nombre           = $persona->nombre;
-            $this->apellido1        = $persona->apellido1;
-            $this->apellido2        = $persona->apellido2;
-            $this->razon_social     = $persona->razon_social;
-            $this->nombre_comercial = $persona->nombre_comercial;
-            $this->fecha_nacimiento = $persona->fecha_nacimiento?->format('Y-m-d');
-            $this->genero_id        = $persona->genero_id;
-            $this->personaExistente = true;
+            $this->persona_comunidad_id = $persona->id;
+            $this->nombre                = $persona->nombre;
+            $this->apellido1             = $persona->apellido1;
+            $this->apellido2             = $persona->apellido2;
+            $this->razon_social          = $persona->razon_social;
+            $this->nombre_comercial      = $persona->nombre_comercial;
+            $this->fecha_nacimiento      = $persona->fecha_nacimiento?->format('Y-m-d');
+            $this->genero_id             = $persona->genero_id;
+            $this->personaExistente      = true;
         } else {
             $this->personaExistente = false;
         }
@@ -151,16 +158,17 @@ class PropietarioForm extends Form
     /** Vuelve al paso 1 (por si el documento comprobado no era el que tocaba). */
     public function cambiarDocumento()
     {
-        $this->documentoComprobado = false;
-        $this->personaExistente    = false;
-        $this->persona_id          = 0;
+        $this->documentoComprobado  = false;
+        $this->personaExistente     = false;
+        $this->persona_comunidad_id = 0;
         $this->resetErrorBag();
     }
 
     private function datosPersona(): array
     {
         return [
-            'nombre'                   => $this->nombre ?? '', // personas.nombre es NOT NULL
+            'comunidad_id'             => $this->comunidad_id,
+            'nombre'                   => $this->nombre ?? '', // personas_comunidad.nombre es NOT NULL
             'apellido1'                => $this->apellido1,
             'apellido2'                => $this->apellido2,
             'razon_social'             => $this->razon_social,
@@ -179,7 +187,8 @@ class PropietarioForm extends Form
         $persona = $this->propietario->persona;
 
         $this->persona                  = $persona;
-        $this->persona_id               = $persona->id;
+        $this->persona_comunidad_id     = $persona->id;
+        $this->comunidad_id             = $persona->comunidad_id;
         $this->nombre                   = $persona->nombre;
         $this->apellido1                = $persona->apellido1;
         $this->apellido2                = $persona->apellido2;
@@ -197,18 +206,18 @@ class PropietarioForm extends Form
 
     public function store($validated): Propietario
     {
-        if ($this->personaExistente && $this->persona_id) {
-            $persona = Persona::findOrFail($this->persona_id);
+        if ($this->personaExistente && $this->persona_comunidad_id) {
+            $persona = PersonaComunidad::findOrFail($this->persona_comunidad_id);
         } else {
-            $persona = Persona::create($this->datosPersona());
+            $persona = PersonaComunidad::create($this->datosPersona());
         }
 
-        $propietario = Propietario::create(['persona_id' => $persona->id]);
+        $propietario = Propietario::create(['persona_comunidad_id' => $persona->id]);
         $propietario->setRelation('persona', $persona);
 
-        $this->propietario = $propietario;
-        $this->persona      = $persona;
-        $this->persona_id   = $persona->id;
+        $this->propietario          = $propietario;
+        $this->persona               = $persona;
+        $this->persona_comunidad_id  = $persona->id;
 
         return $propietario;
     }
@@ -230,7 +239,7 @@ class PropietarioForm extends Form
         $this->fecha_nacimiento         = null;
         $this->documento_identificativo = '';
         $this->genero_id                = null;
-        $this->persona_id               = 0;
+        $this->persona_comunidad_id     = 0;
         $this->propietario              = null;
         $this->persona                  = null;
         $this->documentoComprobado      = false;
