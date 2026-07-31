@@ -11,6 +11,8 @@ use App\Livewire\AdministracionSistema\Personas\Lista as PersonasLista;
 use App\Livewire\AdministracionSistema\Roles\Lista as RolesLista;
 use App\Livewire\AdministracionSistema\Usuarios\Lista as UsuariosLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
+use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
+use App\Livewire\EjerciciosContables\Lista as EjerciciosContablesLista;
 use App\Livewire\Inmuebles\Formulario as InmueblesFormulario;
 use App\Livewire\Inmuebles\Lista as InmueblesLista;
 use App\Livewire\Maestros\EntidadesBancarias\Lista as EntidadesBancariasLista;
@@ -80,7 +82,11 @@ Route::middleware([
         Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');
         Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
         Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');
+        Route::get('/ejercicios-contables', EjerciciosContablesLista::class)->name('ejercicios-contables.index');
     });
+
+    // Gestión contable (global)
+    Route::get('/cuentas-contables', CuentasContablesLista::class)->name('cuentas-contables.index');
 
     // Maestros de la música
     Route::get('/entidades-bancarias', EntidadesBancariasLista::class)->name('entidades-bancarias.index');

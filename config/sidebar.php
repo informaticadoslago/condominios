@@ -28,6 +28,14 @@ return [
                 ],
                 [
                     'type'  => 'group',
+                    'icon'  => 'fa-solid fa-calculator',
+                    'label' => trans_key('menu.Gestión contable'),
+                    'items' => [
+                        ['icon' => 'fa-solid fa-book', 'label' => trans_key('menu.Cuentas contables'), 'route' => 'cuentas-contables.index'],
+                    ],
+                ],
+                [
+                    'type'  => 'group',
                     'icon'  => 'fa-solid fa-building-columns',
                     'label' => trans_key('menu.Maestros de la música'),
                     'can'   => 'menu-maestros',
