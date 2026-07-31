@@ -15,10 +15,9 @@ return new class extends Migration
             '--force' => true,
         ]);
 
-        Artisan::call('db:seed', [
-            '--class' => \Database\Seeders\CreateSuperUserSeeder::class,
-            '--force' => true,
-        ]);
+        // El superadmin NO se crea aquí: lo hace, una sola vez, el paso
+        // opcional del instalador (condominios:install), que es quien decide
+        // si toca crearlo/sobrescribirlo.
     }
 
     /**
@@ -26,7 +25,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Los roles/permisos y los usuarios creados se van con las tablas
-        // (roles, permissions, users, personas) al revertir sus propias migraciones.
+        // Los roles/permisos se van con las tablas (roles, permissions) al
+        // revertir sus propias migraciones.
     }
 };

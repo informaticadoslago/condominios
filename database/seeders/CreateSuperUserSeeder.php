@@ -5,26 +5,20 @@ use App\Models\EstadoUsuario;
 use App\Models\Pais;
 use App\Models\Persona;
 use App\Models\TipoDocumentoIdentificativo;
-use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 
 class CreateSuperUserSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Crea o sobrescribe (por login/documento) los dos usuarios superadmin,
+     * sin tocar el resto de usuarios existentes.
      *
      * @return void
      */
     public function run()
     {
-
-        Schema::disableForeignKeyConstraints();
-        User::truncate();
-        Schema::enableForeignKeyConstraints();
-
         $this->command->info('Creando  rol SuperAdmin con TODOS los permisos.');
         $hoy = \Carbon\Carbon::now();
         $rol = Role::firstOrCreate(['name' => config('doslago.superadmin.nombre_rol')]);
