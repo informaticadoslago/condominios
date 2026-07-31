@@ -15,7 +15,6 @@ return new class extends Migration
             $table->bigIncrements('id');
             $table->dateTime('fechaalta')->default('2020-06-05 10:37:02');
             $table->unsignedBigInteger('persona_id')->nullable()->index('fotos_persona_id_foreign');
-            $table->unsignedInteger('tipo_foto_id')->default(1)->index('fotos_tipo_foto_id_foreign');
             $table->string('nombrefichero', 30)->nullable();
             $table->string('extension', 30)->nullable();
             $table->boolean('estado')->default(true);

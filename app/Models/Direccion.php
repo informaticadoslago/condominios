@@ -10,7 +10,7 @@ class Direccion extends Model
 {
     use ConCopiaAlBorrar;
 
-    protected $table = 'dosl_direcciones';
+    protected $table = 'direcciones';
 
     protected $fillable = [
         'tipo_direccion_id',

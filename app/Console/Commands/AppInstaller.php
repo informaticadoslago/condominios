@@ -1,18 +1,18 @@
 <?php
 namespace App\Console\Commands;
 
+use function Laravel\Prompts\password;
 use function Laravel\Prompts\text;
-use App\Models\TipoDocumentoIdentificativo;
-use App\Rules\Includes\ValidadorDocumentoId;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\Process\Process;
 
 class AppInstaller extends Command
 {
-    protected $signature   = 'doslago:install
-        {--skip-db-config : Omite la pregunta de configuración de BD (uso interno al relanzarse)}';
+    protected $signature   = 'condominios:install
+        {--skip-env-setup : Omite la preparación del .env (uso interno al relanzarse)}';
     protected $description = 'Instalación via CLI';
 
     /**
@@ -37,6 +37,7 @@ class AppInstaller extends Command
         $this->line('');
 
         try {
+            DB::purge($connection);
             DB::select('SELECT 1');
             $this->info('✅ Conexión a la base de datos correcta.');
             return true;
@@ -47,26 +48,139 @@ class AppInstaller extends Command
         }
     }
 
+    /**
+     * Paso 1: prepara el .env y la base de datos.
+     *
+     * - Si ya existe un .env que conecta: vacía la base de datos y continúa
+     *   en este mismo proceso.
+     * - Si no existe .env, o el que hay no conecta: lo regenera a partir de
+     *   .env.example (haciendo antes una copia de seguridad a .env.old si
+     *   procede) y regenera la APP_KEY. Devuelve false para indicar que hace
+     *   falta relanzar el proceso, ya que el nuevo .env no se puede recargar
+     *   a mitad de ejecución.
+     *
+     * @return bool|null true = seguir en este proceso, false = hay que
+     *                    relanzar, null = error irrecuperable (ya impreso).
+     */
+    protected function prepareEnvironment(): ?bool
+    {
+        $envPath = base_path('.env');
+
+        if (file_exists($envPath) && $this->checkDatabaseConnection()) {
+            $this->info('Vaciando la base de datos existente...');
+            Schema::dropAllTables();
+            $this->info('✅ Base de datos vaciada.');
+            return true;
+        }
+
+        $examplePath = base_path('.env.example');
+
+        if (! file_exists($examplePath)) {
+            $this->error('❌ No tengo acceso a la base de datos. Instalación detenida.');
+            return null;
+        }
+
+        if (file_exists($envPath)) {
+            rename($envPath, base_path('.env.old'));
+            $this->info('.env renombrado a .env.old.');
+        }
+
+        copy($examplePath, $envPath);
+        $this->info('.env creado a partir de .env.example.');
+
+        Artisan::call('key:generate', ['--force' => true]);
+        $this->info('APP_KEY regenerada.');
+
+        return false;
+    }
+
+    /**
+     * Paso 1 (continuación): comprueba que se puede conectar con las
+     * credenciales del .env. Si no se puede, pide un usuario con privilegios
+     * (por defecto root) para crear la base de datos, el usuario de la app y
+     * concederle privilegios, y vuelve a comprobar la conexión.
+     */
+    protected function ensureDatabaseReady(): bool
+    {
+        if ($this->checkDatabaseConnection()) {
+            return true;
+        }
+
+        $this->warn('No se pudo conectar con el usuario de la aplicación. Hace falta un usuario con privilegios para crearlo.');
+
+        $adminUser = text(label: 'Usuario de administración de la base de datos', default: 'root', required: true);
+        $adminPass = password(label: 'Contraseña de administración de la base de datos');
+
+        if (! $this->createAppDatabaseAndUser($adminUser, $adminPass)) {
+            return false;
+        }
+
+        return $this->checkDatabaseConnection();
+    }
+
+    /**
+     * Crea (si no existen) la base de datos y el usuario de la aplicación
+     * definidos en el .env, usando una conexión aparte con credenciales de
+     * administración. No toca la configuración de conexión de la app.
+     */
+    protected function createAppDatabaseAndUser(string $adminUser, #[\SensitiveParameter] string $adminPass): bool
+    {
+        $conn = config('database.default');
+        $cfg  = config("database.connections.$conn");
+
+        $database = $cfg['database'];
+        $appUser  = $cfg['username'];
+        $appPass  = $cfg['password'];
+        $host     = '%';
+
+        try {
+            $pdo = new \PDO(
+                sprintf('mysql:host=%s;port=%s', $cfg['host'], $cfg['port'] ?? 3306),
+                $adminUser,
+                $adminPass
+            );
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+            $safeDatabase = str_replace('`', '``', $database);
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$safeDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+            $stmt = $pdo->prepare('CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY ?');
+            $stmt->execute([$appUser, $host, $appPass]);
+
+            $pdo->exec(sprintf(
+                "GRANT ALL PRIVILEGES ON `{$safeDatabase}`.* TO %s@%s",
+                $pdo->quote($appUser),
+                $pdo->quote($host)
+            ));
+            $pdo->exec('FLUSH PRIVILEGES');
+        } catch (\Throwable $e) {
+            $this->error('❌ No se pudo crear la base de datos/usuario: ' . $e->getMessage());
+            return false;
+        }
+
+        $this->info("✅ Base de datos «{$database}» y usuario «{$appUser}» preparados.");
+        return true;
+    }
+
     public function runMigrationsWithSeeders(): bool
     {
         try {
-            $this->info('Insertando valores iniciales...');
-            $this->info('Regenerando tablas...');
-            Artisan::call('migrate', ['--step' => true, '--force' => true]);
+            $this->info('Ejecutando migraciones y seeders...');
+            Artisan::call('migrate', ['--step' => true, '--force' => true, '--seed' => true], $this->output);
         } catch (\Throwable $e) {
             $this->error('Error durante migraciones o seeders: ' . $e->getMessage());
             return false;
         }
 
-        $this->info('Valores iniciales insertados.');
+        $this->info('✅ Migraciones y seeders completados.');
         return true;
     }
 
     /**
-     * Ejecuta un comando artisan en un PROCESO NUEVO. Es necesario para el
-     * Paso 1 porque el .env se carga al arrancar el framework y no puede
-     * recargarse a mitad de ejecución: solo un proceso nuevo ve el .env recién
-     * escrito.
+     * Ejecuta un comando artisan en un PROCESO NUEVO. Es necesario tras
+     * escribir un .env nuevo porque el .env se carga al arrancar el
+     * framework y no puede recargarse a mitad de ejecución: solo un proceso
+     * nuevo ve el .env recién escrito.
      */
     protected function runArtisan(array $arguments): bool
     {
@@ -85,174 +199,37 @@ class AppInstaller extends Command
     }
 
     /**
-     * Importa la base de datos desde un fichero .sql de esquema. Busca, en este
-     * orden, database/schema/install.sql, mysql-schema.sql y mysql-schema.dump.
-     * Devuelve true si importa (o si no hay fichero) y false si falla.
+     * Copia los logos de la app (en resources/images) a public, para que
+     * las vistas que los sirven vía asset('storage/images/logo/...') los
+     * encuentren.
      */
-    protected function importSqlSchema(): bool
+    protected function copyLogos(): void
     {
-        if (! $this->confirm('¿Deseas importar la base de datos?', false)) {
-            return true;
+        $files = [
+            'dosLago.png',
+            'logo-circulo.png',
+            'logo-circulo-blanco.png',
+        ];
+
+        $sourceDir = resource_path('images');
+        $targetDir = public_path('storage/images/logo');
+
+        if (! is_dir($targetDir)) {
+            mkdir($targetDir, 0755, true);
         }
 
-        $file = text(
-            label: 'Ruta del fichero .sql a importar',
-            placeholder: 'p. ej. ~/backups/dump.sql',
-            required: true,
-            validate: fn ($v) => is_file($this->resolveSchemaPath($v)) ? null : 'No existe el fichero indicado.',
-        );
+        foreach ($files as $file) {
+            $source = $sourceDir . '/' . $file;
+            $target = $targetDir . '/' . $file;
 
-        $file = $this->resolveSchemaPath($file);
-
-        $client = $this->resolveDbClient();
-        if ($client === null) {
-            $this->error('No se encontró el cliente mariadb/mysql para importar el esquema.');
-            return false;
-        }
-
-        $conn = config('database.default');
-        $cfg  = config("database.connections.$conn");
-
-        $this->line('');
-        $this->info('Importando base de datos desde ' . $file . ' ...');
-
-        // La contraseña va por MYSQL_PWD (no aparece en `ps`) y el fichero se
-        // importa por redirección, en streaming: el cliente lo lee del disco,
-        // no se carga en memoria de PHP (imprescindible con .sql muy grandes).
-        //   mariadb -h host -P port -u usuario base < fichero.sql
-        $command = sprintf(
-            '%s -h%s -P%s -u%s %s < %s',
-            $client,
-            escapeshellarg((string) $cfg['host']),
-            escapeshellarg((string) ($cfg['port'] ?? '3306')),
-            escapeshellarg((string) $cfg['username']),
-            escapeshellarg((string) $cfg['database']),
-            escapeshellarg($file)
-        );
-
-        $process = Process::fromShellCommandline(
-            $command,
-            base_path(),
-            ['MYSQL_PWD' => (string) ($cfg['password'] ?? '')] + $_ENV
-        );
-        $process->setTimeout(null);
-        $process->run(function ($type, $buffer) {
-            $this->output->write($buffer);
-        });
-
-        if (! $process->isSuccessful()) {
-            $this->error('❌ Error importando el esquema:');
-            $this->line($process->getErrorOutput());
-            return false;
-        }
-
-        $this->info('✅ Base de datos importada.');
-        return true;
-    }
-
-    /**
-     * Resuelve una ruta introducida por el usuario: si es relativa, la ancla a
-     * la raíz del proyecto; si es absoluta, la deja tal cual.
-     */
-    protected function resolveSchemaPath(string $path): string
-    {
-        $path = trim($path);
-
-        // Quita comillas envolventes si las hubiera.
-        if (strlen($path) >= 2
-            && ($path[0] === '"' || $path[0] === "'")
-            && $path[strlen($path) - 1] === $path[0]) {
-            $path = substr($path, 1, -1);
-        }
-
-        // Deshace el escapado de espacios estilo shell ("\ " -> " ").
-        $path = str_replace('\\ ', ' ', $path);
-
-        if ($path === '') {
-            return $path;
-        }
-
-        // Expande ~ al home del usuario.
-        if ($path === '~' || str_starts_with($path, '~/')) {
-            $home = getenv('HOME') ?: ($_SERVER['HOME'] ?? '');
-            if ($home !== '') {
-                $path = $home . substr($path, 1);
+            if (! file_exists($source)) {
+                $this->error("Archivo {$file} no encontrado en resources/images.");
+                continue;
             }
+
+            copy($source, $target);
+            $this->info("Archivo {$file} copiado/sobrescrito en public.");
         }
-
-        // Si es relativa, la ancla a la raíz del proyecto.
-        return str_starts_with($path, '/') ? $path : base_path($path);
-    }
-
-    /**
-     * Localiza el binario del cliente de línea de comandos (mariadb o mysql).
-     */
-    protected function resolveDbClient(): ?string
-    {
-        $candidates = array_filter([config('database.command.name'), 'mariadb', 'mysql']);
-
-        foreach ($candidates as $bin) {
-            $probe = new Process(['sh', '-c', 'command -v ' . escapeshellarg($bin)]);
-            $probe->run();
-            if ($probe->isSuccessful() && trim($probe->getOutput()) !== '') {
-                return $bin;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Reclasifica el tipo de documento de las personas que quedaron con el tipo
-     * centinela "ERRONEO" (id 1), deduciéndolo del formato de su
-     * documento_identificativo (NIF/NIE/CIF). Los no reconocibles se dejan
-     * como están para revisión manual. Es idempotente: solo toca las filas
-     * cuyo tipo sigue siendo ERRONEO.
-     */
-    protected function saneaTipoDocumento(): void
-    {
-        $validador = new ValidadorDocumentoId();
-
-        $erroneo        = 1; // tipo_documento_identificativos: id 1 = 'ERRONEO'
-        $reclasificados = ['NIF' => 0, 'NIE' => 0, 'CIF' => 0];
-        $sinReconocer   = 0;
-
-        DB::table('personas')
-            ->where('tipo_nif_id', $erroneo)
-            ->whereNotNull('documento_identificativo')
-            ->where('documento_identificativo', '<>', '')
-            ->orderBy('id')
-            ->chunkById(500, function ($personas) use ($validador, &$reclasificados, &$sinReconocer) {
-                foreach ($personas as $persona) {
-                    $doc = strtoupper(trim($persona->documento_identificativo));
-
-                    if ($validador->isValidNIF($doc)) {
-                        $tipo = TipoDocumentoIdentificativo::DOCUMENTO_NIF;
-                        $reclasificados['NIF']++;
-                    } elseif ($validador->isValidNIE($doc)) {
-                        $tipo = TipoDocumentoIdentificativo::DOCUMENTO_NIE;
-                        $reclasificados['NIE']++;
-                    } elseif ($validador->isValidCIF($doc)) {
-                        $tipo = TipoDocumentoIdentificativo::DOCUMENTO_CIF;
-                        $reclasificados['CIF']++;
-                    } else {
-                        $sinReconocer++;
-                        continue;
-                    }
-
-                    DB::table('personas')
-                        ->where('id', $persona->id)
-                        ->update(['tipo_nif_id' => $tipo]);
-                }
-            });
-
-        $this->info(sprintf(
-            '✅ Saneamiento completado: %d NIF, %d NIE, %d CIF reclasificados. %d sin reconocer (siguen como ERRONEO).',
-            $reclasificados['NIF'],
-            $reclasificados['NIE'],
-            $reclasificados['CIF'],
-            $sinReconocer
-        ));
     }
 
     public function handle()
@@ -277,98 +254,41 @@ ASCII;
 
         $this->alert('Instalador de dosLago');
 
-        // Paso 1: configuración de la base de datos.
-        //
-        // Se ejecuta en un comando/proceso aparte (doslago:db-config)
-        // porque el .env se carga al arrancar el framework: si lo creásemos a
-        // mitad de este proceso, el Paso 2 seguiría sin ver la nueva conexión.
-        // Tras configurarla, nos relanzamos en un proceso nuevo que ya lee el
-        // .env recién escrito.
-        if (! $this->option('skip-db-config')
-            && $this->confirm('¿Deseas cambiar la configuración de la base de datos?', false)) {
+        // Paso 1: preparar el .env y la base de datos.
+        if (! $this->option('skip-env-setup')) {
+            $status = $this->prepareEnvironment();
 
-            if (! $this->runArtisan(['doslago:db-config'])) {
-                $this->error('No se pudo configurar la base de datos. Instalación detenida.');
+            if ($status === null) {
                 return Command::FAILURE;
             }
 
-            $this->newLine();
-            $this->info('Continuando la instalación con la nueva configuración...');
-            $this->newLine();
+            if ($status === false) {
+                $this->newLine();
+                $this->info('Continuando la instalación con la nueva configuración...');
+                $this->newLine();
 
-            return $this->runArtisan(['doslago:install', '--skip-db-config'])
-                ? Command::SUCCESS
-                : Command::FAILURE;
+                return $this->runArtisan(['condominios:install', '--skip-env-setup'])
+                    ? Command::SUCCESS
+                    : Command::FAILURE;
+            }
         }
 
-        // Paso 2: preparar la base de datos.
-        //
-        // 2.a) Preguntar si se desea importar la base de datos desde un .sql y,
-        // en caso afirmativo, pedir la ruta. Se hace después de generar el .env
-        // (Paso 1) y antes de las migraciones.
-        if (! $this->importSqlSchema()) {
-            $this->error('Instalación detenida: no se pudo importar la base de datos.');
+        if (! $this->ensureDatabaseReady()) {
+            $this->error('Instalación detenida: no se pudo preparar el acceso a la base de datos.');
             return Command::FAILURE;
         }
 
-        // 2.b) Comprobar la conexión actual del .env.
-        if (! $this->checkDatabaseConnection()) {
-            $this->error('La configuración actual del .env no permite conectar a la base de datos.');
-            return Command::FAILURE;
-        }
-
-        // Paso 3: copia de logos a public
+        // Copia de logos a public.
         if ($this->confirm('¿Deseas copiar los logos a public?', true)) {
-            $files = [
-                'dosLago.png',
-                'logo-circulo.png',
-                'logo-circulo-blanco.png',
-            ];
-
-            $sourceDir = storage_path('doslago/logo');
-            $targetDir = public_path('storage/images/logo');
-
-            if (! is_dir($targetDir)) {
-                mkdir($targetDir, 0755, true);
-            }
-
-            foreach ($files as $file) {
-                $source = $sourceDir . '/' . $file;
-                $target = $targetDir . '/' . $file;
-
-                if (! file_exists($source)) {
-                    $this->error("Archivo {$file} no encontrado en storage.");
-                    continue;
-                }
-
-                copy($source, $target);
-                $this->info("Archivo {$file} copiado/sobrescrito en public.");
-            }
+            $this->copyLogos();
         }
 
-        // Paso 4: migraciones y seeders
-        if ($this->confirm('¿Deseas ejecutar las migraciones?', true)) {
-            $this->info('Ejecutando migraciones y seeders...');
-
-            if (! $this->runMigrationsWithSeeders()) {
-                $this->error('Error en migraciones o credenciales incorrectas.');
-                return Command::FAILURE;
-            }
+        // Paso 2: migraciones y seeders.
+        if (! $this->runMigrationsWithSeeders()) {
+            return Command::FAILURE;
         }
 
-        // Paso 5: saneamiento del tipo de documento de las personas.
-        //
-        // Las personas importadas sin tipo asignado quedan con el tipo
-        // centinela "ERRONEO" (id 1). Aquí se deduce el tipo real (NIF/NIE/CIF)
-        // a partir del formato de su documento; los no reconocibles se dejan
-        // igual para revisión manual. Va tras las migraciones (necesita las
-        // tablas) y sobre los datos ya importados.
-        if ($this->confirm('¿Deseas sanear el tipo de documento de las personas (ERRONEO → NIF/NIE/CIF)?', true)) {
-            $this->info('Saneando tipos de documento...');
-            $this->saneaTipoDocumento();
-        }
-
-        // Paso 6: usuario superadmin
+        // Usuario superadmin (aparte, no está en DatabaseSeeder).
         if ($this->confirm('¿Deseas inicializar usuario superadmin?', true)) {
             Artisan::call('db:seed', ['--force' => true, '--class' => 'CreateSuperUserSeeder']);
             $this->info('Usuario inicializados.');

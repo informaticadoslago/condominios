@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
     {
 
         $this->call([
+            CuentaContableSeeder::class,
             EntidadesBancariasSeeder::class,
             FormasDePagoSeeder::class,
             GeneroSeeder::class,
@@ -22,7 +23,6 @@ class DatabaseSeeder extends Seeder
 
             //CreateSuperUserSeeder::class,
             PermisosYRolesInicialSeeder::class,
-            ProvinciasTableSeeder::class,
             // TiposdeviasTableSeeder::class,
         ]);
 

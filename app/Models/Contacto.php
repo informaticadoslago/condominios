@@ -7,15 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * Contacto polimórfico (tabla 'dosl_contactos'). Un contacto (teléfono, email…)
- * pertenece a cualquier contactable (Persona, etc.). Porta el 'contactos' de L9,
- * ya evolucionado a polimórfico + estado_id en L12.
+ * Contacto polimórfico (tabla 'contactos'). Un contacto (teléfono, email…)
+ * pertenece a cualquier contactable (Persona, etc.). Evolución del 'contactos'
+ * de L9, ya polimórfico + estado_id en L12.
  */
 class Contacto extends Model
 {
     use ConCopiaAlBorrar;
 
-    protected $table = 'dosl_contactos';
+    protected $table = 'contactos';
 
     protected $fillable = [
         'tipo_contacto_id',
