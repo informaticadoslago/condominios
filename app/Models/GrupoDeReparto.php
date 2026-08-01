@@ -20,6 +20,13 @@ class GrupoDeReparto extends Model
 
     public function inmuebles()
     {
-        return $this->belongsToMany(Inmueble::class, 'inmueble_grupo_de_reparto', 'grupo_de_reparto_id', 'inmueble_id');
+        return $this->belongsToMany(Inmueble::class, 'inmueble_grupo_de_reparto', 'grupo_de_reparto_id', 'inmueble_id')
+            ->withPivot('coeficiente')
+            ->withTimestamps();
+    }
+
+    public function conceptosPresupuestos()
+    {
+        return $this->hasMany(ConceptoPresupuesto::class);
     }
 }

@@ -50,6 +50,8 @@ class Inmueble extends Model
 
     public function gruposDeReparto()
     {
-        return $this->belongsToMany(GrupoDeReparto::class, 'inmueble_grupo_de_reparto', 'inmueble_id', 'grupo_de_reparto_id');
+        return $this->belongsToMany(GrupoDeReparto::class, 'inmueble_grupo_de_reparto', 'inmueble_id', 'grupo_de_reparto_id')
+            ->withPivot('coeficiente')
+            ->withTimestamps();
     }
 }

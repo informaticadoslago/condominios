@@ -12,7 +12,9 @@ use App\Livewire\AdministracionSistema\Roles\Lista as RolesLista;
 use App\Livewire\AdministracionSistema\Usuarios\Lista as UsuariosLista;
 use App\Livewire\AsientosContables\Formulario as AsientosContablesFormulario;
 use App\Livewire\AsientosContables\Lista as AsientosContablesLista;
+use App\Livewire\Catalogos\Lista as CatalogosLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
+use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
 use App\Livewire\EjerciciosContables\Lista as EjerciciosContablesLista;
 use App\Livewire\Inmuebles\Formulario as InmueblesFormulario;
@@ -22,6 +24,10 @@ use App\Livewire\Propietarios\Lista as PropietariosLista;
 use App\Livewire\Proveedores\Lista as ProveedoresLista;
 use App\Livewire\Maestros\FormasDePago\Lista as FormasDePagoLista;
 use App\Livewire\Maestros\Paises\Lista as PaisesLista;
+use App\Livewire\Maestros\Periodicidades\Lista as PeriodicidadesLista;
+use App\Livewire\Presupuestos\Conceptos as PresupuestosConceptos;
+use App\Livewire\Presupuestos\Lista as PresupuestosLista;
+use App\Livewire\Presupuestos\Reparto as PresupuestosReparto;
 use Illuminate\Support\Facades\Route;
 use Lab404\Impersonate\Controllers\ImpersonateController;
 
@@ -84,6 +90,10 @@ Route::middleware([
         Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');
         Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
         Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');
+        Route::get('/grupos-de-reparto', GruposDeRepartoLista::class)->name('grupos-de-reparto.index');
+        Route::get('/presupuestos', PresupuestosLista::class)->name('presupuestos.index');
+        Route::get('/presupuestos/{presupuesto}/conceptos', PresupuestosConceptos::class)->name('presupuestos.conceptos');
+        Route::get('/presupuestos/{presupuesto}/reparto', PresupuestosReparto::class)->name('presupuestos.reparto');
         Route::get('/ejercicios-contables', EjerciciosContablesLista::class)->name('ejercicios-contables.index');
         Route::get('/asientos-contables', AsientosContablesLista::class)->name('asientos-contables.index');
         Route::get('/asientos-contables/{ejercicioContable}/nuevo', AsientosContablesFormulario::class)->name('asientos-contables.crear');
@@ -92,10 +102,18 @@ Route::middleware([
     // Gestión contable (global)
     Route::get('/cuentas-contables', CuentasContablesLista::class)->name('cuentas-contables.index');
 
-    // Maestros de la música
+    // Maestros
     Route::get('/entidades-bancarias', EntidadesBancariasLista::class)->name('entidades-bancarias.index');
     Route::get('/formas-de-pago', FormasDePagoLista::class)->name('formas-de-pago.index');
     Route::get('/paises', PaisesLista::class)->name('paises.index');
+    Route::get('/periodicidades', PeriodicidadesLista::class)->name('periodicidades.index');
+
+    // Catálogos simples (mismo par Lista/Formulario, ver config/catalogos.php)
+    Route::get('/catalogos/tipo-ocupaciones', CatalogosLista::class)->defaults('clave', 'tipo-ocupaciones')->name('catalogos.tipo-ocupaciones');
+    Route::get('/catalogos/tipo-inmuebles', CatalogosLista::class)->defaults('clave', 'tipo-inmuebles')->name('catalogos.tipo-inmuebles');
+    Route::get('/catalogos/tipo-cuenta-contables', CatalogosLista::class)->defaults('clave', 'tipo-cuenta-contables')->name('catalogos.tipo-cuenta-contables');
+    Route::get('/catalogos/tipo-estado-presupuestos', CatalogosLista::class)->defaults('clave', 'tipo-estado-presupuestos')->name('catalogos.tipo-estado-presupuestos');
+    Route::get('/catalogos/estados', CatalogosLista::class)->defaults('clave', 'estados')->name('catalogos.estados');
 
 });
 

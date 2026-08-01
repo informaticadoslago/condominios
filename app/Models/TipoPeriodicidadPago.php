@@ -4,19 +4,22 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class TipoOcupacion extends Model
+class TipoPeriodicidadPago extends Model
 {
-    protected $table = 'tipo_ocupaciones';
+    protected $table = 'tipo_periodicidad_pagos';
 
     const
-    ALQUILADO = 1,
-    PROPIETARIO = 2;
+    MENSUAL = 1,
+    BIMESTRAL = 2,
+    TRIMESTRAL = 3,
+    SEMESTRAL = 4,
+    ANUAL = 5;
 
     const
     ESTADO_ACTIVO = 1,
     ESTADO_BAJA = 2;
 
-    protected $fillable = ['descripcion', 'estado_id'];
+    protected $fillable = ['descripcion', 'meses', 'estado_id'];
 
     public function estado()
     {

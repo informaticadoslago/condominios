@@ -74,6 +74,11 @@ class Comunidad extends Model
         return $this->hasMany(GrupoDeReparto::class);
     }
 
+    public function presupuestos()
+    {
+        return $this->hasMany(Presupuesto::class);
+    }
+
     public function cuentasBancarias(): MorphMany
     {
         return $this->morphMany(CuentaBancaria::class, 'titular');

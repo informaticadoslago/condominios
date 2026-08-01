@@ -37,13 +37,18 @@ return [
                 [
                     'type'  => 'group',
                     'icon'  => 'fa-solid fa-building-columns',
-                    'label' => trans_key('menu.Maestros de la música'),
+                    'label' => trans_key('menu.Maestros'),
                     'can'   => 'menu-maestros',
                     'device' => 'desktop',
                     'items' => [
                         ['icon' => 'fa-solid fa-building-columns', 'label' => trans_key('menu.Entidades financieras'), 'route' => 'entidades-bancarias.index'],
                         ['icon' => 'fa-solid fa-money-bill', 'label' => trans_key('menu.Formas de pago'), 'route' => 'formas-de-pago.index'],
                         ['icon' => 'fa-solid fa-earth-europe', 'label' => trans_key('menu.Países'), 'route' => 'paises.index'],
+                        ['icon' => 'fa-solid fa-calendar-days', 'label' => trans_key('menu.Periodicidades de pago'), 'route' => 'periodicidades.index'],
+                        ['icon' => 'fa-solid fa-key', 'label' => trans_key('menu.Tipos de ocupación'), 'route' => 'catalogos.tipo-ocupaciones'],
+                        ['icon' => 'fa-solid fa-house-chimney', 'label' => trans_key('menu.Tipos de inmueble'), 'route' => 'catalogos.tipo-inmuebles'],
+                        ['icon' => 'fa-solid fa-book', 'label' => trans_key('menu.Tipos de cuenta contable'), 'route' => 'catalogos.tipo-cuenta-contables'],
+                        ['icon' => 'fa-solid fa-file-signature', 'label' => trans_key('menu.Estados de presupuesto'), 'route' => 'catalogos.tipo-estado-presupuestos'],
                     ],
                 ],
                 [

@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class TipoOcupacion extends Model
+class TipoEstadoPresupuesto extends Model
 {
-    protected $table = 'tipo_ocupaciones';
+    protected $table = 'tipo_estado_presupuestos';
 
     const
-    ALQUILADO = 1,
-    PROPIETARIO = 2;
+    PROVISIONAL = 1,
+    PRESENTADO = 2,
+    APROBADO = 3;
 
     const
     ESTADO_ACTIVO = 1,

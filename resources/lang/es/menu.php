@@ -8,7 +8,7 @@ return [
     'Formas de pago' => 'Formas de pago',
     'Informes' => 'Informes',
     'Informes generados' => 'Informes generados',
-    'Maestros de la música' => 'Maestros de la música',
+    'Maestros' => 'Maestros',
     'main' => 'Menú principal',
     'Países' => 'Países',
     'Permisos' => 'Permisos',
