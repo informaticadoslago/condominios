@@ -16,7 +16,7 @@
         $event.preventDefault();
         $wire.agregarLinea();
     ">
-    <div class="w-[92vw] max-w-5xl h-[88vh] max-h-[920px] flex flex-col bg-white dark:bg-zinc-800
+    <div class="w-[92vw] max-w-6xl h-[88vh] max-h-[920px] flex flex-col bg-white dark:bg-zinc-800
         border border-gray-50 dark:border-zinc-900 rounded-xl shadow-sm overflow-hidden">
     <header class="px-6 py-4 border-b border-gray-200 dark:border-zinc-700">
         <h1 class="text-xl font-medium text-gray-900 dark:text-gray-100">
@@ -25,60 +25,101 @@
     </header>
 
     <div class="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
-        <div class="w-full">
-            <x-input-error for="conceptos" class="mb-2" />
-            <table class="w-full table-fixed text-sm text-left">
-                <thead class="font-medium border-b">
-                    <tr>
-                        <th class="py-2 pr-2 w-[40%]">{{ __('Concepto') }}</th>
-                        <th class="py-2 pr-2 w-[32%]">{{ __('Grupo de reparto') }}</th>
-                        <th class="py-2 pr-2 text-right w-32">{{ __('Importe') }}</th>
-                        <th class="py-2 w-8"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($conceptos as $index => $linea)
-                        <tr wire:key="linea-{{ $linea['_key'] }}" class="border-b">
-                            <td class="py-1 pr-2 align-top">
-                                <x-input id="concepto-{{ $linea['_key'] }}" class="block w-full" type="text"
-                                    wire:model="conceptos.{{ $index }}.concepto" />
-                                <x-input-error for="conceptos.{{ $index }}.concepto" class="mt-1" />
-                            </td>
-                            <td class="py-1 pr-2 align-top">
-                                <x-select class="block w-full" wire:model="conceptos.{{ $index }}.grupo_de_reparto_id">
-                                    <option value="">{{ __('--') }}</option>
-                                    @foreach ($grupos as $grupo)
-                                        <option value="{{ $grupo->id }}">{{ $grupo->nombre }}</option>
-                                    @endforeach
-                                </x-select>
-                                <x-input-error for="conceptos.{{ $index }}.grupo_de_reparto_id" class="mt-1" />
-                            </td>
-                            <td class="py-1 pr-2 align-top">
-                                <x-input class="block w-full text-right" type="number" step="0.01" min="0"
-                                    wire:model.live.debounce.400ms="conceptos.{{ $index }}.importe" />
-                                <x-input-error for="conceptos.{{ $index }}.importe" class="mt-1" />
-                            </td>
-                            <td class="py-1 text-center align-middle">
-                                <button type="button" tabindex="-1" wire:click="quitarLinea({{ $index }})"
-                                    class="text-red-600 hover:text-red-800" title="{{ __('Quitar línea') }}">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </td>
+        <div class="flex gap-6 items-start">
+            <div class="flex-1 min-w-0">
+                <x-input-error for="conceptos" class="mb-2" />
+                <table class="w-full table-fixed text-sm text-left">
+                    <thead class="font-medium border-b">
+                        <tr>
+                            <th class="py-2 pr-2 w-[40%]">{{ __('Concepto') }}</th>
+                            <th class="py-2 pr-2 w-[32%]">{{ __('Grupo de reparto') }}</th>
+                            <th class="py-2 pr-2 text-right w-32">{{ __('Importe') }}</th>
+                            <th class="py-2 w-8"></th>
                         </tr>
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr class="font-semibold">
-                        <td colspan="2" class="py-2 text-right">{{ __('Total') }}</td>
-                        <td class="py-2 pr-2 text-right">{{ number_format($total, 2, ',', '.') }}</td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach ($conceptos as $index => $linea)
+                            <tr wire:key="linea-{{ $linea['_key'] }}" class="border-b">
+                                <td class="py-1 pr-2 align-top">
+                                    <x-input id="concepto-{{ $linea['_key'] }}" class="block w-full" type="text"
+                                        wire:model="conceptos.{{ $index }}.concepto" />
+                                    <x-input-error for="conceptos.{{ $index }}.concepto" class="mt-1" />
+                                </td>
+                                <td class="py-1 pr-2 align-top">
+                                    <x-select class="block w-full" wire:model="conceptos.{{ $index }}.grupo_de_reparto_id">
+                                        <option value="">{{ __('--') }}</option>
+                                        @foreach ($grupos as $grupo)
+                                            <option value="{{ $grupo->id }}">{{ $grupo->nombre }}</option>
+                                        @endforeach
+                                    </x-select>
+                                    <x-input-error for="conceptos.{{ $index }}.grupo_de_reparto_id" class="mt-1" />
+                                </td>
+                                <td class="py-1 pr-2 align-top">
+                                    <x-input class="block w-full text-right" type="number" step="0.01" min="0"
+                                        wire:model.live.debounce.400ms="conceptos.{{ $index }}.importe" />
+                                    <x-input-error for="conceptos.{{ $index }}.importe" class="mt-1" />
+                                </td>
+                                <td class="py-1 text-center align-middle">
+                                    <button type="button" tabindex="-1" wire:click="quitarLinea({{ $index }})"
+                                        class="text-red-600 hover:text-red-800" title="{{ __('Quitar línea') }}">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr class="font-semibold">
+                            <td colspan="2" class="py-2 text-right">{{ __('Total') }}</td>
+                            <td class="py-2 pr-2 text-right">{{ number_format($total, 2, ',', '.') }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
 
-            <button type="button" wire:click="agregarLinea" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">
-                <i class="fa-solid fa-plus"></i> {{ __('Añadir línea') }}
-            </button>
+                <button type="button" wire:click="agregarLinea" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">
+                    <i class="fa-solid fa-plus"></i> {{ __('Añadir línea') }}
+                </button>
+            </div>
+
+            <div class="w-72 shrink-0 border border-gray-200 dark:border-zinc-700 rounded-lg p-4">
+                <h2 class="font-medium mb-3">{{ __('Pagos') }}</h2>
+
+                <div>
+                    <x-label :value="__('Periodicidad')" />
+                    <x-select class="block mt-1 w-full" wire:model.live="periodicidad_id">
+                        <option value="">{{ __('--') }}</option>
+                        @foreach ($periodicidades as $periodicidad)
+                            <option value="{{ $periodicidad->id }}">{{ $periodicidad->descripcion }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-input-error for="periodicidad_id" class="mt-1" />
+                </div>
+                <div class="mt-3">
+                    <x-label :value="__('Fecha del primer pago')" />
+                    <x-input class="block mt-1 w-full" type="date" wire:model.live="fecha_primer_pago" />
+                    <x-input-error for="fecha_primer_pago" class="mt-1" />
+                </div>
+                <div class="mt-3">
+                    <x-label :value="__('Número de pagos')" />
+                    <x-input class="block mt-1 w-full" type="number" min="1" wire:model.live="numero_pagos" />
+                    <x-input-error for="numero_pagos" class="mt-1" />
+                    <p class="text-xs text-gray-500 mt-1">
+                        {{ __('Sugerido según la periodicidad; puedes cambiarlo sin que cambie la separación entre pagos.') }}
+                    </p>
+                </div>
+
+                @if (count($this->previsionPagos))
+                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-zinc-700 space-y-1">
+                        @foreach ($this->previsionPagos as $pago)
+                            <div class="flex items-center justify-between text-xs">
+                                <span>{{ __('Pago') }} {{ $loop->iteration }} · {{ $pago['fecha']->format('d/m/Y') }}</span>
+                                <span class="font-medium">{{ number_format($pago['importe'], 2, ',', '.') }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 

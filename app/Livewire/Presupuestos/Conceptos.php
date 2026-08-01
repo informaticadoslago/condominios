@@ -4,6 +4,8 @@ namespace App\Livewire\Presupuestos;
 
 use App\Models\GrupoDeReparto;
 use App\Models\Presupuesto;
+use App\Models\TipoPeriodicidadPago;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -20,6 +22,10 @@ class Conceptos extends Component
 
     /** [['_key', 'id', 'concepto', 'importe', 'grupo_de_reparto_id'], ...] */
     public array $conceptos = [];
+
+    public ?int $periodicidad_id = null;
+    public ?string $fecha_primer_pago = null;
+    public ?int $numero_pagos = null;
 
     public function mount(Presupuesto $presupuesto): void
     {
@@ -38,6 +44,10 @@ class Conceptos extends Component
         if (! $this->conceptos) {
             $this->conceptos = [$this->lineaVacia()];
         }
+
+        $this->periodicidad_id   = $presupuesto->periodicidad_id;
+        $this->fecha_primer_pago = $presupuesto->fecha_primer_pago?->toDateString();
+        $this->numero_pagos      = $presupuesto->numero_pagos;
     }
 
     protected function presupuesto(): Presupuesto
@@ -49,6 +59,43 @@ class Conceptos extends Component
     {
         // Sin puntos: la clave se usa como wire:key y un punto la rompería.
         return ['_key' => Str::random(10), 'id' => null, 'concepto' => '', 'importe' => null, 'grupo_de_reparto_id' => null];
+    }
+
+    /**
+     * Al elegir periodicidad, sugiere cuántos pagos caben en un año (12 ÷ meses de la
+     * periodicidad) — editable después: cambiar el número de pagos no toca el intervalo
+     * entre ellos, solo cuántos hay (ver EjerciciosContables::updatedFechaInicio, mismo patrón).
+     */
+    public function updatedPeriodicidadId($value): void
+    {
+        $meses = TipoPeriodicidadPago::find($value)?->meses;
+        $this->numero_pagos = $meses ? Presupuesto::numeroPagosPara($meses) : null;
+    }
+
+    /** [fecha, importe] por pago, con el total actual de los conceptos (aunque no se hayan guardado aún). */
+    public function getPrevisionPagosProperty(): array
+    {
+        if (! $this->periodicidad_id || ! $this->fecha_primer_pago || ! $this->numero_pagos) {
+            return [];
+        }
+
+        $meses = TipoPeriodicidadPago::find($this->periodicidad_id)?->meses;
+        if (! $meses) {
+            return [];
+        }
+
+        $total  = collect($this->conceptos)->sum(fn ($c) => (float) ($c['importe'] ?? 0));
+        $inicio = Carbon::parse($this->fecha_primer_pago);
+        $n      = $this->numero_pagos;
+        $cuota  = $n > 0 ? round($total / $n, 2) : 0;
+
+        return collect(range(1, $n))
+            ->map(function ($i) use ($inicio, $meses, $n, $cuota, $total) {
+                // El redondeo se ajusta en el primer pago.
+                $importe = $i === 1 ? round($total - $cuota * ($n - 1), 2) : $cuota;
+
+                return ['fecha' => $inicio->copy()->addMonthsNoOverflow(($i - 1) * $meses), 'importe' => $importe];
+            })->all();
     }
 
     protected function rules()
@@ -64,17 +111,21 @@ class Conceptos extends Component
                 'nullable',
                 Rule::exists('grupos_de_reparto', 'id')->where('comunidad_id', session('comunidad_actual_id')),
             ],
+            'periodicidad_id'                  => ['nullable', 'exists:tipo_periodicidad_pagos,id'],
+            'fecha_primer_pago'                => ['nullable', 'date', 'required_with:periodicidad_id'],
+            'numero_pagos'                     => ['nullable', 'integer', 'min:1', 'required_with:periodicidad_id'],
         ];
     }
 
     protected function messages()
     {
         return [
-            'required' => 'Debe rellenar :attribute',
-            'max'      => 'Máxima longitud de :attribute = :max',
-            'numeric'  => ':attribute debe ser un número',
-            'min'      => ':attribute debe ser mayor o igual a :min',
-            'exists'   => 'El :attribute seleccionado no es válido',
+            'required'      => 'Debe rellenar :attribute',
+            'required_with' => 'Debe rellenar :attribute',
+            'max'           => 'Máxima longitud de :attribute = :max',
+            'numeric'       => ':attribute debe ser un número',
+            'min'           => ':attribute debe ser mayor o igual a :min',
+            'exists'        => 'El :attribute seleccionado no es válido',
         ];
     }
 
@@ -84,6 +135,9 @@ class Conceptos extends Component
             'conceptos.*.concepto'            => __('concepto'),
             'conceptos.*.importe'             => __('importe'),
             'conceptos.*.grupo_de_reparto_id' => __('grupo de reparto'),
+            'periodicidad_id'                 => __('periodicidad'),
+            'fecha_primer_pago'               => __('fecha del primer pago'),
+            'numero_pagos'                     => __('número de pagos'),
         ];
     }
 
@@ -147,6 +201,12 @@ class Conceptos extends Component
         DB::transaction(function () use ($data) {
             $presupuesto = $this->presupuesto();
 
+            $presupuesto->update([
+                'periodicidad_id'   => $data['periodicidad_id'],
+                'fecha_primer_pago' => $data['fecha_primer_pago'],
+                'numero_pagos'      => $data['numero_pagos'],
+            ]);
+
             // Sin histórico que preservar (a diferencia de los asientos contables): se
             // sustituyen todas las líneas por las que llegan del formulario.
             $presupuesto->conceptos()->delete();
@@ -172,8 +232,9 @@ class Conceptos extends Component
     public function render()
     {
         return view('livewire.presupuestos.conceptos', [
-            'presupuesto' => $this->presupuesto(),
-            'grupos'      => GrupoDeReparto::where('comunidad_id', session('comunidad_actual_id'))->orderBy('nombre')->get(),
+            'presupuesto'    => $this->presupuesto(),
+            'grupos'         => GrupoDeReparto::where('comunidad_id', session('comunidad_actual_id'))->orderBy('nombre')->get(),
+            'periodicidades' => TipoPeriodicidadPago::activo()->orderBy('id')->get(),
         ]);
     }
 }

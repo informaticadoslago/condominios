@@ -22,7 +22,7 @@ class Reparto extends Component
         $presupuesto = Presupuesto::with(['periodicidad', 'conceptos.grupoDeReparto.inmuebles'])
             ->findOrFail($this->presupuesto_id);
 
-        $datosPagoCompletos = $presupuesto->fecha_primer_pago && $presupuesto->periodicidad_id;
+        $datosPagoCompletos = $presupuesto->fecha_primer_pago && $presupuesto->periodicidad_id && $presupuesto->numero_pagos;
         $totalPresupuesto   = (float) $presupuesto->conceptos->sum('importe');
 
         // Por grupo de reparto: total de sus conceptos, repartido entre sus miembros
@@ -61,11 +61,10 @@ class Reparto extends Component
         }
         unset($datosGrupo);
 
-        $fechasPagos  = $datosPagoCompletos ? $this->fechasPagos($presupuesto) : [];
-        $numeroPagos  = $datosPagoCompletos ? Presupuesto::numeroPagosPara($presupuesto->periodicidad->meses) : 0;
+        $fechasPagos = $datosPagoCompletos ? $this->fechasPagos($presupuesto) : [];
 
         foreach ($global as &$fila) {
-            $fila['pagos'] = $datosPagoCompletos ? $this->desglosePagos($fila['total'], $numeroPagos) : [];
+            $fila['pagos'] = $datosPagoCompletos ? $this->desglosePagos($fila['total'], $presupuesto->numero_pagos) : [];
         }
         unset($fila);
 
@@ -85,7 +84,7 @@ class Reparto extends Component
         $meses  = $presupuesto->periodicidad->meses;
         $inicio = Carbon::parse($presupuesto->fecha_primer_pago);
 
-        return collect(range(1, Presupuesto::numeroPagosPara($meses)))
+        return collect(range(1, $presupuesto->numero_pagos))
             ->map(fn ($i) => $inicio->copy()->addMonthsNoOverflow(($i - 1) * $meses))
             ->all();
     }
