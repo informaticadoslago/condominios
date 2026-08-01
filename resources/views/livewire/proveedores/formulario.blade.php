@@ -79,6 +79,13 @@
                     </div>
                 </div>
             @endunless
+
+            @if ($formulario->proveedor?->exists)
+                <div class="mt-4">
+                    <x-label :value="__('Facturas adjuntas')" />
+                    @include('livewire.proveedores.partials.lista-facturas')
+                </div>
+            @endif
         @endif
     </x-slot>
 

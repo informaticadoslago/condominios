@@ -5,6 +5,7 @@ namespace App\Livewire\Proveedores;
 use App\Livewire\Forms\ProveedorForm;
 use App\Models\Pais;
 use App\Models\Proveedor;
+use App\Models\TipoDocumento;
 use App\Models\TipoDocumentoIdentificativo;
 use App\Models\TipoGenero;
 use Livewire\Attributes\On;
@@ -88,6 +89,13 @@ class Formulario extends Component
 
     public function render()
     {
-        return view('livewire.proveedores.formulario');
+        $facturas = $this->formulario->proveedor?->exists
+            ? $this->formulario->proveedor->documentos()
+                ->where('tipo_documento_id', TipoDocumento::FACTURA)
+                ->orderByDesc('fechaalta')
+                ->get()
+            : collect();
+
+        return view('livewire.proveedores.formulario', compact('facturas'));
     }
 }

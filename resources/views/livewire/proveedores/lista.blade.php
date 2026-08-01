@@ -10,6 +10,10 @@
             wire:click="$dispatch('abrir-crear-proveedor')" title="{{ __('Nuevo') }}">
             <i class="fa-solid fa-plus"> </i>{{ __('Nuevo') }}
         </x-button>
+        <x-button type="button" class="btn ml-1" id="btn-analizar-factura"
+            wire:click="$dispatch('abrir-analizar-factura')" title="{{ __('Analizar factura') }}">
+            <i class="fa-solid fa-file-invoice"> </i>{{ __('Analizar factura') }}
+        </x-button>
         @include('livewire.parciales.boton-acceso-directo')
     </x-slot>
 
@@ -36,7 +40,12 @@
                                 </td>
                                 <td class="px-6 py-4">{{ $item->persona->documento_identificativo ?? '' }}</td>
                                 <td class="px-4 whitespace-nowrap">
-                                    <x-button type="button" class="btn-editar" id="btn-editar-proveedor-{{ $item->id }}"
+                                    <x-button type="button" class="btn" id="btn-ver-proveedor-{{ $item->id }}"
+                                        wire:click="$dispatch('proveedor-ver', {id: {{ $item->id }}})"
+                                        title="{{ __('Ver') }}">
+                                        <i class="fa-solid fa-eye"> </i>
+                                    </x-button>
+                                    <x-button type="button" class="btn-editar ml-1" id="btn-editar-proveedor-{{ $item->id }}"
                                         wire:click="$dispatch('proveedor-editar', {id: {{ $item->id }}})"
                                         title="{{ __('Modificar') }}">
                                         <i class="fa-solid fa-pen"> </i>
@@ -60,6 +69,10 @@
             @endif
         </x-dosl.tabla>
 
+        @livewire('proveedores.ver')
         @livewire('proveedores.formulario')
+        @livewire('proveedores.analizar-factura')
+        @livewire('proveedores.resultado-factura')
+        @livewire('proveedores.marcar-plantilla-factura')
     </x-slot>
 </x-botonera-page>

@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class CampoPlantillaFactura extends Model
+{
+    protected $table = 'campos_plantillas_facturas';
+
+    protected $fillable = [
+        'plantilla_factura_id',
+        'tipo_campo_plantilla_factura_id',
+        'texto_ancla',
+        'valor_ejemplo',
+    ];
+
+    public function plantillaFactura()
+    {
+        return $this->belongsTo(PlantillaFactura::class);
+    }
+
+    public function tipoCampo()
+    {
+        return $this->belongsTo(TipoCampoPlantillaFactura::class, 'tipo_campo_plantilla_factura_id');
+    }
+}

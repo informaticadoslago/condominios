@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Traits\ConDocumentos;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Proveedor extends Model
 {
+    use ConDocumentos;
+
     protected $table = 'proveedores';
 
     protected $fillable = [

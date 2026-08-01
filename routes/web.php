@@ -3,6 +3,7 @@
 use App\Http\Controllers\BackupDescargaController;
 use App\Http\Controllers\ComunidadContextoController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
+use App\Http\Controllers\DocumentoDescargaController;
 use App\Livewire\AdministracionSistema\Backups\Lista as BackupsLista;
 use App\Livewire\AdministracionSistema\Empresa\Editar as EmpresaEditar;
 use App\Livewire\AdministracionSistema\Permisos\Lista as PermisosLista;
@@ -87,6 +88,7 @@ Route::middleware([
     Route::middleware('comunidad.activa')->group(function () {
         Route::get('/propietarios', PropietariosLista::class)->name('propietarios.index');
         Route::get('/proveedores', ProveedoresLista::class)->name('proveedores.index');
+        Route::get('/documentos/{documento}/descargar', DocumentoDescargaController::class)->name('documentos.download');
         Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');
         Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
         Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');
