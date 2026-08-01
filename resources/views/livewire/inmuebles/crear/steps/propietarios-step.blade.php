@@ -95,7 +95,6 @@
                     <div class="w-2/5">
                         <x-label :value="__('Documento')" />
                         <x-input type="text" class="block mt-1 w-full mayusculas" wire:model="prop_documento_identificativo" forzar-may :readonly="$personaComprobada" />
-                        <x-input-error for="prop_documento_identificativo" class="mt-2" />
                     </div>
                     <div class="w-1/5">
                         @if (! $personaComprobada)
@@ -103,6 +102,7 @@
                         @endif
                     </div>
                 </div>
+                <x-input-error for="prop_documento_identificativo" class="mt-2" />
 
                 @if ($personaComprobada)
                     <div class="flex gap-2">

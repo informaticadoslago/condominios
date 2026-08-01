@@ -3,8 +3,8 @@
 # php /var/www/doslagomusica/artisan queue:work --rest=2 --stop-when-empty --tries=2 --queue=backup >> /var/www/doslagomusica/storage/logs/queue_backup.log 2>&1 &
 
 PHP=/usr/bin/php8.4
-ART=/var/www/xestionmusical/artisan
-LOGS=/var/www/xestionmusical/storage/logs
+ART=/var/www/condominios/artisan
+LOGS=/var/www/condominios/storage/logs
 
 # Opción 1: procesa informes y backup secuencialmente en un solo proceso PHP.
 # backup espera a que terminen los informes antes de empezar.
@@ -19,7 +19,7 @@ LOGS=/var/www/xestionmusical/storage/logs
 
 $PHP $ART queue:work --rest=2 --stop-when-empty --tries=2 --queue=backup >> $LOGS/queue_backup.log 2>&1 &
 
-$PHP $ART queue:work --rest=2 --stop-when-empty --tries=2 --queue=EnviarCorreo >> $LOGS/queue_enviar_correo.log 2>&1 &
+# $PHP $ART queue:work --rest=2 --stop-when-empty --tries=2 --queue=EnviarCorreo >> $LOGS/queue_enviar_correo.log 2>&1 &
 
 
 wait

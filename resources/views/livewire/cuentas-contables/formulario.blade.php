@@ -7,7 +7,14 @@
         <div class="flex w-full">
             <div class="w-1/3 mr-4">
                 <x-label for="cc-codigo" :value="__('Código')" />
-                <x-input id="cc-codigo" class="block mt-1 w-full" type="text" wire:model="codigo" autofocus />
+                <x-input id="cc-codigo" class="block mt-1 w-full" type="text" maxlength="8" wire:model="codigo"
+                    wire:keydown.tab="siguienteCodigo" autofocus />
+                {{-- tabindex="-1": fuera del recorrido con Tab, para que Tab desde Código vaya
+                     directo a Tipo (autonumerar ya lo dispara el propio Tab del campo). --}}
+                <button type="button" tabindex="-1" wire:click="siguienteCodigo" class="mt-1 text-xs text-gray-500 hover:text-gray-800"
+                    title="{{ __('Autonumerar (o pulsa Tab en el código)') }}">
+                    <i class="fa-solid fa-hashtag"></i> {{ __('Siguiente número') }}
+                </button>
                 <x-input-error for="codigo" class="mt-2" />
             </div>
             <div class="w-2/3">

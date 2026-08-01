@@ -23,7 +23,8 @@
     @fluxAppearance
 </head>
 
-<body class="font-sans min-h-screen antialiased bg-white dark:bg-zinc-800">
+<body class="font-sans min-h-screen antialiased bg-white dark:bg-zinc-800"
+    data-tab-style="{{ config('doslago.tab_style') ? '1' : '0' }}">
 
     {{-- ===== SIDEBAR ===== --}}
     {{-- @include('layouts.menu_flux_sidebar') --}}
@@ -39,18 +40,22 @@
             $comunidadesAccesibles = auth()->user()->comunidadesAccesibles();
 
             if ($comunidadesAccesibles->count()) {
-                array_unshift($menuLateral['content'], [
-                    'type'  => 'nav',
-                    'items' => [
-                        [
-                            'type'  => 'group',
-                            'icon'  => 'fa-solid fa-city',
-                            'label' => trans_key('menu.Comunidades'),
-                            'items' => $comunidadesAccesibles->map(fn ($c) => [
+                // Se inserta en la posición 1: justo debajo del header "Menú
+                // principal" (posición 0 en config/sidebar.php), no por delante.
+                array_splice($menuLateral['content'], 1, 0, [
+                    [
+                        'type'  => 'nav',
+                        'items' => [
+                            [
+                                'type'  => 'group',
                                 'icon'  => 'fa-solid fa-city',
-                                'label' => $c->nombre,
-                                'href'  => route('comunidad.entrar', $c),
-                            ])->all(),
+                                'label' => trans_key('menu.Comunidades'),
+                                'items' => $comunidadesAccesibles->map(fn ($c) => [
+                                    'icon'  => 'fa-solid fa-city',
+                                    'label' => $c->nombre,
+                                    'href'  => route('comunidad.entrar', $c),
+                                ])->all(),
+                            ],
                         ],
                     ],
                 ]);
@@ -107,6 +112,29 @@
                 };
                 setTimeout(() => focar(8), 50);
             });
+        });
+
+        // Atajo global "+": pulsa el botón "Nuevo" (clase btn-nuevo) de la pantalla
+        // actual. Se ignora si se está escribiendo en un campo, con modificador
+        // (Ctrl/Cmd/Alt, para no robarle el zoom del navegador) o si el botón no
+        // existe (sin permiso) o está disabled (p.ej. filtro sin elegir).
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== '+' || e.ctrlKey || e.metaKey || e.altKey) return;
+
+            const activo = document.activeElement;
+            const escribiendo = activo && (
+                activo.tagName === 'INPUT' ||
+                activo.tagName === 'TEXTAREA' ||
+                activo.tagName === 'SELECT' ||
+                activo.isContentEditable
+            );
+            if (escribiendo) return;
+
+            const boton = document.querySelector('.btn-nuevo');
+            if (boton && !boton.disabled) {
+                e.preventDefault();
+                boton.click();
+            }
         });
     </script>
 

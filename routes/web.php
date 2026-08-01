@@ -10,6 +10,8 @@ use App\Livewire\AdministracionSistema\Personas\Editar as PersonasEditar;
 use App\Livewire\AdministracionSistema\Personas\Lista as PersonasLista;
 use App\Livewire\AdministracionSistema\Roles\Lista as RolesLista;
 use App\Livewire\AdministracionSistema\Usuarios\Lista as UsuariosLista;
+use App\Livewire\AsientosContables\Formulario as AsientosContablesFormulario;
+use App\Livewire\AsientosContables\Lista as AsientosContablesLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
 use App\Livewire\EjerciciosContables\Lista as EjerciciosContablesLista;
@@ -83,6 +85,8 @@ Route::middleware([
         Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
         Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');
         Route::get('/ejercicios-contables', EjerciciosContablesLista::class)->name('ejercicios-contables.index');
+        Route::get('/asientos-contables', AsientosContablesLista::class)->name('asientos-contables.index');
+        Route::get('/asientos-contables/{ejercicioContable}/nuevo', AsientosContablesFormulario::class)->name('asientos-contables.crear');
     });
 
     // Gestión contable (global)

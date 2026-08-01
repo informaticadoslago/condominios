@@ -47,11 +47,43 @@ class Formulario extends Component
     }
 
     #[On('abrir-crear-cuenta-contable')]
-    public function crear()
+    public function crear($codigoPrefijo = null)
     {
         $this->reset(['itemId', 'codigo', 'nombre', 'tipo_cuenta_contable_id']);
         $this->resetValidation();
+        $this->codigo = $codigoPrefijo ? substr(preg_replace('/\D/', '', $codigoPrefijo), 0, 8) : '';
         $this->abrir = true;
+    }
+
+    /** Con el prefijo tecleado en Código (1-7 dígitos), completa el siguiente código de 8 libre de ese grupo. */
+    public function siguienteCodigo(): void
+    {
+        $prefijo = substr(preg_replace('/\D/', '', $this->codigo), 0, 8);
+
+        if ($prefijo === '' || strlen($prefijo) >= 8) {
+            return;
+        }
+
+        $ultimo = CuentaContable::where('codigo', 'like', $prefijo.str_repeat('_', 8 - strlen($prefijo)))
+            ->orderByDesc('codigo')
+            ->value('codigo');
+
+        $siguiente = str_pad((string) ($ultimo ? ((int) $ultimo) + 1 : (int) str_pad($prefijo, 8, '0')), 8, '0', STR_PAD_LEFT);
+
+        // Si el +1 se sale del grupo (subcuentas 0001-9999 ya agotadas), no autocompletar.
+        if (! str_starts_with($siguiente, $prefijo)) {
+            return;
+        }
+
+        $this->codigo = $siguiente;
+
+        // Sugiere el tipo de la cuenta de grupo (mismos 4 primeros dígitos + 0000), si existe.
+        if (! $this->tipo_cuenta_contable_id) {
+            $grupo = CuentaContable::where('codigo', substr($prefijo, 0, 4).'0000')->first();
+            if ($grupo) {
+                $this->tipo_cuenta_contable_id = $grupo->tipo_cuenta_contable_id;
+            }
+        }
     }
 
     #[On('cuenta-contable-editar')]
@@ -74,14 +106,22 @@ class Formulario extends Component
         $data = $this->validate();
 
         if ($this->itemId) {
-            CuentaContable::whereKey($this->itemId)->update($data);
+            $cuenta = CuentaContable::findOrFail($this->itemId);
+            $cuenta->update($data);
             $this->dispatch('toast-success', ['title' => __('Cuenta modificada')]);
         } else {
-            CuentaContable::create($data + ['estado_id' => CuentaContable::ESTADO_ACTIVO]);
+            // Cuelga automáticamente de la cuenta de grupo (4 primeros dígitos + 0000) si
+            // existe, para que esa cuenta de grupo deje de ser "hoja" en cuanto tiene hijas.
+            $padre = CuentaContable::where('codigo', substr($data['codigo'], 0, 4).'0000')->first();
+
+            $cuenta = CuentaContable::create($data + [
+                'estado_id'       => CuentaContable::ESTADO_ACTIVO,
+                'cuenta_padre_id' => $padre && $padre->codigo !== $data['codigo'] ? $padre->id : null,
+            ]);
             $this->dispatch('toast-success', ['title' => __('Cuenta creada')]);
         }
 
-        $this->dispatch('cuenta-contable-guardada');
+        $this->dispatch('cuenta-contable-guardada', cuenta: ['id' => $cuenta->id, 'codigo' => $cuenta->codigo, 'nombre' => $cuenta->nombre]);
         $this->cerrar();
     }
 

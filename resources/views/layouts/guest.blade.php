@@ -23,7 +23,7 @@
     @fluxAppearance
 </head>
 
-<body>
+<body data-tab-style="{{ config('doslago.tab_style') ? '1' : '0' }}">
     <!-- Selector de tema en esquina superior derecha -->
     @if (config('flux.appearance.enabled'))
         <div class="absolute top-4 right-4 z-50">
