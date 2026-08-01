@@ -12,10 +12,18 @@ class CuentaBancaria extends Model
     protected $fillable = [
         'titular_type',
         'titular_id',
+        'iban',
+        'entidad_bancaria_id',
+        'alias',
     ];
 
     public function titular(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function entidadBancaria()
+    {
+        return $this->belongsTo(EntidadBancaria::class);
     }
 }

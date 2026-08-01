@@ -14,6 +14,7 @@ class Borrador extends Model
     protected $table = 'borradores';
 
     const TIPO_INMUEBLE = 'inmueble';
+    const TIPO_PROPIETARIO = 'propietario';
 
     protected $fillable = [
         'user_id',

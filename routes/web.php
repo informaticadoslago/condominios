@@ -21,6 +21,7 @@ use App\Livewire\EjerciciosContables\Lista as EjerciciosContablesLista;
 use App\Livewire\Inmuebles\Formulario as InmueblesFormulario;
 use App\Livewire\Inmuebles\Lista as InmueblesLista;
 use App\Livewire\Maestros\EntidadesBancarias\Lista as EntidadesBancariasLista;
+use App\Livewire\Propietarios\Formulario as PropietariosFormulario;
 use App\Livewire\Propietarios\Lista as PropietariosLista;
 use App\Livewire\Proveedores\Lista as ProveedoresLista;
 use App\Livewire\Maestros\FormasDePago\Lista as FormasDePagoLista;
@@ -87,6 +88,8 @@ Route::middleware([
     // Rutas de una comunidad: exigen comunidad activa en sesión y acceso a ella.
     Route::middleware('comunidad.activa')->group(function () {
         Route::get('/propietarios', PropietariosLista::class)->name('propietarios.index');
+        Route::get('/propietarios/nuevo', PropietariosFormulario::class)->name('propietarios.crear');
+        Route::get('/propietarios/{propietario}/editar', PropietariosFormulario::class)->name('propietarios.editar');
         Route::get('/proveedores', ProveedoresLista::class)->name('proveedores.index');
         Route::get('/documentos/{documento}/descargar', DocumentoDescargaController::class)->name('documentos.download');
         Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');

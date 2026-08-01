@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Livewire\Forms;
+namespace App\Livewire\Propietarios\Crear\Steps;
 
+use App\Livewire\Propietarios\Crear\CrearPropietarioStep;
+use App\Models\Borrador;
 use App\Models\Pais;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
@@ -12,16 +14,18 @@ use App\Rules\IsNieRule;
 use App\Rules\IsNifRule;
 use App\Rules\ProhibidoSi;
 use Illuminate\Validation\Rule;
-use Livewire\Form;
+use Livewire\Attributes\Locked;
 
-class PropietarioForm extends Form
+class DatosStep extends CrearPropietarioStep
 {
-    public ?Propietario $propietario = null;
-    public ?PersonaComunidad $persona = null;
+    // Alta: null durante todo el wizard. Edición: ya viene puesto desde la ruta.
+    #[Locked]
+    public ?int $propietarioId = null;
 
-    public ?int $comunidad_id = null;
+    // Fijada por sesión (ver Propietarios\Formulario), nunca por el cliente.
+    #[Locked]
+    public $comunidad_id;
 
-    // --- Datos de persona (fiscales) ---
     public $razon_social;
     public $nombre_comercial;
     public ?string $nombre = null;
@@ -34,9 +38,6 @@ class PropietarioForm extends Form
     public $genero_id;
 
     public int $persona_comunidad_id = 0;
-
-    // Auxiliares para la vista
-    public $tipo_documento_identificativos;
     public bool $es_tipo_documento_cif = false;
 
     // Alta: primero se comprueba el documento. Si la persona ya existe en esta
@@ -45,16 +46,48 @@ class PropietarioForm extends Form
     public bool $documentoComprobado = false;
     public bool $personaExistente    = false;
 
+    public function stepInfo(): array
+    {
+        return ['label' => __('Datos fiscales')];
+    }
+
+    public function mount()
+    {
+        if ($this->propietarioId && ! $this->documento_identificativo) {
+            $persona = Propietario::find($this->propietarioId)?->persona;
+
+            if ($persona) {
+                $this->comunidad_id             = $persona->comunidad_id;
+                $this->persona_comunidad_id     = $persona->id;
+                $this->nombre                   = $persona->nombre;
+                $this->apellido1                = $persona->apellido1;
+                $this->apellido2                = $persona->apellido2;
+                $this->razon_social             = $persona->razon_social;
+                $this->nombre_comercial         = $persona->nombre_comercial;
+                $this->tipo_documento_id        = $persona->tipo_documento_id;
+                $this->documento_pais_id        = $persona->documento_pais_id;
+                $this->documento_identificativo = $persona->documento_identificativo;
+                $this->fecha_nacimiento         = $persona->fecha_nacimiento?->format('Y-m-d');
+                $this->genero_id                = $persona->genero_id;
+                $this->es_tipo_documento_cif    = TipoDocumentoIdentificativo::isTipoDocumento($this->tipo_documento_id, TipoDocumentoIdentificativo::TIPO_JURIDICA);
+                $this->documentoComprobado      = true;
+            }
+        }
+
+        if (! $this->documentoComprobado && ! $this->tipo_documento_id) {
+            $this->tipo_documento_id = TipoDocumentoIdentificativo::DOCUMENTO_NIF;
+            $this->documento_pais_id = Pais::porDefecto();
+        }
+    }
+
     public function updatedTipoDocumentoId($value)
     {
         $this->es_tipo_documento_cif = TipoDocumentoIdentificativo::isTipoDocumento($value, TipoDocumentoIdentificativo::TIPO_JURIDICA);
         if ($this->es_tipo_documento_cif) {
-            // limpiar campos de persona física
             $this->nombre    = '';
             $this->apellido1 = '';
             $this->apellido2 = '';
         } else {
-            // limpiar campos de persona jurídica
             $this->razon_social     = '';
             $this->nombre_comercial = '';
         }
@@ -81,20 +114,18 @@ class PropietarioForm extends Form
         return $rules;
     }
 
-    /** Al editar un propietario ya existente, o al dar de alta uno con una persona
-     *  que no existía todavía, hacen falta todos los datos. Si la persona YA existía
-     *  (comprobada por documento) y no era propietario, se reutiliza tal cual. */
+    /** Alta: solo hacen falta los datos completos si la persona no existía ya. Edición: siempre. */
     private function requiereDatosPersona(): bool
     {
-        return $this->propietario?->exists || ! $this->personaExistente;
+        return (bool) $this->propietarioId || ! $this->personaExistente;
     }
 
-    public function rules()
+    protected function rules()
     {
         $rules = $this->reglasDocumento();
 
         if ($this->requiereDatosPersona()) {
-            $rules['nombre']           = ['required_unless:tipo_documento_id,6', 'max:100'];
+            $rules['nombre']           = ['required_unless:tipo_documento_id,'.TipoDocumentoIdentificativo::DOCUMENTO_CIF, 'max:100'];
             $rules['apellido1']        = ['required_with:nombre', 'max:100'];
             $rules['apellido2']        = [new ProhibidoSi(empty($this->nombre) || empty($this->apellido1)), 'max:100'];
             $rules['fecha_nacimiento'] = ['nullable', 'required_with:nombre', 'date'];
@@ -110,20 +141,11 @@ class PropietarioForm extends Form
         return $rules;
     }
 
-    public function messages()
-    {
-        return [
-            'max'             => 'Máxima :attribute = :max',
-            'min'             => 'Mínima :attribute = :min',
-            'required'        => 'Debe rellenar :attribute',
-            'required_unless' => 'Se requiere :attribute.',
-            'required_with'   => 'Se requiere :attribute cuando :values tiene valor.',
-        ];
-    }
-
     /** Paso 1 del alta: mira si el documento ya pertenece a una persona de esta comunidad. */
     public function comprobarDocumento()
     {
+        $this->comunidad_id ??= session('comunidad_actual_id');
+
         $this->validate($this->reglasDocumento());
 
         $this->es_tipo_documento_cif = TipoDocumentoIdentificativo::isTipoDocumento($this->tipo_documento_id, TipoDocumentoIdentificativo::TIPO_JURIDICA);
@@ -155,7 +177,7 @@ class PropietarioForm extends Form
         $this->documentoComprobado = true;
     }
 
-    /** Vuelve al paso 1 (por si el documento comprobado no era el que tocaba). */
+    /** Vuelve a pedir el documento (por si el comprobado no era el que tocaba). */
     public function cambiarDocumento()
     {
         $this->documentoComprobado  = false;
@@ -182,73 +204,68 @@ class PropietarioForm extends Form
         ];
     }
 
-    public function setPropietario()
+    /**
+     * "Siguiente" hace de doble botón: si el documento aún no está comprobado, lo
+     * comprueba y se queda en el paso (revela el resto de campos); si ya lo está,
+     * valida y guarda como cualquier otro paso.
+     */
+    public function submit()
     {
-        $persona = $this->propietario->persona;
+        if (! $this->documentoComprobado) {
+            $this->comprobarDocumento();
 
-        $this->persona                  = $persona;
-        $this->persona_comunidad_id     = $persona->id;
-        $this->comunidad_id             = $persona->comunidad_id;
-        $this->nombre                   = $persona->nombre;
-        $this->apellido1                = $persona->apellido1;
-        $this->apellido2                = $persona->apellido2;
-        $this->razon_social             = $persona->razon_social;
-        $this->nombre_comercial         = $persona->nombre_comercial;
-        $this->tipo_documento_id        = $persona->tipo_documento_id;
-        $this->documento_pais_id        = $persona->documento_pais_id;
-        $this->documento_identificativo = $persona->documento_identificativo;
-        $this->fecha_nacimiento         = $persona->fecha_nacimiento?->format('Y-m-d');
-        $this->genero_id                = $persona->genero_id;
-
-        $this->es_tipo_documento_cif = TipoDocumentoIdentificativo::isTipoDocumento($this->tipo_documento_id, TipoDocumentoIdentificativo::TIPO_JURIDICA);
-        $this->documentoComprobado   = true;
-    }
-
-    public function store($validated): Propietario
-    {
-        if ($this->personaExistente && $this->persona_comunidad_id) {
-            $persona = PersonaComunidad::findOrFail($this->persona_comunidad_id);
-        } else {
-            $persona = PersonaComunidad::create($this->datosPersona());
+            return;
         }
 
-        $propietario = Propietario::create(['persona_comunidad_id' => $persona->id]);
-        $propietario->setRelation('persona', $persona);
-
-        $this->propietario          = $propietario;
-        $this->persona               = $persona;
-        $this->persona_comunidad_id  = $persona->id;
-
-        return $propietario;
+        $this->validarYGuardar();
+        $this->nextStep();
     }
 
-    public function update($validated): Propietario
+    protected function validarYGuardar(): void
     {
-        $this->persona->update($this->datosPersona());
+        $data = $this->validate();
+        $data['comunidad_id']          = $this->comunidad_id;
+        $data['persona_comunidad_id']  = $this->persona_comunidad_id;
+        $data['personaExistente']      = $this->personaExistente;
+        // Se guarda también el flag, no solo los campos: al reanudar un borrador, el
+        // documento ya viene relleno, y sin este flag el paso "olvida" que ya se
+        // comprobó y vuelve a intentarlo — si se está editando, la persona SIEMPRE
+        // existe ya como propietario (es la que se está editando), así que ese
+        // segundo intento fallaba con "ya está dada de alta".
+        $data['documentoComprobado']   = $this->documentoComprobado;
+        $data['es_tipo_documento_cif'] = $this->es_tipo_documento_cif;
+        $data['datosPersona']          = $this->datosPersona();
 
-        return $this->propietario;
+        $borrador = $this->borradorActual();
+        $payload  = $borrador?->payload ?? [];
+        $payload['propietario_id'] = $this->propietarioId;
+        $payload['datos']          = $data;
+
+        if ($borrador) {
+            $borrador->update(['payload' => $payload]);
+        } else {
+            $borrador = Borrador::create([
+                'user_id' => auth()->id(),
+                'tipo'    => Borrador::TIPO_PROPIETARIO,
+                'payload' => $payload,
+            ]);
+            session([$this->claveBorrador() => $borrador->id]);
+        }
     }
 
-    public function resetForm()
+    private function borradorActual(): ?Borrador
     {
-        $this->nombre                   = '';
-        $this->apellido1                = '';
-        $this->apellido2                = '';
-        $this->razon_social             = '';
-        $this->nombre_comercial         = '';
-        $this->fecha_nacimiento         = null;
-        $this->documento_identificativo = '';
-        $this->genero_id                = null;
-        $this->persona_comunidad_id     = 0;
-        $this->propietario              = null;
-        $this->persona                  = null;
-        $this->documentoComprobado      = false;
-        $this->personaExistente         = false;
+        $borradorId = session($this->claveBorrador());
 
-        $this->tipo_documento_id     = TipoDocumentoIdentificativo::DOCUMENTO_NIF;
-        $this->documento_pais_id     = Pais::porDefecto();
-        $this->es_tipo_documento_cif = false;
+        return $borradorId ? Borrador::delUsuario()->deTipo(Borrador::TIPO_PROPIETARIO)->find($borradorId) : null;
+    }
 
-        $this->resetValidation();
+    public function render()
+    {
+        return view('livewire.propietarios.crear.steps.datos-step', [
+            'paises'                       => Pais::activo()->ordenGrupo()->get(),
+            'generos'                      => TipoGenero::orderBy('nombre')->get(),
+            'tipoDocumentoIdentificativos' => TipoDocumentoIdentificativo::all(),
+        ]);
     }
 }

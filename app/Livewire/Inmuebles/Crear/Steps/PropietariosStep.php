@@ -3,18 +3,13 @@
 namespace App\Livewire\Inmuebles\Crear\Steps;
 
 use App\Livewire\Inmuebles\Crear\CrearInmuebleStep;
-use App\Livewire\Traits\WithGenero;
 use App\Models\Borrador;
 use App\Models\Inmueble;
-use App\Models\Pais;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
-use App\Models\TipoDocumentoIdentificativo;
 use App\Models\Titularidad;
-use App\Rules\IsCifRule;
-use App\Rules\IsNieRule;
-use App\Rules\IsNifRule;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
 
 /**
  * Paso: propietarios del inmueble.
@@ -30,7 +25,6 @@ use Illuminate\Support\Facades\DB;
  */
 class PropietariosStep extends CrearInmuebleStep
 {
-    use WithGenero;
 
     public ?int $inmuebleId = null;
     public ?int $comunidad_id = null;
@@ -49,17 +43,13 @@ class PropietariosStep extends CrearInmuebleStep
     public $cuota_percent = null;
     public string $causa  = Titularidad::CAUSA_COMPRAVENTA;
 
-    // Alta inline de persona nueva (si no existe).
-    public bool $personaNueva                     = false;
-    public bool $personaComprobada                = false;
-    public ?int $prop_documento_pais_id           = null;
-    public ?int $prop_tipo_documento_id           = null;
-    public ?string $prop_documento_identificativo = null;
-    public ?string $prop_nombre                   = null;
-    public ?string $prop_apellido1                = null;
-    public ?string $prop_apellido2                = null;
-    public ?string $prop_fecha_nacimiento         = null;
-    public ?int $prop_genero_id                   = null;
+    // Alta de persona nueva: ya no es un formulario aparte aquí — abre el wizard
+    // completo de Propietario (datos+dirección+contactos+cuenta) embebido en un
+    // modal (ver la vista). Al terminar dispara 'propietario-creado' y se
+    // selecciona sola (ver propietarioCreado()). El contador cambia la wire:key del
+    // componente embebido cada vez que se abre, para que arranque limpio.
+    public bool $modalPropietarioAbierto = false;
+    public int $modalPropietarioContador = 0;
 
     // Edición de una línea ya añadida (siempre en memoria/borrador).
     public $editandoId = null;
@@ -79,7 +69,6 @@ class PropietariosStep extends CrearInmuebleStep
                 : session('comunidad_actual_id');
         }
 
-        $this->setGeneros();
         if (! $this->cargado) {
             $this->cargarPropietarios();
         }
@@ -145,7 +134,6 @@ class PropietariosStep extends CrearInmuebleStep
         $this->personaNombre     = ($persona->documento_identificativo ?? '').' — '.$persona->nombreCompleto;
         $this->personaBusqueda   = '';
         $this->personaResultados = [];
-        $this->personaNueva      = false;
     }
 
     public function quitarSeleccion()
@@ -156,68 +144,36 @@ class PropietariosStep extends CrearInmuebleStep
         $this->personaResultados = [];
     }
 
-    // --- Alta inline de persona nueva ---
-    public function nuevaPersona()
+    // --- Alta de persona nueva: abre el wizard completo de Propietario en un modal ---
+    public function abrirModalPropietario(): void
     {
         $this->quitarSeleccion();
-        $this->personaNueva                  = true;
-        $this->personaComprobada             = false;
-        $this->prop_documento_pais_id        = Pais::porDefecto();
-        $this->prop_tipo_documento_id        = TipoDocumentoIdentificativo::DOCUMENTO_NIF;
-        $this->prop_documento_identificativo = null;
-        $this->prop_nombre                   = null;
-        $this->prop_apellido1                = null;
-        $this->prop_apellido2                = null;
-        $this->prop_fecha_nacimiento         = null;
-        $this->prop_genero_id                = null;
-        $this->resetErrorBag();
+        $this->modalPropietarioContador++;
+        $this->modalPropietarioAbierto = true;
     }
 
-    public function cancelarNuevaPersona()
+    #[On('cerrar-modal-propietario')]
+    public function cerrarModalPropietario(): void
     {
-        $this->personaNueva      = false;
-        $this->personaComprobada = false;
-        $this->resetErrorBag();
+        $this->modalPropietarioAbierto = false;
     }
 
-    /** Comprueba el documento: si la persona ya existe, la selecciona; si no, deja crearla. */
-    public function comprobarPersona()
+    /** El wizard embebido terminó: selecciona solo al propietario recién creado. */
+    #[On('propietario-creado')]
+    public function propietarioCreado($id, $nombre = null): void
     {
-        $rules = [
-            'prop_documento_pais_id'        => ['required', 'exists:paises,id'],
-            'prop_tipo_documento_id'        => ['required', 'exists:tipo_documento_identificativos,id'],
-            'prop_documento_identificativo' => ['required', 'string', 'max:40'],
-        ];
+        $this->modalPropietarioAbierto = false;
 
-        if ($this->prop_documento_pais_id == Pais::ESPAÑA) {
-            if ($this->prop_tipo_documento_id == TipoDocumentoIdentificativo::DOCUMENTO_NIF) {
-                $rules['prop_documento_identificativo'][] = new IsNifRule();
-            } elseif ($this->prop_tipo_documento_id == TipoDocumentoIdentificativo::DOCUMENTO_NIE) {
-                $rules['prop_documento_identificativo'][] = new IsNieRule();
-            } elseif ($this->prop_tipo_documento_id == TipoDocumentoIdentificativo::DOCUMENTO_CIF) {
-                $rules['prop_documento_identificativo'][] = new IsCifRule();
-            }
+        $propietario = Propietario::find($id);
+        if ($propietario) {
+            $this->seleccionarPersona($propietario->persona_comunidad_id);
         }
-
-        $this->validate($rules);
-
-        $persona = PersonaComunidad::where('comunidad_id', $this->comunidad_id)
-            ->where('documento_identificativo', $this->prop_documento_identificativo)
-            ->first();
-
-        if ($persona) {
-            $this->seleccionarPersona($persona->id);
-
-            return;
-        }
-
-        $this->personaComprobada = true;
     }
 
     // --- Añadir a la lista: acumula en el borrador, nada real todavía ---
     public function agregarPropietario()
     {
-        if (! $this->persona_id && ! ($this->personaNueva && $this->personaComprobada)) {
+        if (! $this->persona_id) {
             $this->addError('persona_id', __('Selecciona o da de alta a la persona del propietario.'));
 
             return;
@@ -228,50 +184,18 @@ class PropietariosStep extends CrearInmuebleStep
             'causa'         => ['required', 'in:'.implode(',', array_keys($this->causas()))],
         ], [], ['cuota_percent' => __('cuota de propiedad')]);
 
-        if ($this->persona_id) {
-            if (collect($this->propietarios)->contains('persona_comunidad_id', $this->persona_id)) {
-                $this->addError('persona_id', __('Ese propietario ya está en este inmueble.'));
+        if (collect($this->propietarios)->contains('persona_comunidad_id', $this->persona_id)) {
+            $this->addError('persona_id', __('Ese propietario ya está en este inmueble.'));
 
-                return;
-            }
-
-            $linea = [
-                'titularidad_id'       => null,
-                'persona_comunidad_id' => $this->persona_id,
-                'persona_nueva'        => null,
-                'nombre'               => $this->personaNombre,
-            ];
-        } else {
-            $this->validate([
-                'prop_nombre'           => ['required', 'string', 'max:100'],
-                'prop_apellido1'        => ['required', 'string', 'max:100'],
-                'prop_apellido2'        => ['nullable', 'string', 'max:100'],
-                'prop_fecha_nacimiento' => ['required', 'date', 'before_or_equal:today'],
-                'prop_genero_id'        => ['required', 'exists:tipo_generos,id'],
-            ], [], [
-                'prop_nombre'           => __('nombre del propietario'),
-                'prop_apellido1'        => __('primer apellido del propietario'),
-                'prop_fecha_nacimiento' => __('fecha de nacimiento del propietario'),
-                'prop_genero_id'        => __('género del propietario'),
-            ]);
-
-            $linea = [
-                'titularidad_id'       => null,
-                'persona_comunidad_id' => null,
-                'persona_nueva'        => [
-                    'comunidad_id'             => $this->comunidad_id,
-                    'documento_pais_id'        => $this->prop_documento_pais_id,
-                    'tipo_documento_id'        => $this->prop_tipo_documento_id,
-                    'documento_identificativo' => $this->prop_documento_identificativo,
-                    'nombre'                   => $this->prop_nombre,
-                    'apellido1'                => $this->prop_apellido1,
-                    'apellido2'                => $this->prop_apellido2,
-                    'fecha_nacimiento'         => $this->prop_fecha_nacimiento,
-                    'genero_id'                => $this->prop_genero_id,
-                ],
-                'nombre' => ($this->prop_documento_identificativo ?? '').' — '.trim($this->prop_nombre.' '.$this->prop_apellido1.' '.$this->prop_apellido2),
-            ];
+            return;
         }
+
+        $linea = [
+            'titularidad_id'       => null,
+            'persona_comunidad_id' => $this->persona_id,
+            'persona_nueva'        => null,
+            'nombre'               => $this->personaNombre,
+        ];
 
         $linea['cuota_percent'] = (float) $this->cuota_percent;
         $linea['causa']         = $this->causa;
@@ -296,10 +220,8 @@ class PropietariosStep extends CrearInmuebleStep
     private function resetFormularioPropietario(): void
     {
         $this->quitarSeleccion();
-        $this->personaNueva      = false;
-        $this->personaComprobada = false;
-        $this->cuota_percent     = null;
-        $this->causa             = Titularidad::CAUSA_COMPRAVENTA;
+        $this->cuota_percent = null;
+        $this->causa         = Titularidad::CAUSA_COMPRAVENTA;
         $this->resetErrorBag();
     }
 
@@ -421,9 +343,7 @@ class PropietariosStep extends CrearInmuebleStep
     public function render()
     {
         return view('livewire.inmuebles.crear.steps.propietarios-step', [
-            'paisesPropietario' => Pais::activo()->ordenGrupo()->get(),
-            'tiposPropietario'  => TipoDocumentoIdentificativo::persona_fisica()->get(),
-            'causas'            => $this->causas(),
+            'causas' => $this->causas(),
         ]);
     }
 }
