@@ -3,7 +3,6 @@
 namespace App\Livewire\Proveedores;
 
 use App\Models\Proveedor;
-use App\Models\TipoDocumento;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -39,10 +38,7 @@ class Ver extends Component
     public function render()
     {
         $facturas = $this->proveedor
-            ? $this->proveedor->documentos()
-                ->where('tipo_documento_id', TipoDocumento::FACTURA)
-                ->orderByDesc('fechaalta')
-                ->get()
+            ? $this->proveedor->facturas()->with('documento')->orderByDesc('created_at')->get()
             : collect();
 
         return view('livewire.proveedores.ver', compact('facturas'));

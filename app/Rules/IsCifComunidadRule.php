@@ -7,10 +7,11 @@ use App\Rules\Includes\ValidadorDocumentoId;
 use App\Models\Persona;
 
 /**
- * CIF de comunidad de propietarios: además de ser un CIF válido, debe empezar
- * por la letra H (tabla de tipos de la AEAT). Regla aparte de IsCifRule porque
- * mañana puede haber otros titulares con CIF (proveedores, empresas) que no
- * tengan por qué llevar esa letra.
+ * CIF de comunidad de propietarios. Exige CIF (o NIF, ver nota TEMPORAL más abajo)
+ * válido; el requisito de que empiece por H (tabla de tipos de la AEAT) está
+ * desactivado hasta nuevo aviso, ver comentario dentro de passes(). Regla aparte
+ * de IsCifRule porque mañana puede haber otros titulares con CIF (proveedores,
+ * empresas) que no tengan por qué llevar esa letra.
  */
 class IsCifComunidadRule implements Rule {
 
@@ -29,11 +30,19 @@ class IsCifComunidadRule implements Rule {
             return false;
         }
 
-        if (! $validador->isValidCIF($value)) {
-            return false;
+        // TEMPORAL: para poder probar la importación de facturas con NIFs personales
+        // reales (facturas propias, no de una comunidad), se admite también un NIF
+        // válido además del CIF-H habitual. Revertir cuando termine la prueba.
+        if ($validador->isValidNIF($value)) {
+            return true;
         }
 
-        return strtoupper(substr((string) $value, 0, 1)) === 'H';
+        // DESACTIVADO hasta nuevo aviso (a petición del usuario): exigía que el CIF
+        // empezara por H (código AEAT de comunidad de propietarios). Reactivar
+        // descomentando la línea de abajo cuando se confirme que hace falta de nuevo.
+        // return strtoupper(substr((string) $value, 0, 1)) === 'H';
+
+        return $validador->isValidCIF($value);
     }
 
     /**
@@ -42,7 +51,7 @@ class IsCifComunidadRule implements Rule {
      * @return string
      */
     public function message() {
-        return 'El :attribute debe ser un CIF de comunidad de propietarios válido (empieza por H).';
+        return 'El :attribute debe ser un CIF de comunidad de propietarios válido.';
     }
 
 }

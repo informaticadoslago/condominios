@@ -8,14 +8,14 @@
             x-data="{ arrastrando: false }"
             x-on:dragover.prevent="arrastrando = true"
             x-on:dragleave.prevent="arrastrando = false"
-            x-on:drop.prevent="arrastrando = false; $refs.inputFacturas.files = $event.dataTransfer.files; $refs.inputFacturas.dispatchEvent(new Event('change'))"
+            x-on:drop.prevent="arrastrando = false; console.log('drop: ficheros=', $event.dataTransfer.files.length, 'tipos=', $event.dataTransfer.types); $wire.uploadMultiple('facturas', $event.dataTransfer.files, () => console.log('uploadMultiple: terminado'), (error) => console.error('uploadMultiple: error', error))"
             :class="arrastrando ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-gray-300 dark:border-gray-600'"
             class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors">
             <i class="fa-solid fa-file-pdf text-3xl text-gray-400 mb-2"></i>
             <span class="text-sm text-gray-500 dark:text-gray-400 text-center px-4">
                 {{ __('Arrastra aquí las facturas en PDF o haz clic para buscarlas') }}
             </span>
-            <input type="file" id="input-facturas" x-ref="inputFacturas" wire:model="facturas" multiple
+            <input type="file" id="input-facturas" wire:model="facturas" multiple
                 accept="application/pdf" class="hidden" />
         </label>
 

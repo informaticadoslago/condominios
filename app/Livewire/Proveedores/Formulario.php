@@ -5,7 +5,6 @@ namespace App\Livewire\Proveedores;
 use App\Livewire\Forms\ProveedorForm;
 use App\Models\Pais;
 use App\Models\Proveedor;
-use App\Models\TipoDocumento;
 use App\Models\TipoDocumentoIdentificativo;
 use App\Models\TipoGenero;
 use Livewire\Attributes\On;
@@ -82,6 +81,17 @@ class Formulario extends Component
         $this->cerrar();
     }
 
+    public function borrarDocumento($facturaProveedorId)
+    {
+        $factura = $this->formulario->proveedor->facturas()->find($facturaProveedorId);
+        if (! $factura) {
+            return;
+        }
+
+        $factura->documento->delete(); // borra el fichero físico (Documento::booted) y, en cascada, esta fila
+        $this->dispatch('toast-success', ['title' => __('Documento borrado')]);
+    }
+
     public function cerrar()
     {
         $this->abrir = false;
@@ -90,9 +100,9 @@ class Formulario extends Component
     public function render()
     {
         $facturas = $this->formulario->proveedor?->exists
-            ? $this->formulario->proveedor->documentos()
-                ->where('tipo_documento_id', TipoDocumento::FACTURA)
-                ->orderByDesc('fechaalta')
+            ? $this->formulario->proveedor->facturas()
+                ->with('documento')
+                ->orderByDesc('created_at')
                 ->get()
             : collect();
 

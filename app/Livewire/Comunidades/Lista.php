@@ -28,6 +28,20 @@ class Lista extends ListaComponent
         // el evento fuerza el re-render de la lista
     }
 
+    // ConBajaPorEstado ya ejecuta la baja/reactivación; aquí solo avisamos de que
+    // el menú lateral (no reactivo) necesita recargar la página para reflejarlo.
+    #[On('ejecutarBaja')]
+    public function avisarTrasBaja($id)
+    {
+        $this->dispatch('comunidad-guardada');
+    }
+
+    #[On('ejecutarReactivar')]
+    public function avisarTrasReactivar($id)
+    {
+        $this->dispatch('comunidad-guardada');
+    }
+
     public function render()
     {
         $search = trim($this->search ?? '');

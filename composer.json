@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.4",
         "barryvdh/laravel-dompdf": "^3.1",
+        "khanamiryan/qrcode-detector-decoder": "^2.0",
         "lab404/laravel-impersonate": "^1.7",
         "laravel/framework": "^13.0",
         "laravel/jetstream": "^5.3",

@@ -3,7 +3,13 @@
 namespace App\Livewire\Proveedores;
 
 use App\Exceptions\DocumentoInvalidoException;
+use App\Exceptions\FacturaDuplicadaException;
+use App\Exceptions\GeneracionPlantillaIAException;
+use App\Models\Comunidad;
+use App\Models\PlantillaFactura;
+use App\Models\TipoCampoPlantillaFactura;
 use App\Services\Facturas\AltaProveedorDesdeFactura;
+use App\Services\Facturas\GeneradorPlantillaIA;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -31,8 +37,109 @@ class ResultadoFactura extends Component
             texto: $resultado['texto'],
             cif: $resultado['datos']['cif'] ?? null,
             razonSocial: $resultado['datos']['razon_social'] ?? null,
+            fecha: $resultado['datos']['fecha'] ?? null,
             indice: $indice,
         );
+    }
+
+    /**
+     * Genera (o regenera) la plantilla llamando a la API de Claude para que localice
+     * los valores en el texto, igual que haría un humano marcando con el ratón — no
+     * se usa para extraer los datos de cada factura, solo para construir la plantilla
+     * una vez por proveedor (ver GeneradorPlantillaIA).
+     */
+    public function generarPlantillaConIA($indice)
+    {
+        $resultado = $this->resultados[$indice] ?? null;
+        if (! $resultado) {
+            return;
+        }
+
+        $cifComunidad = Comunidad::find(session('comunidad_actual_id'))?->cif;
+
+        try {
+            $generado = (new GeneradorPlantillaIA())->generar($resultado['texto'], $cifComunidad);
+        } catch (GeneracionPlantillaIAException $e) {
+            $this->dispatch('toast-error', ['title' => $e->getMessage()]);
+
+            return;
+        }
+
+        $conPlantillaActual = $resultado['con_plantilla'] ?? false;
+        $cif = $generado['cif'] ?? ($conPlantillaActual ? ($resultado['plantilla']['cif'] ?? null) : null);
+
+        if (! $cif) {
+            $this->dispatch('toast-error', ['title' => __('Sin CIF no se puede guardar la plantilla')]);
+
+            return;
+        }
+
+        PlantillaFactura::guardarDesdeCampos($cif, $generado['razon_social'], $generado['campos']);
+
+        $campos = $generado['campos'];
+
+        $nuevoPlantilla = [
+            'razon_social'   => $generado['razon_social'],
+            'cif'            => $cif,
+            'numero_factura' => $campos[TipoCampoPlantillaFactura::NUMERO_FACTURA]['valor'] ?? null,
+            'fecha'          => $campos[TipoCampoPlantillaFactura::FECHA]['valor'] ?? null,
+            'importe'        => $campos[TipoCampoPlantillaFactura::IMPORTE]['valor'] ?? null,
+        ];
+
+        $this->resultados[$indice]['con_plantilla'] = true;
+        $this->resultados[$indice]['plantilla'] = array_merge(
+            $resultado['plantilla'] ?? [],
+            array_filter($nuevoPlantilla, fn ($valor) => $valor !== null)
+        );
+
+        $this->dispatch('toast-success', ['title' => __('Plantilla generada con IA')]);
+    }
+
+    /** Borra del todo la plantilla de este proveedor (todos sus campos) para volver a marcarla de cero. */
+    public function borrarPlantilla($indice)
+    {
+        $resultado = $this->resultados[$indice] ?? null;
+        $cif       = $resultado['plantilla']['cif'] ?? null;
+        if (! $cif) {
+            return;
+        }
+
+        $this->dispatch('swalConfirm', [
+            'title'              => __('Borrar plantilla'),
+            'text'               => __('¿Seguro que quieres borrar la plantilla de este proveedor? Habrá que volver a marcarla desde cero.'),
+            'icon'               => 'warning',
+            'showCancelButton'   => true,
+            'confirmButtonColor' => '#d33',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, borrar'),
+            'cancelButtonText'   => __('Cancelar'),
+            'confirmCallback'    => 'borrarPlantillaConfirmado',
+            'cancelCallback'     => 'borrarPlantillaCancelado',
+            'id'                 => $indice,
+        ]);
+    }
+
+    #[On('borrarPlantillaConfirmado')]
+    public function borrarPlantillaConfirmado($id)
+    {
+        $resultado = $this->resultados[$id] ?? null;
+        $cif       = $resultado['plantilla']['cif'] ?? null;
+        if (! $cif) {
+            return;
+        }
+
+        PlantillaFactura::where('cif', $cif)->delete();
+
+        $this->resultados[$id]['con_plantilla'] = false;
+        unset($this->resultados[$id]['plantilla']);
+
+        $this->dispatch('toast-success', ['title' => __('Plantilla borrada')]);
+    }
+
+    #[On('borrarPlantillaCancelado')]
+    public function borrarPlantillaCancelado($id = null)
+    {
+        // el usuario canceló; no hacemos nada
     }
 
     /** Ya hay plantilla para este proveedor, pero un campo concreto salió mal: se corrige solo ese. */
@@ -43,9 +150,12 @@ class ResultadoFactura extends Component
             return;
         }
 
+        $conPlantilla = $resultado['con_plantilla'] ?? false;
+        $cif          = $conPlantilla ? ($resultado['plantilla']['cif'] ?? null) : ($resultado['datos']['cif'] ?? null);
+
         $this->dispatch('abrir-corregir-campo-plantilla',
             texto: $resultado['texto'],
-            cif: $resultado['datos']['cif'] ?? null,
+            cif: $cif,
             tipoCampo: $tipoCampo,
             indice: $indice,
         );
@@ -67,7 +177,7 @@ class ResultadoFactura extends Component
         );
     }
 
-    public function darDeAlta($indice)
+    public function darDeAlta($indice, $sobrescribir = false)
     {
         $resultado = $this->resultados[$indice] ?? null;
         if (! $resultado) {
@@ -86,6 +196,7 @@ class ResultadoFactura extends Component
         $razonSocial   = $conPlantilla ? ($resultado['plantilla']['razon_social'] ?? null) : ($resultado['datos']['razon_social'] ?? null);
         $numeroFactura = $resultado['plantilla']['numero_factura'] ?? null;
         $fecha         = $conPlantilla ? ($resultado['plantilla']['fecha'] ?? null) : ($resultado['datos']['fecha'] ?? null);
+        $importe       = $resultado['plantilla']['importe'] ?? null;
 
         $metadatosFichero = array_intersect_key($resultado, array_flip(['nombrefichero', 'nombrelocal', 'camino', 'extension', 'size']));
 
@@ -97,9 +208,27 @@ class ResultadoFactura extends Component
                 $metadatosFichero,
                 $numeroFactura,
                 $fecha,
+                $importe,
+                (bool) $sobrescribir,
             );
         } catch (DocumentoInvalidoException $e) {
             $this->dispatch('toast-error', ['title' => $e->getMessage()]);
+
+            return;
+        } catch (FacturaDuplicadaException $e) {
+            $this->dispatch('swalConfirm', [
+                'title'              => __('Factura ya existente'),
+                'text'               => $e->getMessage() . ' ' . __('¿Quieres sobrescribirla?'),
+                'icon'               => 'warning',
+                'showCancelButton'   => true,
+                'confirmButtonColor' => '#d33',
+                'cancelButtonColor'  => '#f1c40f',
+                'confirmButtonText'  => __('Sí, sobrescribir'),
+                'cancelButtonText'   => __('Cancelar'),
+                'confirmCallback'    => 'darDeAltaSobrescribiendo',
+                'cancelCallback'     => 'darDeAltaCancelado',
+                'id'                 => $indice,
+            ]);
 
             return;
         }
@@ -116,6 +245,18 @@ class ResultadoFactura extends Component
         ]);
 
         $this->dispatch('proveedor-guardado');
+    }
+
+    #[On('darDeAltaSobrescribiendo')]
+    public function darDeAltaSobrescribiendo($id)
+    {
+        $this->darDeAlta($id, sobrescribir: true);
+    }
+
+    #[On('darDeAltaCancelado')]
+    public function darDeAltaCancelado($id = null)
+    {
+        // el usuario canceló; no hacemos nada
     }
 
     public function cerrar()

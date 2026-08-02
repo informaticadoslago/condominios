@@ -3,11 +3,20 @@
 namespace App\Livewire\Proveedores;
 
 use App\Livewire\ListaComponent;
+use App\Livewire\Traits\ConBajaPorEstado;
+use App\Livewire\Traits\ConFiltroEstado;
+use App\Livewire\Traits\ConHistorialEstadoModal;
+use App\Models\Estado;
+use App\Models\PlantillaFactura;
 use App\Models\Proveedor;
 use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
 {
+    use ConBajaPorEstado;
+    use ConFiltroEstado;
+    use ConHistorialEstadoModal;
+
     public function mount()
     {
         $this->sort      = 'id';
@@ -20,34 +29,117 @@ class Lista extends ListaComponent
         // el evento fuerza el re-render de la lista
     }
 
-    public function confirmarEliminar($id)
+    protected function modeloBaja(): string
+    {
+        return Proveedor::class;
+    }
+
+    protected function modeloEstado(): string
+    {
+        return Estado::class;
+    }
+
+    protected function modeloHistorial(): string
+    {
+        return Proveedor::class;
+    }
+
+    public function definicionesFiltro(): array
+    {
+        return [
+            $this->filtroEstado(),
+        ];
+    }
+
+    /**
+     * Se reimplementan en vez de dejar el ConBajaPorEstado del trait tal cual: un
+     * proveedor no se puede borrar (por eso existe el estado de baja), y la baja/
+     * reactivación solo puede tocar proveedores de la comunidad activa — el trait
+     * genérico busca por id a secas, sin ese scope.
+     */
+    #[On('ejecutarBaja')]
+    public function ejecutarBaja($id)
+    {
+        $proveedor = Proveedor::whereKey($id)
+            ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+            ->first();
+
+        if ($proveedor) {
+            $proveedor->update(['estado_id' => Proveedor::ESTADO_BAJA]);
+            $this->dispatch('toast-success', ['title' => __('Proveedor dado de baja')]);
+        }
+    }
+
+    #[On('ejecutarReactivar')]
+    public function ejecutarReactivar($id)
+    {
+        $proveedor = Proveedor::whereKey($id)
+            ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+            ->first();
+
+        if ($proveedor) {
+            $proveedor->update(['estado_id' => Proveedor::ESTADO_ACTIVO]);
+            $this->dispatch('toast-success', ['title' => __('Proveedor reactivado')]);
+        }
+    }
+
+    /**
+     * Vía de escape para un proveedor de baja que sobra del todo (duplicado, prueba...):
+     * borra el proveedor, sus documentos (con el PDF del disco, uno a uno para que
+     * dispare el evento que los borra) y la plantilla de su CIF. No tiene botón propio
+     * a propósito — se dispara con mayús+clic sobre "Reactivar" (ver blade) para que no
+     * sea un botón más al lado de "Dar de baja" tentando a pulsarlo sin querer.
+     */
+    public function confirmarBorrarDefinitivo($id)
     {
         $this->dispatch('swalConfirm', [
-            'title'              => __('¿Eliminar proveedor?'),
-            'text'               => __('Esta acción no se puede deshacer.'),
+            'title'              => __('¿Borrar este proveedor definitivamente?'),
+            'text'               => __('Se borran también todos sus documentos (con el PDF del disco) y la plantilla de extracción. Esta acción NO se puede deshacer.'),
             'icon'               => 'warning',
             'showCancelButton'   => true,
             'confirmButtonColor' => '#d33',
             'cancelButtonColor'  => '#f1c40f',
-            'confirmButtonText'  => __('Sí, eliminar'),
+            'confirmButtonText'  => __('Sí, borrar todo'),
             'cancelButtonText'   => __('Cancelar'),
-            'confirmCallback'    => 'ejecutarEliminarProveedor',
-            'cancelCallback'     => 'eliminarProveedorCancelado',
+            'confirmCallback'    => 'ejecutarBorrarDefinitivo',
+            'cancelCallback'     => 'borrarDefinitivoCancelado',
             'id'                 => $id,
         ]);
     }
 
-    #[On('ejecutarEliminarProveedor')]
-    public function ejecutarEliminar($id)
+    #[On('ejecutarBorrarDefinitivo')]
+    public function ejecutarBorrarDefinitivo($id)
     {
-        Proveedor::whereKey($id)
+        $proveedor = Proveedor::with(['persona', 'documentos'])
             ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
-            ->delete();
-        $this->dispatch('toast-success', ['title' => __('Proveedor eliminado')]);
+            ->find($id);
+
+        if (! $proveedor) {
+            return;
+        }
+
+        $cif = $proveedor->persona->documento_identificativo;
+
+        // Uno a uno (no un delete masivo): así dispara Documento::deleted, que borra
+        // también el fichero del disco.
+        foreach ($proveedor->documentos as $documento) {
+            $documento->delete();
+        }
+
+        if ($cif) {
+            // Global por CIF, no por proveedor (ver Documento::consolidarFichero): si no se
+            // borra aquí, se queda huérfana y la próxima factura de este CIF la reutilizaría.
+            PlantillaFactura::where('cif', $cif)->delete();
+        }
+
+        // Las facturas_proveedores ya se han ido en cascada al borrar sus documentos.
+        $proveedor->delete();
+
+        $this->dispatch('toast-success', ['title' => __('Proveedor, documentos y plantilla borrados')]);
     }
 
-    #[On('eliminarProveedorCancelado')]
-    public function eliminarCancelado($id = null)
+    #[On('borrarDefinitivoCancelado')]
+    public function borrarDefinitivoCancelado($id = null)
     {
         // el usuario canceló; no hacemos nada
     }
@@ -56,8 +148,11 @@ class Lista extends ListaComponent
     {
         $search = trim($this->search ?? '');
 
-        $items = Proveedor::with('persona')
-            ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+        $items = $this->aplicarFiltros(
+            Proveedor::with(['persona', 'estado'])
+                ->withCount('historialEstados')
+                ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+        )
             ->when($search, function ($q) use ($search) {
                 $q->whereHas('persona', fn ($p) => $p
                     ->buscarNombreCompleto($search)

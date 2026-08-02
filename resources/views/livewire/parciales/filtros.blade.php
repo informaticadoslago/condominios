@@ -1,6 +1,6 @@
 @php
     $definiciones = $this->definicionesFiltro();
-    $hayTexto     = collect($definiciones)->contains(fn ($filtro) => $filtro['tipo'] === 'texto');
+    $hayTexto     = collect($definiciones)->contains(fn ($filtro) => in_array($filtro['tipo'], ['texto', 'fecha'], true));
 @endphp
 
 @if (count($definiciones))
@@ -18,6 +18,10 @@
                             <option value="{{ $valor }}">{{ $etiqueta }}</option>
                         @endforeach
                     </select>
+                @elseif ($filtro['tipo'] === 'fecha')
+                    <x-input type="date" wire:model="filtros.{{ $filtro['clave'] }}" wire:keydown.enter="aplicarFiltro"
+                        :disabled="$verSoloSeleccionados ?? false"
+                        class="disabled:opacity-50 disabled:cursor-not-allowed" />
                 @else
                     <x-input wire:model="filtros.{{ $filtro['clave'] }}" wire:keydown.enter="aplicarFiltro"
                         :disabled="$verSoloSeleccionados ?? false"

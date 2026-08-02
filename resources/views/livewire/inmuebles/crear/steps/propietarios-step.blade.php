@@ -32,6 +32,10 @@
                                             @endforeach
                                         </x-select>
                                     </div>
+                                    <div class="w-1/5">
+                                        <x-label :value="__('Fecha inicio')" />
+                                        <x-input type="date" class="block mt-1 w-full" wire:model="edit_fecha_inicio" />
+                                    </div>
                                     <div class="flex gap-1">
                                         <x-button type="button" wire:click="guardarEdicion" class="btn">{{ __('Guardar') }}</x-button>
                                         <button type="button" wire:click="cancelarEdicion" class="text-sm text-gray-500 hover:text-gray-800 px-2">{{ __('Cancelar') }}</button>
@@ -39,11 +43,33 @@
                                 </div>
                                 <x-input-error for="edit_cuota_percent" class="mt-2" />
                                 <x-input-error for="edit_causa" class="mt-2" />
+                                <x-input-error for="edit_fecha_inicio" class="mt-2" />
+                            @elseif ($quitandoId === $propietario['ref'])
+                                {{-- Nunca se borra la titularidad: solo se cierra con una fecha_fin. --}}
+                                <div class="flex items-end gap-2">
+                                    <div class="flex-1">
+                                        <span class="mayusculas">{{ $propietario['nombre'] }}</span>
+                                        <span class="block text-xs text-gray-500">{{ __('Deja de ser propietario desde:') }}</span>
+                                    </div>
+                                    <div class="w-1/4">
+                                        <x-label :value="__('Fecha fin')" />
+                                        <x-input type="date" class="block mt-1 w-full" wire:model="quitar_fecha_fin" />
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <x-button type="button" wire:click="guardarQuitarPropietario" class="btn">{{ __('Guardar') }}</x-button>
+                                        <button type="button" wire:click="cancelarQuitar" class="text-sm text-gray-500 hover:text-gray-800 px-2">{{ __('Cancelar') }}</button>
+                                    </div>
+                                </div>
+                                <x-input-error for="quitar_fecha_fin" class="mt-2" />
                             @else
                                 <div class="flex items-center gap-2">
                                     <span class="mayusculas flex-1">{{ $propietario['nombre'] }}</span>
                                     <span class="text-sm text-gray-500">{{ number_format($propietario['cuota_percent'], 2) }}%</span>
                                     <span class="text-sm text-gray-500">{{ $propietario['causa'] }}</span>
+                                    <span class="text-sm text-gray-500">
+                                        {{ __('desde') }}
+                                        {{ $propietario['fecha_inicio'] ? \Illuminate\Support\Carbon::parse($propietario['fecha_inicio'])->format('d-m-Y') : '—' }}
+                                    </span>
                                     <button type="button" wire:click="activarEdicion({{ $propietario['ref'] }})"
                                         class="text-gray-500 hover:text-indigo-600" title="{{ __('Editar') }}">
                                         <i class="fa-solid fa-pen"></i>
@@ -108,6 +134,11 @@
                             <option value="{{ $valor }}">{{ $etiqueta }}</option>
                         @endforeach
                     </x-select>
+                </div>
+                <div class="w-1/5">
+                    <x-label :value="__('Fecha inicio')" />
+                    <x-input type="date" class="block mt-1 w-full" wire:model="fecha_inicio" />
+                    <x-input-error for="fecha_inicio" class="mt-2" />
                 </div>
                 <div class="flex-1 text-right">
                     <x-button type="button" wire:click="agregarPropietario" class="btn">

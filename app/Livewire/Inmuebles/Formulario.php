@@ -87,6 +87,7 @@ class Formulario extends Component
                         'nombre'                => ($t->propietario->persona->documento_identificativo ?? '').' — '.$t->propietario->persona->nombreCompleto,
                         'cuota_percent'         => (float) $t->cuota_percent,
                         'causa'                 => $t->causa,
+                        'fecha_inicio'          => $t->fecha_inicio?->toDateString(),
                     ])->all(),
             ],
         ]);

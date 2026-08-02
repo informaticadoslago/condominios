@@ -8,8 +8,22 @@
             <div class="border rounded-lg p-4 mb-4 last:mb-0">
                 <div class="font-medium mb-3 truncate flex items-center justify-between">
                     <span><i class="fa-solid fa-file-pdf text-red-500 mr-1"></i> {{ $resultado['nombrelocal'] }}</span>
-                    @if ($resultado['con_plantilla'] ?? false)
-                        <span class="text-xs font-normal text-green-700"><i class="fa-solid fa-circle-check mr-1"></i>{{ __('Con plantilla') }}</span>
+                    @if ($resultado['verifactu'] ?? false)
+                        <span class="text-xs font-normal text-green-700"><i class="fa-solid fa-qrcode mr-1"></i>{{ __('VeriFactu') }}</span>
+                    @elseif ($resultado['con_plantilla'] ?? false)
+                        <span class="text-xs font-normal flex items-center gap-2">
+                            <span class="text-green-700"><i class="fa-solid fa-circle-check mr-1"></i>{{ __('Con plantilla') }}</span>
+                            <button type="button" class="text-gray-400 hover:text-indigo-600" title="{{ __('Regenerar plantilla con IA') }}"
+                                wire:click="generarPlantillaConIA({{ $loop->index }})"
+                                wire:loading.attr="disabled" wire:target="generarPlantillaConIA({{ $loop->index }})">
+                                <i class="fa-solid fa-wand-magic-sparkles" wire:loading.remove wire:target="generarPlantillaConIA({{ $loop->index }})"></i>
+                                <i class="fa-solid fa-spinner fa-spin" wire:loading wire:target="generarPlantillaConIA({{ $loop->index }})"></i>
+                            </button>
+                            <button type="button" class="text-gray-400 hover:text-red-600" title="{{ __('Borrar plantilla y volver a marcarla de cero') }}"
+                                wire:click="borrarPlantilla({{ $loop->index }})">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </span>
                     @endif
                 </div>
 
@@ -96,7 +110,13 @@
                                 @endforelse
                             </div>
                         </div>
-                        <div class="col-span-2 text-right">
+                        <div class="col-span-2 text-right space-x-2">
+                            <x-button type="button" class="btn" wire:click="generarPlantillaConIA({{ $loop->index }})"
+                                wire:loading.attr="disabled" wire:target="generarPlantillaConIA({{ $loop->index }})">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-1" wire:loading.remove wire:target="generarPlantillaConIA({{ $loop->index }})"></i>
+                                <i class="fa-solid fa-spinner fa-spin mr-1" wire:loading wire:target="generarPlantillaConIA({{ $loop->index }})"></i>
+                                {{ __('Generar plantilla con IA') }}
+                            </x-button>
                             <x-button type="button" class="btn" wire:click="completarPlantilla({{ $loop->index }})">
                                 {{ __('Completar plantilla') }}
                             </x-button>

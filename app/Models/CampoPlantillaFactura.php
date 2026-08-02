@@ -13,6 +13,9 @@ class CampoPlantillaFactura extends Model
         'tipo_campo_plantilla_factura_id',
         'texto_ancla',
         'valor_ejemplo',
+        'delta_columna',
+        'delta_lineas',
+        'longitud_valor',
     ];
 
     public function plantillaFactura()

@@ -3,12 +3,19 @@
 namespace App\Livewire\Propietarios;
 
 use App\Livewire\ListaComponent;
+use App\Livewire\Traits\ConFiltroEstado;
+use App\Livewire\Traits\ConHistorialEstadoModal;
 use App\Models\Borrador;
+use App\Models\Estado;
 use App\Models\Propietario;
+use App\Models\Titularidad;
 use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
 {
+    use ConFiltroEstado;
+    use ConHistorialEstadoModal;
+
     public function mount()
     {
         $this->sort      = 'id';
@@ -46,34 +53,99 @@ class Lista extends ListaComponent
         // el usuario canceló; no hacemos nada
     }
 
-    public function confirmarEliminar($id)
+    protected function modeloEstado(): string
+    {
+        return Estado::class;
+    }
+
+    protected function modeloHistorial(): string
+    {
+        return Propietario::class;
+    }
+
+    public function definicionesFiltro(): array
+    {
+        return [
+            $this->filtroEstado(),
+        ];
+    }
+
+    public function confirmarBaja($id)
     {
         $this->dispatch('swalConfirm', [
-            'title'              => __('¿Eliminar propietario?'),
-            'text'               => __('Esta acción no se puede deshacer.'),
+            'title'              => __('¿Dar de baja?'),
+            'text'               => __('Se marcará como inactivo.'),
             'icon'               => 'warning',
             'showCancelButton'   => true,
             'confirmButtonColor' => '#d33',
             'cancelButtonColor'  => '#f1c40f',
-            'confirmButtonText'  => __('Sí, eliminar'),
+            'confirmButtonText'  => __('Sí, dar de baja'),
             'cancelButtonText'   => __('Cancelar'),
-            'confirmCallback'    => 'ejecutarEliminarPropietario',
-            'cancelCallback'     => 'eliminarPropietarioCancelado',
+            'confirmCallback'    => 'ejecutarBaja',
+            'cancelCallback'     => 'bajaCancelada',
             'id'                 => $id,
         ]);
     }
 
-    #[On('ejecutarEliminarPropietario')]
-    public function ejecutarEliminar($id)
+    #[On('ejecutarBaja')]
+    public function ejecutarBaja($id)
     {
-        Propietario::whereKey($id)
+        $propietario = Propietario::whereKey($id)
             ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
-            ->delete();
-        $this->dispatch('toast-success', ['title' => __('Propietario eliminado')]);
+            ->first();
+
+        if (! $propietario) {
+            return;
+        }
+
+        // No puede quedar inactivo mientras siga siendo titular vigente de algún
+        // inmueble: si no, "añadir propietario" lo ocultaría pero el inmueble lo
+        // seguiría teniendo como dueño actual. Hay que cerrar antes esa titularidad
+        // (editando el inmueble) o transferirla a otro propietario.
+        if (Titularidad::vigente()->where('propietario_id', $propietario->id)->exists()) {
+            $this->dispatch('toast-error', [
+                'title' => __('No se puede dar de baja: sigue siendo titular vigente de algún inmueble. Cierra o transfiere esa titularidad primero.'),
+            ]);
+
+            return;
+        }
+
+        $propietario->update(['estado_id' => Propietario::ESTADO_BAJA]);
+        $this->dispatch('toast-success', ['title' => __('Propietario dado de baja')]);
     }
 
-    #[On('eliminarPropietarioCancelado')]
-    public function eliminarCancelado($id = null)
+    public function confirmarReactivar($id)
+    {
+        $this->dispatch('swalConfirm', [
+            'title'              => __('¿Reactivar?'),
+            'text'               => __('Se marcará como activo.'),
+            'icon'               => 'question',
+            'showCancelButton'   => true,
+            'confirmButtonColor' => '#3085d6',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, reactivar'),
+            'cancelButtonText'   => __('Cancelar'),
+            'confirmCallback'    => 'ejecutarReactivar',
+            'cancelCallback'     => 'bajaCancelada',
+            'id'                 => $id,
+        ]);
+    }
+
+    #[On('ejecutarReactivar')]
+    public function ejecutarReactivar($id)
+    {
+        $propietario = Propietario::whereKey($id)
+            ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+            ->first();
+
+        if ($propietario) {
+            $propietario->update(['estado_id' => Propietario::ESTADO_ACTIVO]);
+            $this->dispatch('toast-success', ['title' => __('Propietario reactivado')]);
+        }
+    }
+
+    #[On('bajaCancelada')]
+    public function bajaCancelada($id = null)
     {
         // el usuario canceló; no hacemos nada
     }
@@ -95,8 +167,11 @@ class Lista extends ListaComponent
             })
             ->values();
 
-        $items = Propietario::with('persona')
-            ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+        $items = $this->aplicarFiltros(
+            Propietario::with(['persona', 'estado'])
+                ->withCount('historialEstados')
+                ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+        )
             ->when($search, function ($q) use ($search) {
                 $q->whereHas('persona', fn ($p) => $p
                     ->buscarNombreCompleto($search)

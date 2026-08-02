@@ -83,7 +83,7 @@
             @if ($formulario->proveedor?->exists)
                 <div class="mt-4">
                     <x-label :value="__('Facturas adjuntas')" />
-                    @include('livewire.proveedores.partials.lista-facturas')
+                    @include('livewire.proveedores.partials.lista-facturas', ['permitirBorrar' => true])
                 </div>
             @endif
         @endif

@@ -5,7 +5,7 @@
 
     <x-slot name="content">
         @if ($etiquetaCampoActual)
-            @if ($valorDetectadoActual)
+            @if ($valorDetectadoActual && ! $pidiendoValorConEtiqueta)
                 <div class="mb-3 flex items-center justify-between border rounded p-2 bg-gray-50 dark:bg-gray-900">
                     <span class="text-sm">
                         {{ __('Se detectó automáticamente:') }}
@@ -15,6 +15,18 @@
                         {{ __('Es correcto, usar este valor') }}
                     </x-button>
                 </div>
+            @endif
+
+            @if ($pidiendoValorConEtiqueta)
+                <p class="mb-2">
+                    {{ __('Etiqueta marcada:') }} <strong class="mayusculas">{{ $textoEtiquetaMarcada }}</strong>.
+                    {!! __('Ahora selecciona con el ratón el VALOR de <strong>:campo</strong> en el texto de abajo.', ['campo' => mb_strtoupper($etiquetaCampoActual)]) !!}
+                </p>
+            @elseif ($pidiendoEtiqueta)
+                <p class="mb-2">
+                    {!! __('Selecciona con el ratón la ETIQUETA (el texto de referencia, no el valor) de <strong>:campo</strong> en el texto de abajo.', ['campo' => mb_strtoupper($etiquetaCampoActual)]) !!}
+                </p>
+            @elseif ($valorDetectadoActual)
                 <p class="mb-2">
                     {!! __('¿No es correcto? Selecciona con el ratón <strong>:campo</strong> en el texto de abajo.', ['campo' => mb_strtoupper($etiquetaCampoActual)]) !!}
                 </p>
@@ -32,6 +44,18 @@
                     $wire.marcar(range.startOffset, range.endOffset);
                     sel.removeAllRanges();
                 " class="border rounded p-3 text-xs whitespace-pre overflow-auto select-text bg-gray-50 dark:bg-gray-900" style="max-height: 50vh;">{{ $texto }}</pre>
+
+            @if ($esRazonSocial)
+                <div class="mt-3 flex items-end gap-2">
+                    <div class="flex-1">
+                        <x-label :value="__('¿No está en el texto (solo aparece en un logo/imagen)? Escríbela a mano:')" />
+                        <x-input type="text" class="block mt-1 w-full" wire:model="valorManual" wire:keydown.enter.prevent="marcarManual" />
+                    </div>
+                    <x-button type="button" class="btn" wire:click="marcarManual">
+                        {{ __('Guardar') }}
+                    </x-button>
+                </div>
+            @endif
         @endif
 
         @if (count($valores))
