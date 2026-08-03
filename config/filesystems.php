@@ -85,6 +85,17 @@ return [
             'report' => false,
         ],
 
+        // Exportaciones completas de una comunidad (BD + documentos en un .zip),
+        // generadas por condominios:comunidad-exportar.
+        'coms' => [
+            'driver' => 'local',
+            'root' => storage_path(env('COMS_ROOT', 'app/coms')),
+            'visibility' => 'private',
+            'permissions' => $permisosPrivados,
+            'throw' => false,
+            'report' => false,
+        ],
+
         // Copias de seguridad (spatie/laravel-backup): zips con BD + ficheros.
         'backups' => [
             'driver' => 'local',

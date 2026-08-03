@@ -23,6 +23,7 @@
                 <table class="table-striped w-full table-auto text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
+                            <th class="py-3 px-6">{{ __('ID') }}</th>
                             <th class="py-3 px-6">{{ __('Nombre') }}</th>
                             <th class="py-3 px-6">{{ __('CIF') }}</th>
                             <th class="py-3 px-6">{{ __('Estado') }}</th>
@@ -32,6 +33,7 @@
                     <tbody class="divide-y">
                         @foreach ($items as $item)
                             <tr wire:key="{{ $item->id }}">
+                                <td class="px-6 py-4">{{ $item->id }}</td>
                                 <td class="px-6 py-4">
                                     <span class="mayusculas">{{ $item->nombre }}</span>
                                 </td>
