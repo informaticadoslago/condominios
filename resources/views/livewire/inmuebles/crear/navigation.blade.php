@@ -1,6 +1,8 @@
 <div class="flex items-center justify-around text-sm border-b pb-3 mb-4">
     @foreach ($steps as $index => $step)
         <div @class(['px-2 py-1 tracking-wide font-semibold', 'text-gray-500' => ! $step->isCurrent()])>
+            {{-- Solo los pasos YA visitados son clicables (vuelven atrás); los futuros
+                 no, para no saltarse su validación. --}}
             <button type="button"
                 @class([
                     'uppercase',

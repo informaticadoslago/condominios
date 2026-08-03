@@ -105,7 +105,7 @@ class Lista extends ListaComponent
             ->values();
 
         $items = $this->aplicarFiltros(
-            Inmueble::with(['ocupacion', 'tipoInmueble', 'propietarios.persona'])
+            Inmueble::with(['ocupacion', 'tipoInmueble', 'propietarios.persona', 'formaPagoVigente.formaDePago'])
                 ->where('comunidad_id', session('comunidad_actual_id'))
                 ->when($search, function ($q) use ($search) {
                     $q->where('puerta', 'like', "%{$search}%")

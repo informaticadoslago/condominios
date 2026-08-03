@@ -6,9 +6,12 @@ use App\Models\Borrador;
 use Spatie\LivewireWizard\Components\StepComponent;
 
 /**
- * Paso base del wizard de propietario: navegación común (siguiente/anterior/salir por
- * cabecera). En alta nueva, nada es real hasta "Terminar" — mientras tanto vive en el
- * payload de un Borrador (ver los Steps). Calcado de Inmuebles\Crear\CrearInmuebleStep.
+ * Paso base del wizard de propietario: navegación común (siguiente/anterior/saltar por
+ * cabecera a un paso YA visitado). Nunca se puede saltar hacia adelante por la cabecera
+ * (los pasos futuros no son clicables): solo "Siguiente" avanza, así que un paso
+ * intermedio siempre se revalida al pasar por él. En alta nueva, nada es real hasta
+ * "Terminar" — mientras tanto vive en el payload de un Borrador (ver los Steps).
+ * Calcado de Inmuebles\Crear\CrearInmuebleStep.
  */
 abstract class CrearPropietarioStep extends StepComponent
 {

@@ -14,7 +14,7 @@
             @if (count($propietarios))
                 <ul class="border rounded mt-1 divide-y">
                     @foreach ($propietarios as $propietario)
-                        <li class="px-3 py-2">
+                        <li class="px-3 py-2" wire:key="propietario-{{ $propietario['ref'] }}">
                             @if ($editandoId === $propietario['ref'])
                                 <div class="flex items-end gap-2">
                                     <div class="flex-1">
@@ -64,6 +64,10 @@
                             @else
                                 <div class="flex items-center gap-2">
                                     <span class="mayusculas flex-1">{{ $propietario['nombre'] }}</span>
+                                    <button type="button" wire:click="editarPropietarioModal({{ $propietario['ref'] }})"
+                                        class="text-gray-500 hover:text-indigo-600" title="{{ __('Editar propietario (datos, cuenta bancaria…)') }}">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
                                     <span class="text-sm text-gray-500">{{ number_format($propietario['cuota_percent'], 2) }}%</span>
                                     <span class="text-sm text-gray-500">{{ $propietario['causa'] }}</span>
                                     <span class="text-sm text-gray-500">
@@ -71,8 +75,8 @@
                                         {{ $propietario['fecha_inicio'] ? \Illuminate\Support\Carbon::parse($propietario['fecha_inicio'])->format('d-m-Y') : '—' }}
                                     </span>
                                     <button type="button" wire:click="activarEdicion({{ $propietario['ref'] }})"
-                                        class="text-gray-500 hover:text-indigo-600" title="{{ __('Editar') }}">
-                                        <i class="fa-solid fa-pen"></i>
+                                        class="text-gray-500 hover:text-indigo-600" title="{{ __('Editar cuota / causa / fecha') }}">
+                                        <i class="fa-solid fa-percent"></i>
                                     </button>
                                     <button type="button" wire:click="quitarPropietario({{ $propietario['ref'] }})"
                                         class="text-gray-500 hover:text-red-600" title="{{ __('Quitar') }}">
@@ -166,20 +170,24 @@
                     <span x-show="shift" x-cloak>{{ __('Salir y eliminar borrador') }}</span>
                 </x-button>
             </span>
-            <x-button type="button" wire:click="terminar">{{ __('Terminar') }}</x-button>
+            <x-button type="button" wire:click="submit">{{ __('Siguiente') }}</x-button>
         </div>
     </div>
 
     {{-- Wizard completo de Propietario embebido: al terminar (o salir), dispara un
          evento (ver PropietariosStep::propietarioCreado/cerrarModalPropietario) en vez
-         de navegar a otra página. --}}
+         de navegar a otra página. Con propietarioIdParaModal se edita a un propietario
+         ya en la lista (lápiz junto a su nombre); sin él, se da de alta uno nuevo. --}}
     <x-dosl.dialog-modal wire:model.live="modalPropietarioAbierto" class="backdrop-blur" maxWidth="7xl">
         <x-slot name="title">
-            {{ __('Nuevo propietario') }}
+            {{ $propietarioIdParaModal ? __('Editar propietario') : __('Nuevo propietario') }}
         </x-slot>
         <x-slot name="content">
             @if ($modalPropietarioAbierto)
-                @livewire('propietarios.crear.crear-propietario', ['embebido' => true], key('propietario-embebido-'.$modalPropietarioContador))
+                @livewire('propietarios.crear.crear-propietario', [
+                    'propietarioId' => $propietarioIdParaModal,
+                    'embebido'      => true,
+                ], key('propietario-embebido-'.$modalPropietarioContador))
             @endif
         </x-slot>
     </x-dosl.dialog-modal>

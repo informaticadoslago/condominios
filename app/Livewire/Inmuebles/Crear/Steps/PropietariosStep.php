@@ -8,7 +8,6 @@ use App\Models\Inmueble;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
 use App\Models\Titularidad;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 
 /**
@@ -21,7 +20,7 @@ use Livewire\Attributes\On;
  * son reversibles sin más: solo tocan el array en memoria + el borrador, no
  * ninguna Titularidad real. La reconciliación con lo que hay en BD (crear lo
  * nuevo, actualizar lo que cambió, cerrar lo que ya no está) pasa una única vez,
- * en terminar().
+ * en el último paso, ver DatosFinancierosStep::terminar().
  */
 class PropietariosStep extends CrearInmuebleStep
 {
@@ -37,7 +36,7 @@ class PropietariosStep extends CrearInmuebleStep
     public bool $cargado = false;
 
     // Quitar una titularidad ya real: en vez de borrarla, pide desde cuándo deja de
-    // estarlo (nunca hay opción de borrar la titularidad de verdad, ver terminar()).
+    // estarlo (nunca hay opción de borrar la titularidad de verdad, ver DatosFinancierosStep::terminar()).
     public $quitandoId = null;
     public ?string $quitar_fecha_fin = null;
 
@@ -61,6 +60,12 @@ class PropietariosStep extends CrearInmuebleStep
     // componente embebido cada vez que se abre, para que arranque limpio.
     public bool $modalPropietarioAbierto = false;
     public int $modalPropietarioContador = 0;
+
+    // Editar un propietario ya añadido a la lista (datos, cuenta bancaria…), con el
+    // mismo modal: propietarioIdParaModal fija el modo edición del wizard embebido, y
+    // editandoRefModal recuerda qué línea de la lista hay que refrescar al terminar.
+    public ?int $propietarioIdParaModal = null;
+    public $editandoRefModal = null;
 
     // Edición de una línea ya añadida (siempre en memoria/borrador).
     public $editandoId = null;
@@ -168,6 +173,38 @@ class PropietariosStep extends CrearInmuebleStep
     public function abrirModalPropietario(): void
     {
         $this->quitarSeleccion();
+        $this->propietarioIdParaModal = null;
+        $this->editandoRefModal = null;
+        $this->modalPropietarioContador++;
+        $this->modalPropietarioAbierto = true;
+    }
+
+    /**
+     * Editar un propietario ya en la lista (lápiz junto a su nombre): mismo modal,
+     * pero en modo edición — abre su wizard ya con sus datos, hasta la cuenta
+     * bancaria. Al terminar, solo se refresca el nombre mostrado (ver propietarioCreado()).
+     */
+    public function editarPropietarioModal($ref)
+    {
+        $linea = collect($this->propietarios)->firstWhere('ref', $ref);
+        if (! $linea || empty($linea['persona_comunidad_id'])) {
+            return;
+        }
+
+        $this->propietarioIdParaModal = Propietario::where('persona_comunidad_id', $linea['persona_comunidad_id'])->value('id');
+        $this->editandoRefModal = $ref;
+
+        // El wizard embebido reutiliza un borrador de sesión si lo hay (para poder
+        // retomarlo): si el que queda ahí es de OTRO propietario (p.ej. un alta nueva
+        // a medias que se abandonó), no vale para esta edición.
+        $borradorId = session('propietario_borrador_id_modal');
+        if ($borradorId) {
+            $borrador = Borrador::delUsuario()->deTipo(Borrador::TIPO_PROPIETARIO)->find($borradorId);
+            if (! $borrador || ($borrador->payload['propietario_id'] ?? null) != $this->propietarioIdParaModal) {
+                session()->forget('propietario_borrador_id_modal');
+            }
+        }
+
         $this->modalPropietarioContador++;
         $this->modalPropietarioAbierto = true;
     }
@@ -176,13 +213,32 @@ class PropietariosStep extends CrearInmuebleStep
     public function cerrarModalPropietario(): void
     {
         $this->modalPropietarioAbierto = false;
+        $this->editandoRefModal = null;
     }
 
-    /** El wizard embebido terminó: selecciona solo al propietario recién creado. */
+    /**
+     * El wizard embebido terminó. Si era una edición (ver editarPropietarioModal()), solo
+     * refresca el nombre mostrado de esa línea; si era un alta nueva, selecciona al
+     * propietario recién creado para añadirlo (comportamiento de siempre).
+     */
     #[On('propietario-creado')]
     public function propietarioCreado($id, $nombre = null): void
     {
         $this->modalPropietarioAbierto = false;
+
+        if ($this->editandoRefModal !== null) {
+            $this->propietarios = collect($this->propietarios)->map(function ($p) use ($nombre) {
+                if ($p['ref'] === $this->editandoRefModal) {
+                    $p['nombre'] = $nombre;
+                }
+
+                return $p;
+            })->all();
+            $this->guardarBorradorPropietarios();
+            $this->editandoRefModal = null;
+
+            return;
+        }
 
         $propietario = Propietario::find($id);
         if ($propietario) {
@@ -212,7 +268,7 @@ class PropietariosStep extends CrearInmuebleStep
         }
 
         $linea = [
-            'titularidad_id'       => null,
+            'titularidad_id'       => $this->titularidadRealDe($this->persona_id),
             'persona_comunidad_id' => $this->persona_id,
             'persona_nueva'        => null,
             'nombre'               => $this->personaNombre,
@@ -226,6 +282,37 @@ class PropietariosStep extends CrearInmuebleStep
         $this->propietarios[] = $linea;
         $this->guardarBorradorPropietarios();
         $this->resetFormularioPropietario();
+    }
+
+    /**
+     * Si esta persona ya era titular real de este inmueble, se reengancha a SU
+     * titularidad real en vez de crear una duplicada al añadirla por el buscador —
+     * nunca debe haber dos titularidades vigentes del mismo propietario en el mismo
+     * inmueble. Cubre sobre todo el caso de quitarla y volver a añadirla sin haber
+     * terminado el wizard todavía (se deshace el "quitar").
+     */
+    private function titularidadRealDe(int $personaComunidadId): ?int
+    {
+        if (! $this->inmuebleId) {
+            return null;
+        }
+
+        $quitadaIndex = collect($this->propietariosQuitados)->search(
+            fn ($q) => Titularidad::find($q['titularidad_id'])?->propietario?->persona_comunidad_id == $personaComunidadId
+        );
+
+        if ($quitadaIndex !== false) {
+            $titularidadId = $this->propietariosQuitados[$quitadaIndex]['titularidad_id'];
+            unset($this->propietariosQuitados[$quitadaIndex]);
+            $this->propietariosQuitados = array_values($this->propietariosQuitados);
+
+            return $titularidadId;
+        }
+
+        return Titularidad::vigente()
+            ->where('inmueble_id', $this->inmuebleId)
+            ->whereHas('propietario', fn ($q) => $q->where('persona_comunidad_id', $personaComunidadId))
+            ->value('id');
     }
 
     private function guardarBorradorPropietarios(): void
@@ -279,7 +366,7 @@ class PropietariosStep extends CrearInmuebleStep
         $this->resetErrorBag();
     }
 
-    /** Cierra la titularidad real con la fecha_fin elegida (nunca la borra: ver terminar()). */
+    /** Cierra la titularidad real con la fecha_fin elegida (nunca la borra: ver DatosFinancierosStep::terminar()). */
     public function guardarQuitarPropietario()
     {
         $this->validate([
@@ -341,8 +428,12 @@ class PropietariosStep extends CrearInmuebleStep
         $this->editandoId = null;
     }
 
-    /** "Terminar": no deja salir si las cuotas no suman 100%. Graba todo de golpe. */
-    public function terminar()
+    /**
+     * "Siguiente": no deja avanzar si las cuotas no suman 100%. Nada se graba de
+     * verdad aquí — la persistencia real (inmueble + titularidades + forma de pago)
+     * pasa de golpe en el último paso, ver DatosFinancierosStep::terminar().
+     */
+    public function submit()
     {
         $suma = collect($this->propietarios)->sum('cuota_percent');
 
@@ -352,68 +443,13 @@ class PropietariosStep extends CrearInmuebleStep
             return;
         }
 
-        $borrador = $this->borradorActual();
-        if (! $borrador || empty($borrador->payload['datos'])) {
+        if (! $this->borradorActual() || empty($this->borradorActual()->payload['datos'])) {
             $this->addError('cuota_percent', __('Faltan los datos del inmueble. Vuelve al paso anterior.'));
 
             return;
         }
 
-        DB::transaction(function () use ($borrador) {
-            if ($this->inmuebleId) {
-                $inmueble = Inmueble::findOrFail($this->inmuebleId);
-                $inmueble->update($borrador->payload['datos']);
-            } else {
-                $inmueble = Inmueble::create($borrador->payload['datos']);
-                $this->inmuebleId = $inmueble->id;
-            }
-
-            $titularidadIdsVigentes = [];
-
-            foreach ($this->propietarios as $linea) {
-                $personaId = $linea['persona_comunidad_id']
-                    ?? PersonaComunidad::create($linea['persona_nueva'])->id;
-
-                $propietario = Propietario::firstOrCreate(['persona_comunidad_id' => $personaId]);
-
-                if ($linea['titularidad_id']) {
-                    Titularidad::whereKey($linea['titularidad_id'])->update([
-                        'cuota_percent' => $linea['cuota_percent'],
-                        'causa'         => $linea['causa'],
-                        'fecha_inicio'  => $linea['fecha_inicio'] ?? now()->toDateString(),
-                    ]);
-                    $titularidadIdsVigentes[] = $linea['titularidad_id'];
-                } else {
-                    $titularidad = Titularidad::create([
-                        'inmueble_id'    => $inmueble->id,
-                        'propietario_id' => $propietario->id,
-                        'cuota_percent'  => $linea['cuota_percent'],
-                        'causa'          => $linea['causa'],
-                        'fecha_inicio'   => $linea['fecha_inicio'] ?? now()->toDateString(),
-                        'fecha_fin'      => null,
-                    ]);
-                    $titularidadIdsVigentes[] = $titularidad->id;
-                }
-            }
-
-            // Las que se quitaron explícitamente (ver guardarQuitarPropietario) se cierran
-            // con la fecha que se eligió al quitarlas, nunca se borran.
-            foreach ($this->propietariosQuitados as $quitada) {
-                Titularidad::whereKey($quitada['titularidad_id'])->update(['fecha_fin' => $quitada['fecha_fin']]);
-            }
-
-            // Red de seguridad: cualquier otra titularidad vigente que ya no esté en la
-            // lista final (por una vía distinta a "quitar") se cierra hoy.
-            Titularidad::vigente()
-                ->where('inmueble_id', $inmueble->id)
-                ->whereNotIn('id', $titularidadIdsVigentes)
-                ->update(['fecha_fin' => now()->toDateString()]);
-        });
-
-        $borrador->delete();
-        session()->forget('inmueble_borrador_id');
-
-        $this->salir();
+        $this->nextStep();
     }
 
     public function render()

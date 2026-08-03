@@ -86,6 +86,7 @@
                                 </div>
                             </th>
                             <th class="py-3 px-6">{{ __('Propietarios') }}</th>
+                            <th class="py-3 px-6">{{ __('Forma de pago') }}</th>
                             <th class="py-3 px-6">{{ __('Acción') }}</th>
                         </tr>
                     </thead>
@@ -99,6 +100,13 @@
                                 <td class="px-6 py-4">{{ $item->coeficiente }}%</td>
                                 <td class="px-6 py-4">
                                     {{ $item->propietarios->map(fn ($p) => $p->persona->nombreCompleto)->join(', ') }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if ($item->formaPagoVigente?->formaDePago)
+                                        {{ $item->formaPagoVigente->formaDePago->descripcion }}
+                                    @else
+                                        <span class="text-amber-600 dark:text-amber-400">{{ __('Sin asignar') }}</span>
+                                    @endif
                                 </td>
                                 <td class="px-4 whitespace-nowrap">
                                     <a href="{{ route('inmuebles.editar', $item) }}" wire:navigate class="btn-editar"

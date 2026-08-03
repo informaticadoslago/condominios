@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Comunidad;
 use App\Models\Inmueble;
 use App\Models\Pais;
-use App\Models\Persona;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
 use App\Models\TipoDocumentoIdentificativo;
@@ -16,34 +15,41 @@ use App\Models\Titularidad;
 use Illuminate\Database\Seeder;
 
 /**
- * Un edificio de demo por comunidad (las que crea DemoComunidadSeeder, localizado
- * por su CIF): planta baja + 3 plantas, con propietarios variados (hombres y
- * mujeres, algún menor de edad, algún NIE) y algún inmueble compartido entre varios.
- * El edificio 1 tiene además 15 plazas de garaje en planta -1.
- * Aparte de DatabaseSeeder: `php artisan db:seed --class=DemoInmuebleSeeder`
- * (o mejor, `php artisan doslago:fakeseed`, que ya lo encadena).
+ * Un edificio de demo por comunidad: planta baja + 3 plantas, con propietarios
+ * variados (hombres y mujeres, algún menor de edad, algún NIE) y algún inmueble
+ * compartido entre varios. El edificio 1 tiene además 15 plazas de garaje en planta
+ * -1. Las comunidades a las que se cuelgan estos edificios las genera
+ * DemoComunidadSeeder (nombre y CIF al azar en cada pasada, para poder acumular);
+ * por eso este seeder ya no busca una comunidad por CIF fijo, sino que recibe las
+ * comunidades recién creadas (ver generar()). Aparte de DatabaseSeeder: mejor
+ * `php artisan condominios:fakeseed` (ver FakeSeed), que encadena los tres. Lanzado
+ * suelto (`php artisan db:seed --class=DemoInmuebleSeeder`) genera también su propio
+ * par de comunidades nuevas.
  */
 class DemoInmuebleSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach ($this->edificios() as $cif => $spec) {
-            $comunidad = $this->comunidadPorCif($cif);
+        $comunidadSeeder = new DemoComunidadSeeder();
+        $comunidadSeeder->setCommand($this->command);
 
-            if (! $comunidad) {
-                $this->command?->warn("No existe ninguna comunidad con CIF {$cif} (¿has ejecutado DemoComunidadSeeder antes?).");
+        $this->generar($comunidadSeeder->generar());
+    }
 
-                continue;
-            }
+    /** @param array{edificio1: Comunidad, edificio2: Comunidad} $comunidades */
+    public function generar(array $comunidades): void
+    {
+        foreach (['edificio1' => $this->edificio1(), 'edificio2' => $this->edificio2()] as $clave => $spec) {
+            $comunidad = $comunidades[$clave];
 
             $propietarios = [];
-            foreach ($spec['personas'] as $clave => $datos) {
-                $propietarios[$clave] = $this->crearPropietario($comunidad, $datos);
+            foreach ($spec['personas'] as $clavePersona => $datos) {
+                $propietarios[$clavePersona] = $this->crearPropietario($comunidad, $datos);
             }
 
             $inmuebles = [];
-            foreach ($spec['inmuebles'] as $clave => $datos) {
-                $inmuebles[$clave] = $this->crearInmueble($comunidad, $datos);
+            foreach ($spec['inmuebles'] as $claveInmueble => $datos) {
+                $inmuebles[$claveInmueble] = $this->crearInmueble($comunidad, $datos);
             }
 
             foreach ($spec['titularidades'] as $inmuebleClave => $lineas) {
@@ -67,13 +73,6 @@ class DemoInmuebleSeeder extends Seeder
                 "Edificio de «{$comunidad->nombre}»: ".count($inmuebles).' inmuebles, '.count($propietarios).' propietarios.'
             );
         }
-    }
-
-    private function comunidadPorCif(string $cif): ?Comunidad
-    {
-        $persona = Persona::where('documento_identificativo', $cif)->first();
-
-        return $persona ? Comunidad::where('persona_id', $persona->id)->first() : null;
     }
 
     private function crearPropietario(Comunidad $comunidad, array $datos): Propietario
@@ -273,15 +272,6 @@ class DemoInmuebleSeeder extends Seeder
                 '2b'   => [['persona' => 'q5', 'cuota' => 100.00, 'causa' => Titularidad::CAUSA_DONACION, 'inicio' => '2021-07-07']],
                 '3'    => [['persona' => 'q6', 'cuota' => 100.00, 'causa' => Titularidad::CAUSA_COMPRAVENTA, 'inicio' => '2020-09-14']],
             ],
-        ];
-    }
-
-    /** @return array<string, array> CIF de la comunidad => especificación del edificio */
-    private function edificios(): array
-    {
-        return [
-            'H12345674' => $this->edificio1(),
-            'H76543214' => $this->edificio2(),
         ];
     }
 }

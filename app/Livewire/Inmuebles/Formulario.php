@@ -89,8 +89,25 @@ class Formulario extends Component
                         'causa'                 => $t->causa,
                         'fecha_inicio'          => $t->fecha_inicio?->toDateString(),
                     ])->all(),
+                'financiero' => $this->financieroDeEdicion($inmueble),
             ],
         ]);
+    }
+
+    /** Forma de pago vigente del inmueble, con el propietario titular derivado de la cuenta bancaria. */
+    private function financieroDeEdicion(Inmueble $inmueble): ?array
+    {
+        $vigente = $inmueble->formaPagoVigente()->with('cuentaBancaria.titular')->first();
+
+        if (! $vigente) {
+            return null;
+        }
+
+        return [
+            'forma_de_pago_id'          => $vigente->forma_de_pago_id,
+            'persona_comunidad_id_pago' => $vigente->cuentaBancaria?->titular?->persona_comunidad_id,
+            'cuenta_bancaria_id'        => $vigente->cuenta_bancaria_id,
+        ];
     }
 
     public function render()

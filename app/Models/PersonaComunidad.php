@@ -87,6 +87,11 @@ class PersonaComunidad extends Model
         });
     }
 
+    public function scopeMayorDeEdad($query)
+    {
+        return $query->where('fecha_nacimiento', '<=', now()->subYears(18)->toDateString());
+    }
+
     public function scopeBuscarNombreCompleto($q, ?string $search)
     {
         if (! $search) {

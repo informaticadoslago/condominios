@@ -48,6 +48,17 @@ class Inmueble extends Model
         return $this->hasMany(Titularidad::class);
     }
 
+    public function formasPago()
+    {
+        return $this->hasMany(FormaPagoInmueble::class);
+    }
+
+    /** Forma de pago (y cuenta bancaria, si es recibo bancario) VIGENTE. Para el histórico, ver formasPago(). */
+    public function formaPagoVigente()
+    {
+        return $this->hasOne(FormaPagoInmueble::class)->whereNull('fecha_fin');
+    }
+
     public function gruposDeReparto()
     {
         return $this->belongsToMany(GrupoDeReparto::class, 'inmueble_grupo_de_reparto', 'inmueble_id', 'grupo_de_reparto_id')

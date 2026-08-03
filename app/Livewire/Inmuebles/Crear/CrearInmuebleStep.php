@@ -7,8 +7,11 @@ use Spatie\LivewireWizard\Components\StepComponent;
 
 /**
  * Paso base del wizard de inmueble: navegación común (siguiente/anterior/saltar por
- * cabecera) y salida. En alta nueva, nada es real hasta "Terminar" — mientras
- * tanto vive en el payload de un Borrador (ver DatosStep y PropietariosStep).
+ * cabecera a un paso YA visitado) y salida. Nunca se puede saltar hacia adelante por la
+ * cabecera (los pasos futuros no son clicables): solo "Siguiente" avanza, así que un
+ * paso intermedio siempre se revalida al pasar por él. En alta nueva, nada es real
+ * hasta "Terminar" — mientras tanto vive en el payload de un Borrador (ver DatosStep y
+ * PropietariosStep).
  */
 abstract class CrearInmuebleStep extends StepComponent
 {

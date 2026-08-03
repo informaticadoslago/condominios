@@ -11,19 +11,17 @@ use Illuminate\Console\Command;
  * Va llamando, en orden, a los seeders de datos ficticios (demo): cada uno se añade
  * aquí a medida que se construye. Ninguno está en DatabaseSeeder (son solo para
  * poblar una demo, no para el arranque real de una instalación).
+ *
+ * Se instancian y se llaman directamente (no vía `db:seed --class=...`) porque
+ * DemoComunidadSeeder genera comunidades nuevas (nombre y CIF al azar) en cada
+ * pasada, y hace falta pasar ESAS comunidades exactas a los siguientes seeders — así
+ * nunca hay ambigüedad de "cuál es la comunidad demo" ni riesgo de tocar una real.
  */
 class FakeSeed extends Command
 {
-    protected $signature = 'doslago:fakeseed';
+    protected $signature = 'condominios:fakeseed';
 
     protected $description = 'Genera datos ficticios (demo): comunidades, propietarios, inmuebles...';
-
-    /** En orden de dependencia: lo que necesite algo ya creado va después. */
-    private const SEEDERS = [
-        DemoComunidadSeeder::class,
-        DemoInmuebleSeeder::class,
-        DemoPresupuestoSeeder::class,
-    ];
 
     public function __construct()
     {
@@ -43,10 +41,14 @@ class FakeSeed extends Command
             return 1;
         }
 
-        foreach (self::SEEDERS as $seeder) {
-            $this->info("Ejecutando {$seeder}...");
-            $this->call('db:seed', ['--class' => $seeder, '--force' => true]);
-        }
+        $comunidadSeeder = (new DemoComunidadSeeder())->setCommand($this);
+        $comunidades     = $comunidadSeeder->generar();
+
+        $inmuebleSeeder = (new DemoInmuebleSeeder())->setCommand($this);
+        $inmuebleSeeder->generar($comunidades);
+
+        $presupuestoSeeder = (new DemoPresupuestoSeeder())->setCommand($this);
+        $presupuestoSeeder->generar($comunidades['edificio1']);
 
         $this->info('Datos ficticios generados.');
 

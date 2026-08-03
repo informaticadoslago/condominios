@@ -6,7 +6,6 @@ use App\Models\Comunidad;
 use App\Models\ConceptoPresupuesto;
 use App\Models\GrupoDeReparto;
 use App\Models\Inmueble;
-use App\Models\Persona;
 use App\Models\Presupuesto;
 use App\Models\TipoEstadoPresupuesto;
 use App\Models\TipoInmueble;
@@ -14,26 +13,33 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 
 /**
- * Presupuesto anual de demo para el edificio 1 (el de los 6 pisos + 15 garajes, ver
+ * Presupuesto anual de demo para el "edificio 1" (el de los 6 pisos + 15 garajes, ver
  * DemoInmuebleSeeder): 3 grupos de reparto (General = todo el edificio, Escalera =
- * solo los pisos, Garaje = solo las plazas) y 9 partidas repartidas entre ellos.
- * Aparte de DatabaseSeeder: `php artisan db:seed --class=DemoPresupuestoSeeder`
- * (o mejor, `php artisan doslago:fakeseed`, que ya lo encadena).
+ * solo los pisos, Garaje = solo las plazas) y 9 partidas repartidas entre ellos. La
+ * comunidad a la que se cuelga la genera DemoComunidadSeeder (nombre y CIF al azar en
+ * cada pasada); por eso este seeder ya no busca una comunidad por CIF fijo, sino que
+ * recibe la comunidad recién creada (ver generar()). Aparte de DatabaseSeeder: mejor
+ * `php artisan condominios:fakeseed` (ver FakeSeed), que encadena los tres. Lanzado
+ * suelto (`php artisan db:seed --class=DemoPresupuestoSeeder`) genera también su
+ * propia comunidad y edificio nuevos.
  */
 class DemoPresupuestoSeeder extends Seeder
 {
-    private const CIF_EDIFICIO_1 = 'H12345674';
-
     public function run(): void
     {
-        $comunidad = $this->comunidadPorCif(self::CIF_EDIFICIO_1);
+        $comunidadSeeder = new DemoComunidadSeeder();
+        $comunidadSeeder->setCommand($this->command);
+        $comunidades = $comunidadSeeder->generar();
 
-        if (! $comunidad) {
-            $this->command?->warn('No existe ninguna comunidad con CIF '.self::CIF_EDIFICIO_1.' (¿has ejecutado DemoInmuebleSeeder antes?).');
+        $inmuebleSeeder = new DemoInmuebleSeeder();
+        $inmuebleSeeder->setCommand($this->command);
+        $inmuebleSeeder->generar($comunidades);
 
-            return;
-        }
+        $this->generar($comunidades['edificio1']);
+    }
 
+    public function generar(Comunidad $comunidad): void
+    {
         $pisos   = Inmueble::where('comunidad_id', $comunidad->id)->where('tipo_inmueble_id', TipoInmueble::PISO)->get();
         $garajes = Inmueble::where('comunidad_id', $comunidad->id)->where('tipo_inmueble_id', TipoInmueble::GARAJE)->get();
 
@@ -78,13 +84,6 @@ class DemoPresupuestoSeeder extends Seeder
             "Presupuesto {$presupuesto->anho} de «{$comunidad->nombre}»: ".count($conceptos).' partidas, total '
             .number_format($total, 2, ',', '.').' €.'
         );
-    }
-
-    private function comunidadPorCif(string $cif): ?Comunidad
-    {
-        $persona = Persona::where('documento_identificativo', $cif)->first();
-
-        return $persona ? Comunidad::where('persona_id', $persona->id)->first() : null;
     }
 
     /** Crea (o recupera) el grupo y sincroniza sus miembros con el reparto normalizado al 100%. */

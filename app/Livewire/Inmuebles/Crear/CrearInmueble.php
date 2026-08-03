@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Inmuebles\Crear;
 
+use App\Livewire\Inmuebles\Crear\Steps\DatosFinancierosStep;
 use App\Livewire\Inmuebles\Crear\Steps\DatosStep;
 use App\Livewire\Inmuebles\Crear\Steps\PropietariosStep;
 use App\Models\Borrador;
@@ -22,6 +23,7 @@ class CrearInmueble extends WizardComponent
 {
     public const PASO_DATOS        = 'inmuebles.crear.steps.datos-step';
     public const PASO_PROPIETARIOS = 'inmuebles.crear.steps.propietarios-step';
+    public const PASO_FINANCIERO   = 'inmuebles.crear.steps.datos-financieros-step';
 
     public ?int $inmuebleId = null;
 
@@ -40,6 +42,7 @@ class CrearInmueble extends WizardComponent
         return [
             DatosStep::class,
             PropietariosStep::class,
+            DatosFinancierosStep::class,
         ];
     }
 
