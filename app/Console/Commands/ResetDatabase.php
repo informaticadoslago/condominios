@@ -36,14 +36,14 @@ class ResetDatabase extends Command
         parent::__construct();
 
         // Borra bases de datos: fuera de un entorno de desarrollo no se enseña siquiera.
-        if (! config('app.debug')) {
+        if (! $this->entornoPermitido()) {
             $this->hidden = true;
         }
     }
 
     public function handle()
     {
-        if (! config('app.debug')) {
+        if (! $this->entornoPermitido()) {
             $this->error('Este comando solo está disponible en modo debug.');
 
             return 1;
@@ -125,6 +125,11 @@ class ResetDatabase extends Command
             return 0;
         }
 
+        // Se pregunta ya (antes de tocar la base de datos) y se guarda la respuesta: el resto
+        // del proceso no vuelve a ser interactivo, y las migraciones tardan lo suyo.
+        $seedTodo = $this->confirm('¿Quieres rellenar las tablas con valores iniciales (db:seed) al finalizar?', true);
+        $seedSuperadmin = $seedTodo ? false : $this->confirm('¿Deseas crear usuario superadmin?', true);
+
         try {
             $this->info("Recreando base de datos '{$dbName}' y usuario '{$dbUser}'...");
             $adminCnf = $this->provisionar($adminUser, $adminPass, $dbName, $dbUser, $dbPass);
@@ -159,6 +164,14 @@ class ResetDatabase extends Command
             $this->artisan(['config:clear'], $variables);
             $this->artisan(['migrate', '--step', '--force'], $variables);
 
+            if ($seedTodo) {
+                $this->info('Rellenando valores iniciales (db:seed)...');
+                $this->artisan(['db:seed', '--force'], $variables);
+            } elseif ($seedSuperadmin) {
+                $this->info('Creando usuario superadmin...');
+                $this->artisan(['db:seed', '--force', '--class=CreateSuperUserSeeder'], $variables);
+            }
+
             $this->info("Proceso finalizado correctamente para {$escuela} (BD: {$dbName})");
 
             return 0;
@@ -171,6 +184,15 @@ class ResetDatabase extends Command
                 @unlink($adminCnf);
             }
         }
+    }
+
+    /**
+     * Modo debug, o si todavía no hay .env (primer arranque: no hay entorno real que
+     * proteger, y config('app.debug') sale false a falta de APP_DEBUG que leer).
+     */
+    private function entornoPermitido(): bool
+    {
+        return config('app.debug') || ! file_exists(base_path('.env'));
     }
 
     /**
