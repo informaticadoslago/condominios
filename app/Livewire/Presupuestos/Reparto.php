@@ -42,16 +42,21 @@ class Reparto extends Component
         $global = []; // inmueble_id => ['inmueble' => Inmueble, 'total' => float]
 
         foreach ($grupos as $grupoId => &$datosGrupo) {
-            $miembros         = $datosGrupo['grupo']->inmuebles;
-            $sumaCoeficientes = $miembros->sum(fn ($i) => (float) ($i->pivot->coeficiente ?? $i->coeficiente));
+            // El orden importa: Presupuesto::repartirProporcional() da el céntimo de más
+            // a los primeros de la lista, así que se ordena ANTES de repartir (no después).
+            $miembros = $datosGrupo['grupo']->inmuebles
+                ->sortBy(fn ($i) => [$i->planta, $i->puerta])
+                ->values();
 
-            $datosGrupo['sumaCoeficientes'] = $sumaCoeficientes;
-            $datosGrupo['lineas']           = $miembros->map(function ($inmueble) use ($datosGrupo, $sumaCoeficientes) {
-                $coeficiente = (float) ($inmueble->pivot->coeficiente ?? $inmueble->coeficiente);
-                $importe     = $sumaCoeficientes > 0 ? $datosGrupo['total'] * $coeficiente / $sumaCoeficientes : 0.0;
+            $pesos    = $miembros->mapWithKeys(fn ($i) => [$i->id => (float) ($i->pivot->coeficiente ?? $i->coeficiente)])->all();
+            $importes = Presupuesto::repartirProporcional($datosGrupo['total'], $pesos, $datosGrupo['grupo']->siguiente_inicio_reparto);
 
-                return ['inmueble' => $inmueble, 'coeficiente' => $coeficiente, 'importe' => $importe];
-            })->sortBy(fn ($l) => [$l['inmueble']->planta, $l['inmueble']->puerta])->values();
+            $datosGrupo['sumaCoeficientes'] = array_sum($pesos);
+            $datosGrupo['lineas']           = $miembros->map(fn ($inmueble) => [
+                'inmueble'    => $inmueble,
+                'coeficiente' => $pesos[$inmueble->id],
+                'importe'     => $importes[$inmueble->id],
+            ])->values();
 
             foreach ($datosGrupo['lineas'] as $linea) {
                 $id            = $linea['inmueble']->id;
@@ -89,22 +94,9 @@ class Reparto extends Component
             ->all();
     }
 
-    /** Reparte $total en $n pagos iguales; el redondeo se ajusta en el primero. */
+    /** Reparte $total en $n pagos: ver Presupuesto::repartirPagos(). */
     protected function desglosePagos(float $total, int $n): array
     {
-        if ($n <= 0) {
-            return [];
-        }
-
-        $cuota = round($total / $n, 2);
-        $pagos = array_fill(0, $n, $cuota);
-
-        if ($n > 1) {
-            $pagos[0] = round($total - $cuota * ($n - 1), 2);
-        } else {
-            $pagos[0] = round($total, 2);
-        }
-
-        return $pagos;
+        return Presupuesto::repartirPagos($total, $n);
     }
 }

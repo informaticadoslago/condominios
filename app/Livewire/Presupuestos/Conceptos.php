@@ -86,16 +86,11 @@ class Conceptos extends Component
 
         $total  = collect($this->conceptos)->sum(fn ($c) => (float) ($c['importe'] ?? 0));
         $inicio = Carbon::parse($this->fecha_primer_pago);
-        $n      = $this->numero_pagos;
-        $cuota  = $n > 0 ? round($total / $n, 2) : 0;
 
-        return collect(range(1, $n))
-            ->map(function ($i) use ($inicio, $meses, $n, $cuota, $total) {
-                // El redondeo se ajusta en el primer pago.
-                $importe = $i === 1 ? round($total - $cuota * ($n - 1), 2) : $cuota;
-
-                return ['fecha' => $inicio->copy()->addMonthsNoOverflow(($i - 1) * $meses), 'importe' => $importe];
-            })->all();
+        return collect(Presupuesto::repartirPagos($total, $this->numero_pagos))
+            ->values()
+            ->map(fn ($importe, $i) => ['fecha' => $inicio->copy()->addMonthsNoOverflow($i * $meses), 'importe' => $importe])
+            ->all();
     }
 
     protected function rules()

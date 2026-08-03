@@ -11,6 +11,7 @@ class GrupoDeReparto extends Model
     protected $fillable = [
         'comunidad_id',
         'nombre',
+        'siguiente_inicio_reparto',
     ];
 
     public function comunidad()
