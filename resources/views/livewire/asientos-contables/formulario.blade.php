@@ -39,10 +39,10 @@
                 <table class="w-full table-fixed text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
-                            <th class="py-2 pr-2 w-[38%]">{{ __('Cuenta') }}</th>
+                            <th class="py-2 pr-2 w-[28%]">{{ __('Cuenta') }}</th>
                             <th class="py-2 pr-2 w-[32%]">{{ __('Concepto línea') }}</th>
-                            <th class="py-2 pr-2 text-right w-24">{{ __('Debe') }}</th>
-                            <th class="py-2 pr-2 text-right w-24">{{ __('Haber') }}</th>
+                            <th class="py-2 pr-2 text-right w-36">{{ __('Debe') }}</th>
+                            <th class="py-2 pr-2 text-right w-36">{{ __('Haber') }}</th>
                             <th class="py-2 w-8"></th>
                         </tr>
                     </thead>

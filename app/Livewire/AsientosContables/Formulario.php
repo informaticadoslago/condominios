@@ -38,6 +38,15 @@ class Formulario extends Component
 
     public function mount(EjercicioContable $ejercicioContable): void
     {
+        // El middleware empresa-contable.activa solo comprueba que HAY una empresa
+        // activa y que el usuario tiene acceso a ella; no que el ejercicio de la ruta
+        // sea suyo (puede llegar de un filtro obsoleto de otra empresa, ver Lista).
+        abort_unless(
+            (int) $ejercicioContable->empresa_contable_id === (int) session('empresa_contable_actual_id'),
+            403,
+            __('Ese ejercicio no pertenece a la empresa contable activa.'),
+        );
+
         $this->ejercicio_contable_id = $ejercicioContable->id;
         $this->empresa_contable_id   = $ejercicioContable->empresa_contable_id;
 

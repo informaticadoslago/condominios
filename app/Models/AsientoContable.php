@@ -25,4 +25,16 @@ class AsientoContable extends Model
     {
         return $this->hasMany(ApunteContable::class);
     }
+
+    /** Cuentas de las líneas del Debe (normalmente una sola). No hace consultas si apuntesContables.cuentaContable ya viene cargado. */
+    public function cuentasDebe()
+    {
+        return $this->apuntesContables->where('debe', '>', 0)->pluck('cuentaContable');
+    }
+
+    /** Cuentas de las líneas del Haber (normalmente una sola). No hace consultas si apuntesContables.cuentaContable ya viene cargado. */
+    public function cuentasHaber()
+    {
+        return $this->apuntesContables->where('haber', '>', 0)->pluck('cuentaContable');
+    }
 }

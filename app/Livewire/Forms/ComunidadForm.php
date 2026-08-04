@@ -58,6 +58,7 @@ class ComunidadForm extends Form
             'required' => 'Debe rellenar :attribute',
             'max'      => 'Máxima :attribute = :max',
             'unique'   => 'Ese CIF ya pertenece a otra persona registrada en el sistema.',
+            'digits'   => ':attribute debe tener :digits dígitos',
         ];
     }
 

@@ -25,12 +25,44 @@ class Lista extends ListaComponent
         return ['numero', 'fecha', 'concepto'];
     }
 
+    public function columnasDisponibles(): array
+    {
+        return [
+            'numero'       => __('Número'),
+            'fecha'        => __('Fecha'),
+            'ejercicio'    => __('Ejercicio'),
+            'concepto'     => __('Concepto'),
+            'cuenta_debe'  => __('Debe'),
+            'cuenta_haber' => __('Haber'),
+            'importe'      => __('Importe'),
+        ];
+    }
+
     public function toggleDetalle(int $id): void
     {
         if (in_array($id, $this->expandido, true)) {
             $this->expandido = array_values(array_diff($this->expandido, [$id]));
         } else {
             $this->expandido[] = $id;
+        }
+    }
+
+    /**
+     * Defensa igual que sortValido() en ListaComponent: si el ejercicio guardado en
+     * preferencias es de otra empresa contable (p.ej. tras cambiar de empresa activa
+     * con este filtro puesto), se descarta en vez de dejar "+Nuevo" apuntando a un
+     * ejercicio ajeno.
+     */
+    protected function cargarPreferencias(): void
+    {
+        parent::cargarPreferencias();
+
+        $empresaContableId = $this->empresaContableActual()?->id ?? 0;
+        $ejercicioId       = (int) ($this->filtros['ejercicio_contable_id'] ?? 0);
+
+        if ($ejercicioId && ! EjercicioContable::where('id', $ejercicioId)->where('empresa_contable_id', $empresaContableId)->exists()) {
+            $this->filtros['ejercicio_contable_id'] = 0;
+            $this->guardarPreferencias();
         }
     }
 

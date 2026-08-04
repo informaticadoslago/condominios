@@ -123,21 +123,22 @@ class Formulario extends Component
     {
         $data = $this->validate();
 
+        // Cuelga automáticamente de la cuenta de grupo (4 primeros dígitos + 0000) si
+        // existe, para que esa cuenta de grupo deje de ser "hoja" en cuanto tiene hijas.
+        // Se recalcula también al editar: si el código cambia de grupo, cambia de padre.
+        $padre = CuentaContable::where('empresa_contable_id', $this->empresa_contable_id)
+            ->where('codigo', substr($data['codigo'], 0, 4).'0000')
+            ->first();
+        $data['cuenta_padre_id'] = $padre && $padre->codigo !== $data['codigo'] ? $padre->id : null;
+
         if ($this->itemId) {
             $cuenta = CuentaContable::findOrFail($this->itemId);
             $cuenta->update($data);
             $this->dispatch('toast-success', ['title' => __('Cuenta modificada')]);
         } else {
-            // Cuelga automáticamente de la cuenta de grupo (4 primeros dígitos + 0000) si
-            // existe, para que esa cuenta de grupo deje de ser "hoja" en cuanto tiene hijas.
-            $padre = CuentaContable::where('empresa_contable_id', $this->empresa_contable_id)
-                ->where('codigo', substr($data['codigo'], 0, 4).'0000')
-                ->first();
-
             $cuenta = CuentaContable::create($data + [
                 'empresa_contable_id' => $this->empresa_contable_id,
                 'estado_id'           => CuentaContable::ESTADO_ACTIVO,
-                'cuenta_padre_id'     => $padre && $padre->codigo !== $data['codigo'] ? $padre->id : null,
             ]);
             $this->dispatch('toast-success', ['title' => __('Cuenta creada')]);
         }

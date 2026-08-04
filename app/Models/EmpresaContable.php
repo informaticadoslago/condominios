@@ -21,6 +21,8 @@ class EmpresaContable extends Model
     {
         static::created(function (self $empresaContable) {
             Role::firstOrCreate(['name' => $empresaContable->nombreRol(), 'guard_name' => 'web']);
+
+            CuentaContable::copiarPlanGlobalA($empresaContable);
         });
     }
 

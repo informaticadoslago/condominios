@@ -3,6 +3,7 @@
 namespace App\Livewire\EmpresasContables;
 
 use App\Models\EmpresaContable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -71,7 +72,7 @@ class Formulario extends Component
             $empresa->update($data);
             $this->dispatch('toast-success', ['title' => __('Empresa contable modificada')]);
         } else {
-            EmpresaContable::create($data);
+            DB::transaction(fn () => EmpresaContable::create($data));
             $this->dispatch('toast-success', ['title' => __('Empresa contable creada')]);
         }
 
