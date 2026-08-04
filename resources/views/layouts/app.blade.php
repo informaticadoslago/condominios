@@ -33,7 +33,16 @@
             ? \App\Models\Comunidad::find(session('comunidad_actual_id'))
             : null;
 
-        if ($comunidadActual) {
+        $empresaContableActual = session('empresa_contable_actual_id')
+            ? \App\Models\EmpresaContable::find(session('empresa_contable_actual_id'))
+            : null;
+
+        if ($empresaContableActual) {
+            // Dentro de una empresa contable: menú dedicado a su gestión contable,
+            // exclusivo (ya no es la pantalla principal con gestión administrativa +
+            // gestión contable). Tiene prioridad sobre estar dentro de una comunidad.
+            $menuLateral = config('menu_contable');
+        } elseif ($comunidadActual) {
             $menuLateral = config('menu_comunidad');
         } else {
             $menuLateral = config('sidebar');
@@ -60,6 +69,28 @@
                     ],
                 ]);
             }
+
+            $empresasContablesAccesibles = auth()->user()->empresasContablesAccesibles();
+
+            if ($empresasContablesAccesibles->count()) {
+                array_splice($menuLateral['content'], 1, 0, [
+                    [
+                        'type'  => 'nav',
+                        'items' => [
+                            [
+                                'type'  => 'group',
+                                'icon'  => 'fa-solid fa-calculator',
+                                'label' => trans_key('menu.Empresas contables'),
+                                'items' => $empresasContablesAccesibles->map(fn ($e) => [
+                                    'icon'  => 'fa-solid fa-calculator',
+                                    'label' => $e->razon_social,
+                                    'href'  => route('empresa-contable.entrar', $e),
+                                ])->all(),
+                            ],
+                        ],
+                    ],
+                ]);
+            }
         }
     @endphp
     <x-dosl.menu-sidebar :menu="$menuLateral" />
@@ -75,6 +106,12 @@
     <flux:main>
         {{ $slot }}
     </flux:main>
+
+    {{-- Formularios de edición accesibles desde el badge de la barra superior
+         (comunidad/empresa contable activa): montados aquí una sola vez, para
+         toda la app, en vez de en cada página que además los usa localmente. --}}
+    @livewire('comunidades.formulario')
+    @livewire('empresas-contables.formulario')
 
     @canImpersonate
         @livewire('impersonar')

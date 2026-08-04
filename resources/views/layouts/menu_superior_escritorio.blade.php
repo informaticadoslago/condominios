@@ -12,11 +12,27 @@
             <flux:spacer />
             @php $comunidadActual = session('comunidad_actual_id') ? \App\Models\Comunidad::find(session('comunidad_actual_id')) : null; @endphp
             @if ($comunidadActual)
-                <flux:badge color="blue" class="mayusculas">
-                    <i class="fa-solid fa-city mr-1"></i>{{ $comunidadActual->nombre }}
-                </flux:badge>
+                <button type="button" x-data
+                    x-on:click="Livewire.dispatch('comunidad-editar', { id: {{ $comunidadActual->id }} })"
+                    title="{{ __('Modificar comunidad') }}">
+                    <flux:badge color="blue" class="mayusculas cursor-pointer">
+                        <i class="fa-solid fa-city mr-1"></i>{{ $comunidadActual->nombre }}
+                    </flux:badge>
+                </button>
                 <flux:button href="{{ route('comunidad.salir') }}" icon="x-mark" variant="subtle"
                     title="{{ __('Salir de la comunidad') }}" aria-label="{{ __('Salir de la comunidad') }}" />
+            @endif
+            @php $empresaContableActual = session('empresa_contable_actual_id') ? \App\Models\EmpresaContable::find(session('empresa_contable_actual_id')) : null; @endphp
+            @if ($empresaContableActual)
+                <button type="button" x-data
+                    x-on:click="Livewire.dispatch('empresa-contable-editar', { id: {{ $empresaContableActual->id }} })"
+                    title="{{ __('Modificar empresa contable') }}">
+                    <flux:badge color="blue" class="mayusculas cursor-pointer">
+                        <i class="fa-solid fa-calculator mr-1"></i>{{ $empresaContableActual->razon_social }}
+                    </flux:badge>
+                </button>
+                <flux:button href="{{ route('empresa-contable.salir') }}" icon="x-mark" variant="subtle"
+                    title="{{ __('Salir de la empresa contable') }}" aria-label="{{ __('Salir de la empresa contable') }}" />
             @endif
             @if (config('flux.appearance.enabled'))
                     <flux:button x-data x-on:click="$flux.dark = ! $flux.dark" x-show="!$flux.dark" icon="moon"

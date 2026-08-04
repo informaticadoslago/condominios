@@ -16,8 +16,13 @@ class CuentaContable extends Model
     protected $table = 'cuenta_contables';
 
     protected $fillable = [
-        'tipo_cuenta_contable_id', 'cuenta_padre_id', 'codigo', 'nombre', 'estado_id',
+        'empresa_contable_id', 'tipo_cuenta_contable_id', 'cuenta_padre_id', 'codigo', 'nombre', 'estado_id',
     ];
+
+    public function empresaContable()
+    {
+        return $this->belongsTo(EmpresaContable::class);
+    }
 
     public function tipoCuentaContable()
     {

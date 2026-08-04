@@ -9,7 +9,7 @@ class EjercicioContable extends Model
     protected $table = 'ejercicio_contables';
 
     protected $fillable = [
-        'comunidad_id', 'nombre', 'fecha_inicio', 'fecha_fin', 'cerrado',
+        'empresa_contable_id', 'nombre', 'fecha_inicio', 'fecha_fin', 'cerrado',
     ];
 
     protected $casts = [
@@ -17,9 +17,9 @@ class EjercicioContable extends Model
         'fecha_fin' => 'date',
     ];
 
-    public function comunidad()
+    public function empresaContable()
     {
-        return $this->belongsTo(Comunidad::class);
+        return $this->belongsTo(EmpresaContable::class);
     }
 
     public function asientosContables()

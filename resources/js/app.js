@@ -11,3 +11,7 @@ import './tab-style';
 // el layout, no un componente Livewire): recargamos la página al crear,
 // modificar, dar de baja o reactivar una comunidad para que se recalcule.
 window.addEventListener('comunidad-guardada', () => window.location.reload());
+
+// Mismo caso que "Comunidades accesibles": el selector de "Empresas contables"
+// del sidebar tampoco es reactivo.
+window.addEventListener('empresa-contable-guardada', () => window.location.reload());

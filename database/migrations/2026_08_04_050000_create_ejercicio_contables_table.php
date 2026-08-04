@@ -13,15 +13,16 @@ return new class extends Migration
     {
         Schema::create('ejercicio_contables', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('comunidad_id')->index('ejercicio_contables_comunidad_id_foreign');
+            $table->unsignedBigInteger('empresa_contable_id')->index('ejercicio_contables_empresa_contable_id_foreign');
             $table->string('nombre', 50);
             $table->date('fecha_inicio');
             $table->date('fecha_fin');
             $table->boolean('cerrado')->default(false);
             $table->timestamps();
 
-            $table->unique(['comunidad_id', 'nombre']);
-            $table->foreign('comunidad_id')->references('id')->on('comunidades')->onUpdate('restrict')->onDelete('restrict');
+            $table->unique(['empresa_contable_id', 'nombre']);
+
+            $table->foreign('empresa_contable_id')->references('id')->on('empresas_contables')->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

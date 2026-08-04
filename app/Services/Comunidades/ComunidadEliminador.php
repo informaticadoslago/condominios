@@ -2,8 +2,6 @@
 
 namespace App\Services\Comunidades;
 
-use App\Models\ApunteContable;
-use App\Models\AsientoContable;
 use App\Models\Comunidad;
 use App\Models\ComunidadDirectivo;
 use App\Models\ConceptoPresupuesto;
@@ -11,7 +9,6 @@ use App\Models\Contacto;
 use App\Models\CuentaBancaria;
 use App\Models\Direccion;
 use App\Models\Documento;
-use App\Models\EjercicioContable;
 use App\Models\Empresa;
 use App\Models\FormaPagoInmueble;
 use App\Models\GrupoDeReparto;
@@ -29,10 +26,13 @@ use Spatie\Permission\Models\Role;
 
 /**
  * Borra una comunidad y absolutamente todo lo que cuelga de ella (inmuebles,
- * propietarios, proveedores, cuentas bancarias, presupuestos, contabilidad,
- * documentos/facturas adjuntas...). Es un borrado real, no hay soft deletes en el
- * proyecto: no hay marcha atrás salvo por las copias que deja 'sine_nomines' de los
- * modelos con ConCopiaAlBorrar (Documento, Contacto, Direccion).
+ * propietarios, proveedores, cuentas bancarias, presupuestos,
+ * documentos/facturas adjuntas...). La contabilidad (empresas_contables y lo que
+ * cuelga de ella) es un módulo independiente, sin FK a comunidades, así que no
+ * cuelga de este árbol y no se toca aquí. Es un borrado real, no hay soft deletes
+ * en el proyecto: no hay marcha atrás salvo por las copias que deja
+ * 'sine_nomines' de los modelos con ConCopiaAlBorrar (Documento, Contacto,
+ * Direccion).
  *
  * No hay ON DELETE CASCADE a nivel de BD para este árbol (salvo
  * facturas_proveedores -> documentos/proveedores), así que el orden de borrado lo
@@ -51,8 +51,6 @@ class ComunidadEliminador
         $proveedorIds        = Proveedor::whereIn('persona_comunidad_id', $personaComunidadIds)->pluck('id');
 
         $presupuestoIds = Presupuesto::where('comunidad_id', $comunidad->id)->pluck('id');
-        $ejercicioIds   = EjercicioContable::where('comunidad_id', $comunidad->id)->pluck('id');
-        $asientoIds     = AsientoContable::whereIn('ejercicio_contable_id', $ejercicioIds)->pluck('id');
 
         $personaId = $comunidad->persona_id;
 
@@ -65,11 +63,7 @@ class ComunidadEliminador
         // 2. Conceptos de presupuesto.
         ConceptoPresupuesto::whereIn('presupuesto_id', $presupuestoIds)->delete();
 
-        // 3-4. Contabilidad.
-        ApunteContable::whereIn('asiento_contable_id', $asientoIds)->delete();
-        AsientoContable::whereIn('id', $asientoIds)->delete();
-
-        // 5. Documentos de proveedores: borrado fila a fila (dispara el evento que borra el
+        // 3. Documentos de proveedores: borrado fila a fila (dispara el evento que borra el
         // fichero físico y copia en sine_nomines). facturas_proveedores cae con ella por el
         // ON DELETE CASCADE de la FK documento_id.
         $documentoIds = Documento::where('documentable_type', Proveedor::class)
@@ -77,19 +71,19 @@ class ComunidadEliminador
             ->pluck('id');
         Documento::destroy($documentoIds);
 
-        // 6-8. Inmuebles: histórico de titularidad, forma de pago y grupos de reparto.
+        // 4-6. Inmuebles: histórico de titularidad, forma de pago y grupos de reparto.
         Titularidad::whereIn('inmueble_id', $inmuebleIds)->delete();
         FormaPagoInmueble::whereIn('inmueble_id', $inmuebleIds)->delete();
         DB::table('inmueble_grupo_de_reparto')->whereIn('inmueble_id', $inmuebleIds)->delete();
 
-        // 9. Cuentas bancarias (de la comunidad, de sus propietarios y de sus proveedores).
+        // 7. Cuentas bancarias (de la comunidad, de sus propietarios y de sus proveedores).
         CuentaBancaria::where(fn ($q) => $q->where('titular_type', Comunidad::class)->where('titular_id', $comunidad->id))
             ->orWhere(fn ($q) => $q->where('titular_type', Propietario::class)->whereIn('titular_id', $propietarioIds))
             ->orWhere(fn ($q) => $q->where('titular_type', Proveedor::class)->whereIn('titular_id', $proveedorIds))
             ->orWhereIn('persona_comunidad_id', $personaComunidadIds)
             ->delete();
 
-        // 10-11. Contactos y direcciones de las personas de la comunidad: fila a fila, mismo motivo que Documento.
+        // 8-9. Contactos y direcciones de las personas de la comunidad: fila a fila, mismo motivo que Documento.
         $contactoIds = Contacto::where('contactable_type', PersonaComunidad::class)
             ->whereIn('contactable_id', $personaComunidadIds)
             ->pluck('id');
@@ -100,26 +94,25 @@ class ComunidadEliminador
             ->pluck('id');
         Direccion::destroy($direccionIds);
 
-        // 12-14. Directivos, propietarios, proveedores.
+        // 10-12. Directivos, propietarios, proveedores.
         ComunidadDirectivo::where('comunidad_id', $comunidad->id)->delete();
         Propietario::whereIn('persona_comunidad_id', $personaComunidadIds)->delete();
         Proveedor::whereIn('persona_comunidad_id', $personaComunidadIds)->delete();
 
-        // 15-19. Resto de tablas colgadas directamente de la comunidad.
-        EjercicioContable::where('comunidad_id', $comunidad->id)->delete();
+        // 13-15. Resto de tablas colgadas directamente de la comunidad.
         Inmueble::where('comunidad_id', $comunidad->id)->delete();
         Presupuesto::where('comunidad_id', $comunidad->id)->delete();
         PersonaComunidad::where('comunidad_id', $comunidad->id)->delete();
         GrupoDeReparto::where('comunidad_id', $comunidad->id)->delete();
 
-        // 20-21. Rol 'comunidad-{id}' (Comunidad::booted() lo crea al alta; model_has_roles
+        // 16-17. Rol 'comunidad-{id}' (Comunidad::booted() lo crea al alta; model_has_roles
         // cae solo, tiene ON DELETE CASCADE hacia roles).
         Role::where('name', $comunidad->nombreRol())->delete();
 
-        // 22. La comunidad en sí.
+        // 18. La comunidad en sí.
         $comunidad->delete();
 
-        // 23. Su persona (CIF/razón social) dedicada en exclusiva a esta comunidad: solo se
+        // 19. Su persona (CIF/razón social) dedicada en exclusiva a esta comunidad: solo se
         // borra si, de verdad, no la usa nadie más (no debería, pero es una tabla global).
         if ($personaId
             && ! User::where('persona_id', $personaId)->exists()

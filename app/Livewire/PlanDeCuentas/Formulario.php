@@ -1,17 +1,25 @@
 <?php
 
-namespace App\Livewire\CuentasContables;
+namespace App\Livewire\PlanDeCuentas;
 
+use App\Livewire\Traits\ConEmpresaContableActiva;
 use App\Models\CuentaContable;
 use App\Models\TipoCuentaContable;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 class Formulario extends Component
 {
+    use ConEmpresaContableActiva;
+
     public bool $abrir = false;
     public ?int $itemId = null;
+
+    // Fijada por sesión, nunca por el cliente.
+    #[Locked]
+    public ?int $empresa_contable_id = null;
 
     public string $codigo = '';
     public string $nombre = '';
@@ -22,10 +30,8 @@ class Formulario extends Component
         return [
             'codigo'                  => [
                 'required', 'digits:8',
-                // Único entre las cuentas maestras (empresa_contable_id nulo): el índice
-                // único compuesto de la BD no lo garantiza solo (NULL no choca con NULL).
                 Rule::unique('cuenta_contables', 'codigo')
-                    ->whereNull('empresa_contable_id')
+                    ->where(fn ($q) => $q->where('empresa_contable_id', $this->empresa_contable_id))
                     ->ignore($this->itemId),
             ],
             'nombre'                  => ['required', 'string', 'max:150'],
@@ -58,6 +64,7 @@ class Formulario extends Component
     {
         $this->reset(['itemId', 'codigo', 'nombre', 'tipo_cuenta_contable_id']);
         $this->resetValidation();
+        $this->empresa_contable_id = $this->empresaContableActual()?->id;
         $this->codigo = $codigoPrefijo ? substr(preg_replace('/\D/', '', $codigoPrefijo), 0, 8) : '';
         $this->abrir = true;
     }
@@ -71,7 +78,7 @@ class Formulario extends Component
             return;
         }
 
-        $ultimo = CuentaContable::whereNull('empresa_contable_id')
+        $ultimo = CuentaContable::where('empresa_contable_id', $this->empresa_contable_id)
             ->where('codigo', 'like', $prefijo.str_repeat('_', 8 - strlen($prefijo)))
             ->orderByDesc('codigo')
             ->value('codigo');
@@ -87,7 +94,7 @@ class Formulario extends Component
 
         // Sugiere el tipo de la cuenta de grupo (mismos 4 primeros dígitos + 0000), si existe.
         if (! $this->tipo_cuenta_contable_id) {
-            $grupo = CuentaContable::whereNull('empresa_contable_id')
+            $grupo = CuentaContable::where('empresa_contable_id', $this->empresa_contable_id)
                 ->where('codigo', substr($prefijo, 0, 4).'0000')
                 ->first();
             if ($grupo) {
@@ -99,11 +106,12 @@ class Formulario extends Component
     #[On('cuenta-contable-editar')]
     public function editar($id)
     {
-        $item = CuentaContable::whereNull('empresa_contable_id')->find($id);
+        $item = CuentaContable::find($id);
         if (! $item || $item->estado_id != CuentaContable::ESTADO_ACTIVO) {
             return;
         }
         $this->itemId                  = $item->id;
+        $this->empresa_contable_id     = $item->empresa_contable_id;
         $this->codigo                  = $item->codigo;
         $this->nombre                  = $item->nombre;
         $this->tipo_cuenta_contable_id = $item->tipo_cuenta_contable_id;
@@ -122,12 +130,12 @@ class Formulario extends Component
         } else {
             // Cuelga automáticamente de la cuenta de grupo (4 primeros dígitos + 0000) si
             // existe, para que esa cuenta de grupo deje de ser "hoja" en cuanto tiene hijas.
-            $padre = CuentaContable::whereNull('empresa_contable_id')
+            $padre = CuentaContable::where('empresa_contable_id', $this->empresa_contable_id)
                 ->where('codigo', substr($data['codigo'], 0, 4).'0000')
                 ->first();
 
             $cuenta = CuentaContable::create($data + [
-                'empresa_contable_id' => null,
+                'empresa_contable_id' => $this->empresa_contable_id,
                 'estado_id'           => CuentaContable::ESTADO_ACTIVO,
                 'cuenta_padre_id'     => $padre && $padre->codigo !== $data['codigo'] ? $padre->id : null,
             ]);
@@ -145,7 +153,7 @@ class Formulario extends Component
 
     public function render()
     {
-        return view('livewire.cuentas-contables.formulario', [
+        return view('livewire.plan-de-cuentas.formulario', [
             'tipos' => TipoCuentaContable::orderBy('id')->get(),
         ]);
     }

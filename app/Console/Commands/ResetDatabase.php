@@ -167,6 +167,11 @@ class ResetDatabase extends Command
             if ($seedTodo) {
                 $this->info('Rellenando valores iniciales (db:seed)...');
                 $this->artisan(['db:seed', '--force'], $variables);
+
+                // db:seed no crea el superadmin (CreateSuperUserSeeder está comentado en
+                // DatabaseSeeder), así que el reseed completo lo incluye aparte.
+                $this->info('Creando usuario superadmin...');
+                $this->artisan(['db:seed', '--force', '--class=CreateSuperUserSeeder'], $variables);
             } elseif ($seedSuperadmin) {
                 $this->info('Creando usuario superadmin...');
                 $this->artisan(['db:seed', '--force', '--class=CreateSuperUserSeeder'], $variables);

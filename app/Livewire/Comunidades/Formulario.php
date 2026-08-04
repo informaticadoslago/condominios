@@ -4,6 +4,7 @@ namespace App\Livewire\Comunidades;
 
 use App\Livewire\Forms\ComunidadForm;
 use App\Models\Comunidad;
+use App\Models\EntidadBancaria;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -13,9 +14,28 @@ class Formulario extends Component
 
     public ComunidadForm $formulario;
 
+    /** Resultados del buscador de entidad bancaria (ver x-dosl.input-autocomplete). */
+    public array $resultadosEntidadesBancarias = [];
+
     public function mount()
     {
         $this->formulario->resetForm();
+    }
+
+    /** Buscador del autocompletado de entidad bancaria: por código o nombre. */
+    public function buscarEntidadesBancarias(string $q, int $limit = 8): void
+    {
+        $q = trim($q);
+
+        $this->resultadosEntidadesBancarias = $q === '' ? [] : EntidadBancaria::activo()
+            ->where(function ($query) use ($q) {
+                $query->where('codigo', 'like', "%{$q}%")->orWhere('descripcion', 'like', "%{$q}%");
+            })
+            ->orderBy('descripcion')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($e) => ['valor' => $e->id, 'etiqueta' => "{$e->codigo} - {$e->descripcion}"])
+            ->all();
     }
 
     #[On('abrir-crear-comunidad')]

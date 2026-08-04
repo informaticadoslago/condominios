@@ -71,6 +71,7 @@
             @endif
         </x-dosl.tabla>
 
-        @livewire('comunidades.formulario')
+        {{-- El formulario de comunidad se monta globalmente en layouts.app (también
+             accesible desde el badge de la barra superior), no aquí. --}}
     </x-slot>
 </x-botonera-page>

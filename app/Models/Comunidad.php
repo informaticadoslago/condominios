@@ -17,6 +17,8 @@ class Comunidad extends Model
     protected $fillable = [
         'persona_id',
         'estado_id',
+        'identificador_acreedor_sepa',
+        'sufijo',
     ];
 
     protected $with = ['persona'];

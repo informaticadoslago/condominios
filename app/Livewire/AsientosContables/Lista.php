@@ -3,11 +3,14 @@
 namespace App\Livewire\AsientosContables;
 
 use App\Livewire\ListaComponent;
+use App\Livewire\Traits\ConEmpresaContableActiva;
 use App\Models\AsientoContable;
 use App\Models\EjercicioContable;
 
 class Lista extends ListaComponent
 {
+    use ConEmpresaContableActiva;
+
     /** Índices de asientos con las líneas desplegadas en la tabla. */
     public array $expandido = [];
 
@@ -33,11 +36,13 @@ class Lista extends ListaComponent
 
     protected function filtroEjercicio(): array
     {
+        $empresaContableId = $this->empresaContableActual()?->id ?? 0;
+
         return [
             'clave'    => 'ejercicio_contable_id',
             'etiqueta' => __('Ejercicio'),
             'tipo'     => 'select',
-            'opciones' => [0 => __('Todos')] + EjercicioContable::where('comunidad_id', session('comunidad_actual_id'))
+            'opciones' => [0 => __('Todos')] + EjercicioContable::where('empresa_contable_id', $empresaContableId)
                 ->orderByDesc('fecha_inicio')
                 ->pluck('nombre', 'id')
                 ->all(),
@@ -56,10 +61,11 @@ class Lista extends ListaComponent
     public function render()
     {
         $search = trim($this->search ?? '');
+        $empresaContableId = $this->empresaContableActual()?->id ?? 0;
 
         $items = $this->aplicarFiltros(
             AsientoContable::with(['ejercicioContable', 'apuntesContables.cuentaContable'])
-                ->whereHas('ejercicioContable', fn ($q) => $q->where('comunidad_id', session('comunidad_actual_id')))
+                ->whereHas('ejercicioContable', fn ($q) => $q->where('empresa_contable_id', $empresaContableId))
                 ->withSum('apuntesContables as total_debe', 'debe')
         )
             ->when($search, function ($q) use ($search) {

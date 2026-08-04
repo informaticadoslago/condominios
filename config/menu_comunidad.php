@@ -15,29 +15,13 @@ return [
         [
             'type'  => 'nav',
             'items' => [
-                ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.dashboard'), 'route' => 'dashboard'],
-                [
-                    'type'  => 'group',
-                    'icon'  => 'fa-solid fa-building-user',
-                    'label' => trans_key('menu.Gestión administrativa'),
-                    'items' => [
-                        ['icon' => 'fa-solid fa-user-tie', 'label' => trans_key('menu.Propietarios'), 'route' => 'propietarios.index'],
-                        ['icon' => 'fa-solid fa-truck', 'label' => trans_key('menu.Proveedores'), 'route' => 'proveedores.index'],
-                        ['icon' => 'fa-solid fa-file-invoice', 'label' => trans_key('menu.Facturas'), 'route' => 'facturas.index'],
-                        ['icon' => 'fa-solid fa-door-open', 'label' => trans_key('menu.Inmuebles'), 'route' => 'inmuebles.index'],
-                        ['icon' => 'fa-solid fa-people-roof', 'label' => trans_key('menu.Grupos de reparto'), 'route' => 'grupos-de-reparto.index'],
-                        ['icon' => 'fa-solid fa-file-invoice-dollar', 'label' => trans_key('menu.Presupuestos'), 'route' => 'presupuestos.index'],
-                    ],
-                ],
-                [
-                    'type'  => 'group',
-                    'icon'  => 'fa-solid fa-calculator',
-                    'label' => trans_key('menu.Gestión contable'),
-                    'items' => [
-                        ['icon' => 'fa-solid fa-calendar', 'label' => trans_key('menu.Ejercicios contables'), 'route' => 'ejercicios-contables.index'],
-                        ['icon' => 'fa-solid fa-book', 'label' => trans_key('menu.Asientos contables'), 'route' => 'asientos-contables.index'],
-                    ],
-                ],
+                ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.dashboard'), 'route' => 'dashboard-comunidad'],
+                ['icon' => 'fa-solid fa-user-tie', 'label' => trans_key('menu.Propietarios'), 'route' => 'propietarios.index'],
+                ['icon' => 'fa-solid fa-truck', 'label' => trans_key('menu.Proveedores'), 'route' => 'proveedores.index'],
+                ['icon' => 'fa-solid fa-file-invoice', 'label' => trans_key('menu.Facturas'), 'route' => 'facturas.index'],
+                ['icon' => 'fa-solid fa-door-open', 'label' => trans_key('menu.Inmuebles'), 'route' => 'inmuebles.index'],
+                ['icon' => 'fa-solid fa-people-roof', 'label' => trans_key('menu.Grupos de reparto'), 'route' => 'grupos-de-reparto.index'],
+                ['icon' => 'fa-solid fa-file-invoice-dollar', 'label' => trans_key('menu.Presupuestos'), 'route' => 'presupuestos.index'],
             ],
         ],
         ['type' => 'spacer'],

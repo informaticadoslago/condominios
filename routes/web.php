@@ -5,6 +5,7 @@ use App\Http\Controllers\ComunidadContextoController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
+use App\Http\Controllers\EmpresaContableContextoController;
 use App\Livewire\AdministracionSistema\Backups\Lista as BackupsLista;
 use App\Livewire\AdministracionSistema\Empresa\Editar as EmpresaEditar;
 use App\Livewire\AdministracionSistema\Permisos\Lista as PermisosLista;
@@ -19,7 +20,9 @@ use App\Livewire\Comunidades\Lista as ComunidadesLista;
 use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
 use App\Livewire\EjerciciosContables\Lista as EjerciciosContablesLista;
+use App\Livewire\EmpresasContables\Lista as EmpresasContablesLista;
 use App\Livewire\Facturas\Lista as FacturasLista;
+use App\Livewire\PlanDeCuentas\Lista as PlanDeCuentasLista;
 use App\Livewire\Inmuebles\Formulario as InmueblesFormulario;
 use App\Livewire\Inmuebles\Lista as InmueblesLista;
 use App\Livewire\Maestros\EntidadesBancarias\Lista as EntidadesBancariasLista;
@@ -89,6 +92,11 @@ Route::middleware([
 
     // Rutas de una comunidad: exigen comunidad activa en sesión y acceso a ella.
     Route::middleware('comunidad.activa')->group(function () {
+        Route::get('/dashboard-comunidad', function () {
+            return view('dashboard-comunidad', [
+                'comunidad' => \App\Models\Comunidad::find(session('comunidad_actual_id')),
+            ]);
+        })->name('dashboard-comunidad');
         Route::get('/propietarios', PropietariosLista::class)->name('propietarios.index');
         Route::get('/propietarios/nuevo', PropietariosFormulario::class)->name('propietarios.crear');
         Route::get('/propietarios/{propietario}/editar', PropietariosFormulario::class)->name('propietarios.editar');
@@ -103,13 +111,28 @@ Route::middleware([
         Route::get('/presupuestos', PresupuestosLista::class)->name('presupuestos.index');
         Route::get('/presupuestos/{presupuesto}/conceptos', PresupuestosConceptos::class)->name('presupuestos.conceptos');
         Route::get('/presupuestos/{presupuesto}/reparto', PresupuestosReparto::class)->name('presupuestos.reparto');
+    });
+
+    // Gestión contable: módulo independiente de comunidades (empresas por CIF).
+    Route::get('/empresas-contables', EmpresasContablesLista::class)->name('empresas-contables.index');
+    Route::get('/empresa-contable/{empresaContable}/entrar', [EmpresaContableContextoController::class, 'entrar'])->name('empresa-contable.entrar');
+    Route::get('/empresa-contable/salir', [EmpresaContableContextoController::class, 'salir'])->name('empresa-contable.salir');
+
+    // Cuentas contables: las cuentas maestras (empresa_contable_id nulo), sin
+    // asignar a ninguna empresa todavía. No exige empresa contable activa.
+    Route::get('/cuentas-contables', CuentasContablesLista::class)->name('cuentas-contables.index');
+
+    Route::middleware('empresa-contable.activa')->group(function () {
+        Route::get('/dashboard-contable', function () {
+            return view('dashboard-contable', [
+                'empresaContable' => \App\Models\EmpresaContable::find(session('empresa_contable_actual_id')),
+            ]);
+        })->name('dashboard-contable');
+        Route::get('/plan-de-cuentas', PlanDeCuentasLista::class)->name('plan-de-cuentas.index');
         Route::get('/ejercicios-contables', EjerciciosContablesLista::class)->name('ejercicios-contables.index');
         Route::get('/asientos-contables', AsientosContablesLista::class)->name('asientos-contables.index');
         Route::get('/asientos-contables/{ejercicioContable}/nuevo', AsientosContablesFormulario::class)->name('asientos-contables.crear');
     });
-
-    // Gestión contable (global)
-    Route::get('/cuentas-contables', CuentasContablesLista::class)->name('cuentas-contables.index');
 
     // Maestros
     Route::get('/entidades-bancarias', EntidadesBancariasLista::class)->name('entidades-bancarias.index');

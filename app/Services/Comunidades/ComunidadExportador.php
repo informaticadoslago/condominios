@@ -2,8 +2,6 @@
 
 namespace App\Services\Comunidades;
 
-use App\Models\ApunteContable;
-use App\Models\AsientoContable;
 use App\Models\ComunidadDirectivo;
 use App\Models\ConceptoPresupuesto;
 use App\Models\Contacto;
@@ -11,7 +9,6 @@ use App\Models\Comunidad;
 use App\Models\CuentaBancaria;
 use App\Models\Direccion;
 use App\Models\Documento;
-use App\Models\EjercicioContable;
 use App\Models\FacturaProveedor;
 use App\Models\FormaPagoInmueble;
 use App\Models\GrupoDeReparto;
@@ -98,12 +95,6 @@ class ComunidadExportador
         $presupuestos   = Presupuesto::where('comunidad_id', $comunidad->id)->get();
         $presupuestoIds = $presupuestos->pluck('id');
 
-        $ejercicios   = EjercicioContable::where('comunidad_id', $comunidad->id)->get();
-        $ejercicioIds = $ejercicios->pluck('id');
-
-        $asientos   = AsientoContable::whereIn('ejercicio_contable_id', $ejercicioIds)->get();
-        $asientoIds = $asientos->pluck('id');
-
         $documentos = Documento::where('documentable_type', Proveedor::class)
             ->whereIn('documentable_id', $proveedorIds)
             ->get();
@@ -132,9 +123,6 @@ class ComunidadExportador
             'inmueble_grupo_de_reparto' => collect(DB::table('inmueble_grupo_de_reparto')->whereIn('inmueble_id', $inmuebleIds)->get()),
             'presupuestos'             => $presupuestos,
             'conceptos_presupuestos'   => ConceptoPresupuesto::whereIn('presupuesto_id', $presupuestoIds)->get(),
-            'ejercicio_contables'      => $ejercicios,
-            'asiento_contables'        => $asientos,
-            'apunte_contables'         => ApunteContable::whereIn('asiento_contable_id', $asientoIds)->get(),
             'documentos'               => $documentos,
             'facturas_proveedores'     => FacturaProveedor::whereIn('proveedor_id', $proveedorIds)->get(),
             'historial_estados'        => HistorialEstado::where(function ($q) use ($presupuestoIds, $propietarioIds, $proveedorIds) {
@@ -270,10 +258,13 @@ class ComunidadExportador
         6. `inmuebles`, `titularidades`, `formas_pago_inmuebles`
         7. `grupos_de_reparto`, `inmueble_grupo_de_reparto`
         8. `presupuestos`, `conceptos_presupuestos`
-        9. `ejercicio_contables`, `asiento_contables`, `apunte_contables`
-        10. `documentos` (creando primero el fichero físico con el contenido de `ficheros.json`,
+        9. `documentos` (creando primero el fichero físico con el contenido de `ficheros.json`,
             luego la fila), `facturas_proveedores`
-        11. `historial_estados`
+        10. `historial_estados`
+
+        La contabilidad (`empresas_contables`, `cuenta_contables`, `ejercicio_contables`,
+        `asiento_contables`, `apunte_contables`) es un módulo independiente sin FK a
+        comunidades, así que no cuelga de esta comunidad y no se incluye en la exportación.
 
         ## Catálogos NO incluidos (deben existir ya en el sistema destino)
 
@@ -282,12 +273,11 @@ class ComunidadExportador
         `estados`, `paises`, `provincias`, `municipios`, `poblaciones`, `vias`,
         `tipo_documento_identificativos`, `tipo_generos`, `tipo_direcciones`, `tipo_contactos`,
         `tipo_ocupaciones`, `tipo_inmuebles`, `formas_de_pago`, `entidades_bancarias`,
-        `tipo_estado_presupuestos`, `tipo_periodicidad_pagos`, `tipo_documentos`,
-        `cuenta_contables` (plan contable), `tipo_cuenta_contables`.
+        `tipo_estado_presupuestos`, `tipo_periodicidad_pagos`, `tipo_documentos`.
 
         Si el sistema destino no usa los mismos ids para estos catálogos, hay que traducirlos a
         mano al reconstruir (`estado_id`, `tipo_documento_id`, `forma_de_pago_id`,
-        `entidad_bancaria_id`, `cuenta_contable_id`, `documento_pais_id`, `nacionalidad_id`,
+        `entidad_bancaria_id`, `documento_pais_id`, `nacionalidad_id`,
         `genero_id`, `ocupacion_id`, `tipo_inmueble_id`, `periodicidad_id`, etc.).
         MD;
     }

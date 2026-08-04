@@ -20,6 +20,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['ejercicio_contable_id', 'numero']);
+
             $table->foreign('ejercicio_contable_id')->references('id')->on('ejercicio_contables')->onUpdate('restrict')->onDelete('restrict');
         });
     }

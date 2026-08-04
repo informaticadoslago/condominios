@@ -8,6 +8,8 @@ use App\Models\Persona;
 use App\Models\TipoDocumentoIdentificativo;
 use App\Models\TipoGenero;
 use App\Rules\IsCifComunidadRule;
+use App\Rules\IsIBANRule;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
@@ -27,6 +29,13 @@ class ComunidadForm extends Form
 
     public int $persona_id = 0;
 
+    // --- Datos financieros (cuenta bancaria propia + acreedor SEPA para remesas) ---
+    public ?string $iban = null;
+    public ?int $entidad_bancaria_id = null;
+    public ?string $entidad_bancaria_texto = null;
+    public ?string $sufijo = '000';
+    public ?string $identificador_acreedor_sepa = null;
+
     public function rules()
     {
         return [
@@ -36,6 +45,10 @@ class ComunidadForm extends Form
                 new IsCifComunidadRule(),
                 Rule::unique('personas', 'documento_identificativo')->ignore($this->persona_id),
             ],
+            'iban'                        => ['nullable', 'string', new IsIBANRule()],
+            'entidad_bancaria_id'         => ['nullable', 'exists:entidades_bancarias,id', 'required_with:iban'],
+            'sufijo'                      => ['required', 'digits:3'],
+            'identificador_acreedor_sepa' => ['nullable', 'string', 'max:35'],
         ];
     }
 
@@ -72,26 +85,68 @@ class ComunidadForm extends Form
         $this->persona_id = $persona->id;
         $this->nombre     = $persona->razon_social;
         $this->cif        = $persona->documento_identificativo;
+
+        $this->sufijo                      = $this->comunidad->sufijo;
+        $this->identificador_acreedor_sepa = $this->comunidad->identificador_acreedor_sepa;
+
+        $cuenta = $this->comunidad->cuentasBancarias->first();
+        $this->iban                   = $cuenta?->iban;
+        $this->entidad_bancaria_id    = $cuenta?->entidad_bancaria_id;
+        $this->entidad_bancaria_texto = $cuenta?->entidadBancaria
+            ? $cuenta->entidadBancaria->codigo.' - '.$cuenta->entidadBancaria->descripcion
+            : null;
     }
 
     public function store($validated): Comunidad
     {
-        $persona   = Persona::create($this->datosPersona());
-        $comunidad = Comunidad::create(['persona_id' => $persona->id]);
-        $comunidad->setRelation('persona', $persona);
+        return DB::transaction(function () {
+            $persona   = Persona::create($this->datosPersona());
+            $comunidad = Comunidad::create([
+                'persona_id'                  => $persona->id,
+                'sufijo'                      => $this->sufijo,
+                'identificador_acreedor_sepa' => $this->identificador_acreedor_sepa,
+            ]);
+            $comunidad->setRelation('persona', $persona);
 
-        $this->comunidad  = $comunidad;
-        $this->persona    = $persona;
-        $this->persona_id = $persona->id;
+            $this->comunidad  = $comunidad;
+            $this->persona    = $persona;
+            $this->persona_id = $persona->id;
 
-        return $comunidad;
+            $this->guardarCuentaBancaria();
+
+            return $comunidad;
+        });
     }
 
     public function update($validated): Comunidad
     {
-        $this->persona->update($this->datosPersona());
+        DB::transaction(function () {
+            $this->persona->update($this->datosPersona());
+            $this->comunidad->update([
+                'sufijo'                      => $this->sufijo,
+                'identificador_acreedor_sepa' => $this->identificador_acreedor_sepa,
+            ]);
+
+            $this->guardarCuentaBancaria();
+        });
 
         return $this->comunidad;
+    }
+
+    private function guardarCuentaBancaria(): void
+    {
+        if (! $this->iban) {
+            return;
+        }
+
+        $datosCuenta = [
+            'iban'                => $this->iban,
+            'entidad_bancaria_id' => $this->entidad_bancaria_id,
+        ];
+
+        $cuenta = $this->comunidad->cuentasBancarias->first();
+
+        $cuenta ? $cuenta->update($datosCuenta) : $this->comunidad->cuentasBancarias()->create($datosCuenta);
     }
 
     public function resetForm()
@@ -101,6 +156,12 @@ class ComunidadForm extends Form
         $this->persona_id  = 0;
         $this->comunidad   = null;
         $this->persona     = null;
+
+        $this->iban                        = null;
+        $this->entidad_bancaria_id         = null;
+        $this->entidad_bancaria_texto      = null;
+        $this->sufijo                      = '000';
+        $this->identificador_acreedor_sepa = null;
 
         $this->resetValidation();
     }

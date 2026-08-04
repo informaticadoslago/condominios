@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Livewire\CuentasContables;
+namespace App\Livewire\PlanDeCuentas;
 
 use App\Livewire\ListaComponent;
 use App\Livewire\Traits\ConBajaPorEstado;
+use App\Livewire\Traits\ConEmpresaContableActiva;
 use App\Livewire\Traits\ConFiltroEstado;
 use App\Livewire\Traits\ConHistorialEstadoModal;
 use App\Models\CuentaContable;
@@ -14,6 +15,7 @@ use Livewire\Attributes\On;
 class Lista extends ListaComponent
 {
     use ConBajaPorEstado;
+    use ConEmpresaContableActiva;
     use ConFiltroEstado;
     use ConHistorialEstadoModal;
 
@@ -75,12 +77,12 @@ class Lista extends ListaComponent
     public function render()
     {
         $search = trim($this->search ?? '');
+        $empresaContableId = $this->empresaContableActual()?->id ?? 0;
 
-        // Cuentas maestras: aún no asignadas a ninguna empresa contable.
         $items = $this->aplicarFiltros(
             CuentaContable::with(['tipoCuentaContable', 'estado'])
                 ->withCount('historialEstados')
-                ->whereNull('empresa_contable_id')
+                ->where('empresa_contable_id', $empresaContableId)
         )
             ->when($search, function ($q) use ($search) {
                 $q->where('codigo', 'like', "%{$search}%")
@@ -89,6 +91,6 @@ class Lista extends ListaComponent
             ->orderBy($this->sort, $this->direction)
             ->paginate($this->lineasXPagina);
 
-        return view('livewire.cuentas-contables.lista', compact('items'));
+        return view('livewire.plan-de-cuentas.lista', compact('items'));
     }
 }

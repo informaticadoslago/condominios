@@ -173,4 +173,23 @@ class User extends Authenticatable
         return Comunidad::activa()->whereIn('id', $ids)->get();
     }
 
+    /**
+     * Empresas contables en las que este usuario puede entrar: todas si tiene el
+     * rol "global", o solo aquellas cuyo rol puerta (EmpresaContable::nombreRol())
+     * tenga.
+     */
+    public function empresasContablesAccesibles()
+    {
+        if ($this->hasRole('global')) {
+            return EmpresaContable::all();
+        }
+
+        $ids = $this->roles()
+            ->where('name', 'like', 'empresa-contable-%')
+            ->pluck('name')
+            ->map(fn ($nombre) => (int) str_replace('empresa-contable-', '', $nombre));
+
+        return EmpresaContable::whereIn('id', $ids)->get();
+    }
+
 }

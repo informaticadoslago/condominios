@@ -9,7 +9,8 @@ use Illuminate\Database\Seeder;
 class CuentaContableSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Cuentas maestras (empresa_contable_id nulo, sin asignar a ninguna empresa
+     * todavía): la base con la que arranca el plan de cuentas de una empresa nueva.
      */
     public function run(): void
     {
@@ -27,7 +28,7 @@ class CuentaContableSeeder extends Seeder
         ];
 
         foreach ($cuentas as $cuenta) {
-            CuentaContable::firstOrCreate(['codigo' => $cuenta['codigo']], $cuenta);
+            CuentaContable::firstOrCreate(['codigo' => $cuenta['codigo'], 'empresa_contable_id' => null], $cuenta);
         }
     }
 }

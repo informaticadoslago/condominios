@@ -3,11 +3,14 @@
 namespace App\Livewire\EjerciciosContables;
 
 use App\Livewire\ListaComponent;
+use App\Livewire\Traits\ConEmpresaContableActiva;
 use App\Models\EjercicioContable;
 use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
 {
+    use ConEmpresaContableActiva;
+
     public function mount()
     {
         $this->sort      = 'fecha_inicio';
@@ -28,8 +31,9 @@ class Lista extends ListaComponent
     public function render()
     {
         $search = trim($this->search ?? '');
+        $empresaContableId = $this->empresaContableActual()?->id ?? 0;
 
-        $items = EjercicioContable::where('comunidad_id', session('comunidad_actual_id'))
+        $items = EjercicioContable::where('empresa_contable_id', $empresaContableId)
             ->when($search, function ($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%");
             })

@@ -19,6 +19,11 @@ class Formulario extends Component
     #[Locked]
     public int $ejercicio_contable_id;
 
+    // Derivado del ejercicio (route-bound) al montar, no de la sesión: sigue siendo
+    // correcto aunque el usuario cambie de empresa contable activa con este formulario abierto.
+    #[Locked]
+    public int $empresa_contable_id;
+
     public ?string $fecha = null;
     public string $concepto = '';
 
@@ -34,6 +39,7 @@ class Formulario extends Component
     public function mount(EjercicioContable $ejercicioContable): void
     {
         $this->ejercicio_contable_id = $ejercicioContable->id;
+        $this->empresa_contable_id   = $ejercicioContable->empresa_contable_id;
 
         $this->fecha = now()->between($ejercicioContable->fecha_inicio, $ejercicioContable->fecha_fin)
             ? now()->toDateString()
@@ -54,12 +60,13 @@ class Formulario extends Component
         return ['_key' => Str::random(10), '_cuenta_texto' => '', 'cuenta_contable_id' => null, 'debe' => 0, 'haber' => 0, 'concepto' => ''];
     }
 
-    /** Buscador del autocompletado de Cuenta: solo cuentas hoja activas, por código o nombre. */
+    /** Buscador del autocompletado de Cuenta: solo cuentas hoja activas de esta empresa, por código o nombre. */
     public function buscarCuentas(string $q, int $limit, ?string $clave = null): void
     {
         $q = trim($q);
 
-        $this->resultadosCuentas[$clave] = $q === '' ? [] : CuentaContable::where('estado_id', CuentaContable::ESTADO_ACTIVO)
+        $this->resultadosCuentas[$clave] = $q === '' ? [] : CuentaContable::where('empresa_contable_id', $this->empresa_contable_id)
+            ->where('estado_id', CuentaContable::ESTADO_ACTIVO)
             ->whereDoesntHave('subcuentas')
             ->where(function ($query) use ($q) {
                 $query->where('codigo', 'like', "%{$q}%")->orWhere('nombre', 'like', "%{$q}%");

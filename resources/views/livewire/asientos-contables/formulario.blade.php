@@ -129,5 +129,5 @@
     </footer>
     </div>
 
-    @livewire('cuentas-contables.formulario')
+    @livewire('plan-de-cuentas.formulario')
 </div>
