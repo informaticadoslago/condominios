@@ -9,12 +9,18 @@ class AsientoContable extends Model
     protected $table = 'asiento_contables';
 
     protected $fillable = [
-        'ejercicio_contable_id', 'numero', 'fecha', 'concepto',
+        'empresa_contable_id', 'ejercicio_contable_id', 'numero', 'fecha', 'diario', 'concepto',
+        'referencia_tipo', 'referencia_id', 'evento',
     ];
 
     protected $casts = [
         'fecha' => 'date',
     ];
+
+    public function empresaContable()
+    {
+        return $this->belongsTo(EmpresaContable::class);
+    }
 
     public function ejercicioContable()
     {

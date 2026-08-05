@@ -15,6 +15,7 @@ class EjercicioContable extends Model
     protected $casts = [
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
+        'cerrado' => 'boolean',
     ];
 
     public function empresaContable()
