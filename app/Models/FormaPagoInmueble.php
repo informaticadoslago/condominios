@@ -16,6 +16,7 @@ class FormaPagoInmueble extends Model
 
     protected $fillable = [
         'inmueble_id',
+        'propietario_id',
         'forma_de_pago_id',
         'cuenta_bancaria_id',
         'fecha_inicio',
@@ -30,6 +31,12 @@ class FormaPagoInmueble extends Model
     public function inmueble()
     {
         return $this->belongsTo(Inmueble::class);
+    }
+
+    /** Propietario responsable del pago: a quien se le emite el recibo y se le avisa. */
+    public function propietario()
+    {
+        return $this->belongsTo(Propietario::class);
     }
 
     public function formaDePago()

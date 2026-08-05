@@ -61,12 +61,17 @@ class DatosFinancierosStep extends CrearInmuebleStep
         }
     }
 
-    /** Titulares elegibles: los que hay ahora mismo en el borrador (ver PropietariosStep), no los reales en BD. */
+    /**
+     * Titulares elegibles: los que hay ahora mismo en el borrador (ver PropietariosStep),
+     * no los reales en BD. De mayor a menor cuota, que es el orden en que se busca al
+     * responsable del pago.
+     */
     private function titulares(): array
     {
         $propietarios = $this->borradorActual()?->payload['propietarios'] ?? [];
 
         return collect($propietarios)
+            ->sortByDesc(fn ($p) => (float) ($p['cuota_percent'] ?? 0))
             ->unique('persona_comunidad_id')
             ->map(fn ($p) => ['persona_comunidad_id' => $p['persona_comunidad_id'], 'nombre' => $p['nombre']])
             ->values()
@@ -101,9 +106,11 @@ class DatosFinancierosStep extends CrearInmuebleStep
 
     public function updatedFormaDePagoId(): void
     {
+        // El propietario responsable se pide siempre, también sin domiciliación: es a
+        // quien se le emite el recibo y a quien se le manda el aviso de pago. Solo la
+        // cuenta deja de tener sentido al dejar de ser recibo bancario.
         if ((int) $this->forma_de_pago_id !== FormaDePago::RECIBO_BANCARIO) {
-            $this->persona_comunidad_id_pago = null;
-            $this->cuenta_bancaria_id        = null;
+            $this->cuenta_bancaria_id = null;
         }
     }
 
@@ -161,7 +168,7 @@ class DatosFinancierosStep extends CrearInmuebleStep
 
         return [
             'forma_de_pago_id'          => ['required', 'exists:formas_de_pago,id'],
-            'persona_comunidad_id_pago' => [$esReciboBancario ? 'required' : 'nullable', 'exists:personas_comunidad,id'],
+            'persona_comunidad_id_pago' => ['required', 'exists:personas_comunidad,id'],
             'cuenta_bancaria_id'        => [$esReciboBancario ? 'required' : 'nullable', 'exists:cuentas_bancarias,id'],
         ];
     }
@@ -195,9 +202,7 @@ class DatosFinancierosStep extends CrearInmuebleStep
         }
 
         $esReciboBancario = (int) $datos['forma_de_pago_id'] === FormaDePago::RECIBO_BANCARIO;
-        $propietarioPago  = $esReciboBancario
-            ? Propietario::where('persona_comunidad_id', $datos['persona_comunidad_id_pago'])->first()
-            : null;
+        $propietarioPago  = Propietario::where('persona_comunidad_id', $datos['persona_comunidad_id_pago'])->first();
 
         // La cuenta elegida tiene que ser realmente de ese propietario: el
         // desplegable ya la restringe, pero esto es lo que de verdad lo garantiza.
@@ -272,13 +277,19 @@ class DatosFinancierosStep extends CrearInmuebleStep
                 ->whereNotIn('id', $titularidadIdsVigentes)
                 ->update(['fecha_fin' => now()->toDateString()]);
 
+            // El responsable del pago se resuelve aquí, no antes de la transacción: si
+            // es un propietario recién dado de alta en este mismo wizard, no existe
+            // hasta que lo crea el bucle de arriba.
+            $propietarioPagoId = Propietario::where('persona_comunidad_id', $datos['persona_comunidad_id_pago'])->value('id');
+
             // Forma de pago: igual que la titularidad, nunca se modifica la fila
             // vigente — se cierra y se abre otra, salvo que no haya cambiado nada.
             $vigente = FormaPagoInmueble::vigente()->where('inmueble_id', $inmueble->id)->first();
 
             $sinCambios = $vigente
                 && $vigente->forma_de_pago_id == $datos['forma_de_pago_id']
-                && $vigente->cuenta_bancaria_id == $cuentaBancariaId;
+                && $vigente->cuenta_bancaria_id == $cuentaBancariaId
+                && $vigente->propietario_id == $propietarioPagoId;
 
             if (! $sinCambios) {
                 if ($vigente) {
@@ -287,6 +298,7 @@ class DatosFinancierosStep extends CrearInmuebleStep
 
                 FormaPagoInmueble::create([
                     'inmueble_id'        => $inmueble->id,
+                    'propietario_id'     => $propietarioPagoId,
                     'forma_de_pago_id'   => $datos['forma_de_pago_id'],
                     'cuenta_bancaria_id' => $cuentaBancariaId,
                     'fecha_inicio'       => now()->toDateString(),

@@ -13,18 +13,22 @@
             <x-input-error for="forma_de_pago_id" class="mt-2" />
         </div>
 
-        @if ($esReciboBancario)
-            <div class="flex w-full">
-                <div class="w-1/2">
-                    <x-label for="select-inmueble-titular-pago" :value="__('Propietario titular del recibo')" />
-                    <x-select id="select-inmueble-titular-pago" class="block mt-1 w-full mayusculas" wire:model.live="persona_comunidad_id_pago">
-                        <option value="">{{ __('--') }}</option>
-                        @foreach ($titulares as $titular)
-                            <option value="{{ $titular['persona_comunidad_id'] }}">{{ $titular['nombre'] }}</option>
-                        @endforeach
-                    </x-select>
-                    <x-input-error for="persona_comunidad_id_pago" class="mt-2" />
-                </div>
+        <div class="flex w-full">
+            {{-- El responsable del pago se pide siempre, haya domiciliación o no: es a
+                 quien se le emite el recibo y a quien se le avisa. Ordenados de mayor a
+                 menor cuota. --}}
+            <div class="w-1/2">
+                <x-label for="select-inmueble-titular-pago" :value="__('Propietario responsable del pago')" />
+                <x-select id="select-inmueble-titular-pago" class="block mt-1 w-full mayusculas" wire:model.live="persona_comunidad_id_pago">
+                    <option value="">{{ __('--') }}</option>
+                    @foreach ($titulares as $titular)
+                        <option value="{{ $titular['persona_comunidad_id'] }}">{{ $titular['nombre'] }}</option>
+                    @endforeach
+                </x-select>
+                <x-input-error for="persona_comunidad_id_pago" class="mt-2" />
+            </div>
+
+            @if ($esReciboBancario)
                 <div class="ml-2 w-1/2">
                     <x-label for="select-inmueble-cuenta-pago" :value="__('Cuenta bancaria')" />
                     <x-select id="select-inmueble-cuenta-pago" class="block mt-1 w-full" wire:model="cuenta_bancaria_id">
@@ -41,8 +45,8 @@
                         </button>
                     @endif
                 </div>
-            </div>
-        @endif
+            @endif
+        </div>
     </div>
 
     {{-- Wizard completo de Propietario embebido: al terminar (o salir), dispara un

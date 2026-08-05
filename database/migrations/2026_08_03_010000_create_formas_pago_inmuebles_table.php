@@ -14,6 +14,10 @@ return new class extends Migration
         Schema::create('formas_pago_inmuebles', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('inmueble_id')->index('formas_pago_inmuebles_inmueble_id_foreign');
+            // Propietario responsable del pago: a quien se le emite el recibo y a quien
+            // se le manda el aviso. Con recibo bancario coincide con el titular de la
+            // cuenta, pero se pide siempre, también sin domiciliación.
+            $table->unsignedBigInteger('propietario_id')->index('formas_pago_inmuebles_propietario_id_foreign');
             $table->unsignedBigInteger('forma_de_pago_id')->index('formas_pago_inmuebles_forma_de_pago_id_foreign');
             $table->unsignedBigInteger('cuenta_bancaria_id')->nullable()->index('formas_pago_inmuebles_cuenta_bancaria_id_foreign');
             $table->date('fecha_inicio');
@@ -21,6 +25,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('inmueble_id')->references('id')->on('inmuebles')->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign('propietario_id')->references('id')->on('propietarios')->onUpdate('restrict')->onDelete('restrict');
             $table->foreign('forma_de_pago_id')->references('id')->on('formas_de_pago')->onUpdate('restrict')->onDelete('restrict');
             $table->foreign('cuenta_bancaria_id')->references('id')->on('cuentas_bancarias')->onUpdate('restrict')->onDelete('restrict');
         });
