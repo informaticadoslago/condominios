@@ -7,6 +7,7 @@ use App\Models\CuentaContable;
 use App\Models\EjercicioContable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -60,6 +61,36 @@ class Formulario extends Component
     protected function ejercicio(): EjercicioContable
     {
         return EjercicioContable::findOrFail($this->ejercicio_contable_id);
+    }
+
+    /**
+     * El formulario trabaja en euros, que es lo que teclea el usuario; la base de datos
+     * guarda céntimos enteros. Toda la aritmética de cuadre se hace ya en céntimos, para
+     * que la comparación sea exacta y no dependa de redondeos.
+     */
+    protected function aCentimos(mixed $euros): int
+    {
+        return (int) round(((float) $euros) * 100);
+    }
+
+    /** Total del Debe, en céntimos. */
+    #[Computed]
+    public function totalDebe(): int
+    {
+        return array_sum(array_map(fn ($a) => $this->aCentimos($a['debe'] ?? 0), $this->apuntes));
+    }
+
+    /** Total del Haber, en céntimos. */
+    #[Computed]
+    public function totalHaber(): int
+    {
+        return array_sum(array_map(fn ($a) => $this->aCentimos($a['haber'] ?? 0), $this->apuntes));
+    }
+
+    #[Computed]
+    public function cuadra(): bool
+    {
+        return $this->totalDebe === $this->totalHaber;
     }
 
     protected function lineaVacia(): array
@@ -172,13 +203,13 @@ class Formulario extends Component
             $haberTotal = 0;
 
             foreach ($this->apuntes as $i => $apunte) {
-                $debe  = (float) ($apunte['debe'] ?? 0);
-                $haber = (float) ($apunte['haber'] ?? 0);
+                $debe  = $this->aCentimos($apunte['debe'] ?? 0);
+                $haber = $this->aCentimos($apunte['haber'] ?? 0);
 
                 if ($debe > 0 && $haber > 0) {
                     $validator->errors()->add("apuntes.$i.debe", __('Una línea no puede tener importe en Debe y en Haber a la vez'));
                 }
-                if ($debe == 0 && $haber == 0) {
+                if ($debe === 0 && $haber === 0) {
                     $validator->errors()->add("apuntes.$i.debe", __('La línea debe tener un importe en Debe o en Haber'));
                 }
 
@@ -186,10 +217,11 @@ class Formulario extends Component
                 $haberTotal += $haber;
             }
 
-            if (round($debeTotal, 2) !== round($haberTotal, 2)) {
+            // Céntimos enteros: el cuadre es exacto, sin redondeos de por medio.
+            if ($debeTotal !== $haberTotal) {
                 $validator->errors()->add('apuntes', __('El asiento no cuadra: Debe :debe frente a Haber :haber', [
-                    'debe'  => number_format($debeTotal, 2),
-                    'haber' => number_format($haberTotal, 2),
+                    'debe'  => number_format($debeTotal / 100, 2),
+                    'haber' => number_format($haberTotal / 100, 2),
                 ]));
             }
         });
@@ -221,6 +253,7 @@ class Formulario extends Component
             $numero = (int) AsientoContable::where('ejercicio_contable_id', $data['ejercicio_contable_id'])->max('numero') + 1;
 
             $asiento = AsientoContable::create([
+                'empresa_contable_id'   => $this->empresa_contable_id,
                 'ejercicio_contable_id' => $data['ejercicio_contable_id'],
                 'numero'                => $numero,
                 'fecha'                 => $data['fecha'],
@@ -230,8 +263,8 @@ class Formulario extends Component
             foreach ($data['apuntes'] as $apunte) {
                 $asiento->apuntesContables()->create([
                     'cuenta_contable_id' => $apunte['cuenta_contable_id'],
-                    'debe'               => $apunte['debe'] ?: 0,
-                    'haber'              => $apunte['haber'] ?: 0,
+                    'debe'               => $this->aCentimos($apunte['debe'] ?? 0),
+                    'haber'              => $this->aCentimos($apunte['haber'] ?? 0),
                     'concepto'           => $apunte['concepto'] ?: null,
                 ]);
             }

@@ -118,7 +118,8 @@
                                     </td>
                                 @endif
                                 @if ($this->verColumna('importe'))
-                                    <td class="px-6 py-4 text-right">{{ number_format($item->total_debe ?? 0, 2, ',', '.') }}</td>
+                                    {{-- total_debe viene del withSum en céntimos: los agregados de SQL no pasan por los casts. --}}
+                                    <td class="px-6 py-4 text-right">{{ number_format(($item->total_debe ?? 0) / 100, 2, ',', '.') }}</td>
                                 @endif
                                 <td class="px-4 whitespace-nowrap">
                                     <x-button type="button" class="btn-editar" id="btn-detalle-asiento-contable-{{ $item->id }}"
@@ -144,8 +145,8 @@
                                                     <tr wire:key="apunte-{{ $apunte->id }}">
                                                         <td class="py-1 pr-4">{{ $apunte->cuentaContable?->codigo }} - {{ $apunte->cuentaContable?->nombre }}</td>
                                                         <td class="py-1 pr-4">{{ $apunte->concepto }}</td>
-                                                        <td class="py-1 pr-4 text-right">{{ $apunte->debe > 0 ? number_format($apunte->debe, 2, ',', '.') : '' }}</td>
-                                                        <td class="py-1 text-right">{{ $apunte->haber > 0 ? number_format($apunte->haber, 2, ',', '.') : '' }}</td>
+                                                        <td class="py-1 pr-4 text-right">{{ $apunte->debe > 0 ? number_format($apunte->debe_euros, 2, ',', '.') : '' }}</td>
+                                                        <td class="py-1 text-right">{{ $apunte->haber > 0 ? number_format($apunte->haber_euros, 2, ',', '.') : '' }}</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>

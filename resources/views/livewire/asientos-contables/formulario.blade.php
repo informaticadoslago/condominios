@@ -1,8 +1,6 @@
-@php
-    $totalDebe  = collect($apuntes)->sum(fn ($a) => (float) ($a['debe'] ?? 0));
-    $totalHaber = collect($apuntes)->sum(fn ($a) => (float) ($a['haber'] ?? 0));
-    $cuadra     = round($totalDebe, 2) === round($totalHaber, 2);
-@endphp
+{{-- Los totales y el cuadre se calculan en el componente, en céntimos enteros
+     ($this->totalDebe / $this->totalHaber): aquí solo se dividen entre 100 para
+     mostrarlos en euros. --}}
 
 {{-- Página a pantalla completa (sin sidebar ni cabecera, ver layouts/foco.blade.php),
      pero el trabajo ocurre en un recuadro central de tamaño fijo (proporcional a la
@@ -97,8 +95,8 @@
                     <tfoot>
                         <tr class="font-semibold">
                             <td colspan="2" class="py-2 text-right">{{ __('Totales') }}</td>
-                            <td class="py-2 pr-2 text-right">{{ number_format($totalDebe, 2, ',', '.') }}</td>
-                            <td class="py-2 pr-2 text-right">{{ number_format($totalHaber, 2, ',', '.') }}</td>
+                            <td class="py-2 pr-2 text-right">{{ number_format($this->totalDebe / 100, 2, ',', '.') }}</td>
+                            <td class="py-2 pr-2 text-right">{{ number_format($this->totalHaber / 100, 2, ',', '.') }}</td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -108,11 +106,11 @@
                     <i class="fa-solid fa-plus"></i> {{ __('Añadir línea') }}
                 </button>
 
-                <div class="mt-2 text-sm {{ $cuadra ? 'text-green-600' : 'text-red-600' }}">
-                    @if ($cuadra)
+                <div class="mt-2 text-sm {{ $this->cuadra ? 'text-green-600' : 'text-red-600' }}">
+                    @if ($this->cuadra)
                         {{ __('El asiento cuadra.') }}
                     @else
-                        {{ __('El asiento no cuadra: diferencia de :diff', ['diff' => number_format(abs($totalDebe - $totalHaber), 2, ',', '.')]) }}
+                        {{ __('El asiento no cuadra: diferencia de :diff', ['diff' => number_format(abs($this->totalDebe - $this->totalHaber) / 100, 2, ',', '.')]) }}
                     @endif
                 </div>
             </div>
@@ -124,7 +122,7 @@
              se recorren los campos hasta Guardar, sin tropezar con Cancelar. --}}
         <a href="{{ route('asientos-contables.index') }}" wire:navigate tabindex="-1"
             class="btn btn-cerrar px-2 mr-3" title="{{ __('Cancelar') }}">{{ __('Cancelar') }}</a>
-        <button type="button" class="btn btn-guardar px-2" wire:click="guardar" @disabled(! $cuadra)
+        <button type="button" class="btn btn-guardar px-2" wire:click="guardar" @disabled(! $this->cuadra)
             title="{{ __('Guardar') }}">{{ __('Guardar') }}</button>
     </footer>
     </div>
