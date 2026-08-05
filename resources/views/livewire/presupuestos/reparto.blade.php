@@ -12,6 +12,7 @@
     </x-slot>
 
     <x-slot name="content">
+        <div class="space-y-4">
         <div class="space-y-4 max-w-4xl">
         <x-dosl.tabla>
             <div class="py-3 px-6 flex items-center justify-between">
@@ -64,6 +65,7 @@
                 <div class="py-3 px-6">{{ __('Este presupuesto todavía no tiene conceptos con grupo de reparto.') }}</div>
             </x-dosl.tabla>
         @endforelse
+        </div>
 
         <x-dosl.tabla>
             <div class="py-3 px-6 font-semibold">
