@@ -23,8 +23,11 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <!-- <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/> -->
+        <!-- Base de datos de pruebas, SIEMPRE distinta de la de trabajo. No se puede
+             usar SQLite: las migraciones crean disparadores con SQL crudo de MariaDB.
+             tests/TestCase.php aborta si esto no acaba en "_test". -->
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_DATABASE" value="CondominiosDosLago_test"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
