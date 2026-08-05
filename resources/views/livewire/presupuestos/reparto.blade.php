@@ -15,6 +15,23 @@
         <div class="space-y-4">
         <div class="space-y-4 max-w-4xl">
         <x-dosl.tabla>
+            <x-slot name="titulo">
+                <span class="text-base font-normal">
+                    {{ __('Estado') }}:
+                    <span class="font-semibold">{{ $presupuesto->estado?->descripcion }}</span>
+                </span>
+            </x-slot>
+            <x-slot name="botonera">
+                @unless ($aprobado)
+                    {{-- :disabled y no @disabled: la directiva dentro de la etiqueta de
+                         un componente Blade descuadra la plantilla al compilarla. --}}
+                    <x-secondary-button type="button" wire:click="confirmarAprobar" title="{{ __('Aprobar') }}"
+                        :disabled="! $puedeAprobar">
+                        <i class="fa-solid fa-circle-check mr-1"></i>{{ __('Aprobar') }}
+                    </x-secondary-button>
+                @endunless
+            </x-slot>
+
             <div class="py-3 px-6 flex items-center justify-between">
                 <span class="font-semibold">{{ __('Total del presupuesto') }} ({{ $presupuesto->anho }})</span>
                 <span class="font-semibold">{{ number_format($totalPresupuesto, 2, ',', '.') }}</span>

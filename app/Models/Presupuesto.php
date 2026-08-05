@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Models\Traits\ConHistorialEstado;
+use App\Services\Recibos\GeneradorRecibos;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Presupuesto extends Model
 {
@@ -175,11 +177,25 @@ class Presupuesto extends Model
         }
     }
 
+    public function recibos()
+    {
+        return $this->hasMany(Recibo::class);
+    }
+
     protected static function booted(): void
     {
         static::updated(function (self $presupuesto) {
             if ($presupuesto->wasChanged('estado_id') && $presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
-                $presupuesto->avanzarRotacionReparto();
+                // El orden no es indiferente: los recibos se vuelcan con el reparto tal
+                // y como se aprobó, y solo después avanza la rotación para el siguiente.
+                // Al revés, los recibos llevarían los céntimos ya movidos de sitio. Van
+                // juntos en una transacción para que no pueda quedar la rotación avanzada
+                // sin los recibos que la justifican.
+                DB::transaction(function () use ($presupuesto) {
+                    app(GeneradorRecibos::class)->generar($presupuesto);
+
+                    $presupuesto->avanzarRotacionReparto();
+                });
             }
         });
     }

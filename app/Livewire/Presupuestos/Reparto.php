@@ -2,8 +2,12 @@
 
 namespace App\Livewire\Presupuestos;
 
+use App\Exceptions\RecibosNoGenerablesException;
 use App\Models\Presupuesto;
-use Carbon\Carbon;
+use App\Models\TipoEstadoPresupuesto;
+use App\Services\Presupuestos\CalculadorReparto;
+use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class Reparto extends Component
@@ -17,86 +21,85 @@ class Reparto extends Component
         $this->presupuesto_id = $presupuesto->id;
     }
 
-    public function render()
+    private function presupuesto(): Presupuesto
     {
-        $presupuesto = Presupuesto::with(['periodicidad', 'conceptos.grupoDeReparto.inmuebles'])
-            ->findOrFail($this->presupuesto_id);
+        $presupuesto = Presupuesto::findOrFail($this->presupuesto_id);
 
-        $datosPagoCompletos = $presupuesto->fecha_primer_pago && $presupuesto->periodicidad_id && $presupuesto->numero_pagos;
-        $totalPresupuesto   = (float) $presupuesto->conceptos->sum('importe');
+        abort_if($presupuesto->comunidad_id != session('comunidad_actual_id'), 403);
 
-        // Por grupo de reparto: total de sus conceptos, repartido entre sus miembros
-        // proporcionalmente al coeficiente (el fijado en el grupo, si lo hay; si no, el
-        // propio del inmueble).
-        $grupos = [];
-        foreach ($presupuesto->conceptos as $concepto) {
-            $grupo = $concepto->grupoDeReparto;
-            if (! $grupo) {
-                continue;
-            }
+        return $presupuesto;
+    }
 
-            $grupos[$grupo->id] ??= ['grupo' => $grupo, 'total' => 0.0];
-            $grupos[$grupo->id]['total'] += (float) $concepto->importe;
-        }
-
-        $global = []; // inmueble_id => ['inmueble' => Inmueble, 'total' => float]
-
-        foreach ($grupos as $grupoId => &$datosGrupo) {
-            // El orden importa: Presupuesto::repartirProporcional() da el céntimo de más
-            // a los primeros de la lista, así que se ordena ANTES de repartir (no después).
-            $miembros = $datosGrupo['grupo']->inmuebles
-                ->sortBy(fn ($i) => [$i->planta, $i->puerta])
-                ->values();
-
-            $pesos    = $miembros->mapWithKeys(fn ($i) => [$i->id => (float) ($i->pivot->coeficiente ?? $i->coeficiente)])->all();
-            $importes = Presupuesto::repartirProporcional($datosGrupo['total'], $pesos, $datosGrupo['grupo']->siguiente_inicio_reparto);
-
-            $datosGrupo['sumaCoeficientes'] = array_sum($pesos);
-            $datosGrupo['lineas']           = $miembros->map(fn ($inmueble) => [
-                'inmueble'    => $inmueble,
-                'coeficiente' => $pesos[$inmueble->id],
-                'importe'     => $importes[$inmueble->id],
-            ])->values();
-
-            foreach ($datosGrupo['lineas'] as $linea) {
-                $id            = $linea['inmueble']->id;
-                $global[$id] ??= ['inmueble' => $linea['inmueble'], 'total' => 0.0];
-                $global[$id]['total'] += $linea['importe'];
-            }
-        }
-        unset($datosGrupo);
-
-        $fechasPagos = $datosPagoCompletos ? $this->fechasPagos($presupuesto) : [];
-
-        foreach ($global as &$fila) {
-            $fila['pagos'] = $datosPagoCompletos ? $this->desglosePagos($fila['total'], $presupuesto->numero_pagos) : [];
-        }
-        unset($fila);
-
-        return view('livewire.presupuestos.reparto', [
-            'presupuesto'        => $presupuesto,
-            'datosPagoCompletos' => $datosPagoCompletos,
-            'totalPresupuesto'   => $totalPresupuesto,
-            'grupos'             => collect($grupos)->values(),
-            'global'             => collect($global)->sortBy(fn ($f) => [$f['inmueble']->planta, $f['inmueble']->puerta])->values(),
-            'fechasPagos'        => $fechasPagos,
+    public function confirmarAprobar(): void
+    {
+        $this->dispatch('swalConfirm', [
+            'title'              => __('¿Aprobar el presupuesto?'),
+            'text'               => __('Se generarán los recibos de todos los inmuebles con este reparto. El reparto queda fijado y no se podrá volver atrás.'),
+            'icon'               => 'warning',
+            'showCancelButton'   => true,
+            'confirmButtonColor' => '#16a34a',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, aprobar'),
+            'cancelButtonText'   => __('Cancelar'),
+            'confirmCallback'    => 'ejecutarAprobar',
+            'cancelCallback'     => 'aprobarCancelado',
+            'id'                 => $this->presupuesto_id,
         ]);
     }
 
-    /** @return \Carbon\Carbon[] */
-    protected function fechasPagos(Presupuesto $presupuesto): array
+    #[On('ejecutarAprobar')]
+    public function aprobar(): void
     {
-        $meses  = $presupuesto->periodicidad->meses;
-        $inicio = Carbon::parse($presupuesto->fecha_primer_pago);
+        $presupuesto = $this->presupuesto();
 
-        return collect(range(1, $presupuesto->numero_pagos))
-            ->map(fn ($i) => $inicio->copy()->addMonthsNoOverflow(($i - 1) * $meses))
-            ->all();
+        if ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
+            return;
+        }
+
+        try {
+            // El cambio de estado va dentro de la transacción a propósito: si la
+            // generación de recibos falla (un inmueble sin propietario o sin forma de
+            // pago), el presupuesto NO puede quedarse aprobado y sin recibos — desde
+            // ese estado ya no volvería a dispararse la generación.
+            DB::transaction(function () use ($presupuesto) {
+                $presupuesto->update(['estado_id' => TipoEstadoPresupuesto::APROBADO]);
+            });
+        } catch (RecibosNoGenerablesException $e) {
+            $this->dispatch('toast-error', ['title' => $e->getMessage()]);
+
+            return;
+        }
+
+        $this->dispatch('toast-success', ['title' => __('Presupuesto aprobado y recibos generados')]);
     }
 
-    /** Reparte $total en $n pagos: ver Presupuesto::repartirPagos(). */
-    protected function desglosePagos(float $total, int $n): array
+    #[On('aprobarCancelado')]
+    public function aprobarCancelado($id = null): void
     {
-        return Presupuesto::repartirPagos($total, $n);
+        // el usuario canceló; no hacemos nada
+    }
+
+    public function render(CalculadorReparto $calculador)
+    {
+        $presupuesto = Presupuesto::with(['estado', 'periodicidad', 'conceptos.grupoDeReparto.inmuebles'])
+            ->findOrFail($this->presupuesto_id);
+
+        // El cálculo vive en el servicio porque el generador de recibos vuelca justo
+        // esto al aprobar: los dos tienen que dar lo mismo siempre.
+        $reparto = $calculador->calcular($presupuesto);
+
+        return view('livewire.presupuestos.reparto', [
+            'presupuesto'        => $presupuesto,
+            'aprobado'           => $presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO,
+            // Se resuelve aquí y no en la vista: dentro de un atributo de componente
+            // Blade, una expresión con «->» corta la etiqueta en su «>» y descuadra la
+            // plantilla entera.
+            'puedeAprobar'       => $reparto['datosPagoCompletos'] && $reparto['global']->isNotEmpty(),
+            'datosPagoCompletos' => $reparto['datosPagoCompletos'],
+            'totalPresupuesto'   => $reparto['total'],
+            'grupos'             => $reparto['grupos'],
+            'global'             => $reparto['global'],
+            'fechasPagos'        => $reparto['fechasPagos'],
+        ]);
     }
 }
