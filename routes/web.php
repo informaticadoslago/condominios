@@ -5,6 +5,7 @@ use App\Http\Controllers\ComunidadContextoController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
+use App\Http\Controllers\MandatoSepaPlantillaController;
 use App\Http\Controllers\EmpresaContableContextoController;
 use App\Livewire\AdministracionSistema\Backups\Lista as BackupsLista;
 use App\Livewire\AdministracionSistema\Empresa\Editar as EmpresaEditar;
@@ -104,6 +105,8 @@ Route::middleware([
         Route::get('/facturas', FacturasLista::class)->name('facturas.index');
         Route::get('/documentos/{documento}/descargar', DocumentoDescargaController::class)->name('documentos.download');
         Route::get('/documentos/{documento}/ver', DocumentoVistaController::class)->name('documentos.ver');
+        // Plantilla en blanco del mandato SEPA, para imprimir o mandar al propietario.
+        Route::get('/mandatos-sepa/plantilla/{personaComunidad}', MandatoSepaPlantillaController::class)->name('mandatos-sepa.plantilla');
         Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');
         Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
         Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');

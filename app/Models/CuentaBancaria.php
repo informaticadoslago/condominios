@@ -37,4 +37,24 @@ class CuentaBancaria extends Model
     {
         return $this->belongsTo(PersonaComunidad::class);
     }
+
+    /**
+     * Persona que figura como titular: la de personaComunidad si se indicó otra distinta
+     * (propietario menor de edad), y si no la del propio titular.
+     */
+    public function titularReal(): ?PersonaComunidad
+    {
+        return $this->personaComunidad ?? $this->titular?->persona;
+    }
+
+    /** NIF del titular de la cuenta: es con lo que se numera su mandato SEPA. */
+    public function nifTitular(): ?string
+    {
+        return $this->titularReal()?->documento_identificativo;
+    }
+
+    public function mandatosSepa()
+    {
+        return $this->hasMany(MandatoSepa::class);
+    }
 }

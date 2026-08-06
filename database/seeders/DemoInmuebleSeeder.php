@@ -8,6 +8,7 @@ use App\Models\EntidadBancaria;
 use App\Models\FormaDePago;
 use App\Models\FormaPagoInmueble;
 use App\Models\Inmueble;
+use App\Models\MandatoSepa;
 use App\Models\Pais;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
@@ -23,7 +24,7 @@ use Illuminate\Database\Seeder;
  * variados (hombres y mujeres, algún menor de edad, algún NIE) y algún inmueble
  * compartido entre varios. Cada propietario tiene una cuenta bancaria (IBAN
  * ficticio pero válido) y cada inmueble su forma de pago vigente: la mayoría por
- * recibo bancario y unos cuantos por transferencia. El edificio 1 tiene además 15
+ * recibo bancario y unos cuantos por transferencia, con su mandato SEPA ya firmado. El edificio 1 tiene además 15
  * plazas de garaje en planta -1. Las comunidades a las que se cuelgan estos edificios las genera
  * DemoComunidadSeeder (nombre y CIF al azar en cada pasada, para poder acumular);
  * por eso este seeder ya no busca una comunidad por CIF fijo, sino que recibe las
@@ -90,11 +91,13 @@ class DemoInmuebleSeeder extends Seeder
             }
 
             $porTransferencia = $this->crearFormasDePago($spec, $inmuebles, $propietarios, $cuentas);
+            $mandatos         = $this->crearMandatos($comunidad, $inmuebles);
 
             $this->command?->info(
                 "Edificio de «{$comunidad->nombre}»: ".count($inmuebles).' inmuebles, '.count($propietarios)
                 .' propietarios (todos con cuenta bancaria), '.$porTransferencia
-                .' inmuebles por transferencia y '.(count($inmuebles) - $porTransferencia).' por recibo bancario.'
+                .' inmuebles por transferencia y '.(count($inmuebles) - $porTransferencia).' por recibo bancario, '
+                .$mandatos.' mandatos SEPA.'
             );
         }
     }
@@ -249,6 +252,72 @@ class DemoInmuebleSeeder extends Seeder
         }
 
         return $porTransferencia;
+    }
+
+    /**
+     * Mandato SEPA de cada inmueble que paga por recibo bancario, firmado el 1 de enero
+     * de este año.
+     *
+     * Va por CUENTA, no por inmueble: el propietario que tiene piso y garaje domicilia
+     * los dos en la misma cuenta, así que le toca el MISMO mandato — que es como
+     * funciona de verdad. Por eso el firstOrCreate busca por (comunidad, cuenta) y el
+     * segundo inmueble encuentra el que ya se creó para el primero.
+     *
+     * @param  array<string, Inmueble>  $inmuebles
+     * @return int mandatos creados
+     */
+    private function crearMandatos(Comunidad $comunidad, array $inmuebles): int
+    {
+        $fechaFirma = now()->year.'-01-01';
+        $creados    = 0;
+
+        $formasConRecibo = FormaPagoInmueble::vigente()
+            ->whereIn('inmueble_id', collect($inmuebles)->pluck('id'))
+            ->where('forma_de_pago_id', FormaDePago::RECIBO_BANCARIO)
+            ->whereNotNull('cuenta_bancaria_id')
+            ->with('cuentaBancaria')
+            ->get();
+
+        foreach ($formasConRecibo as $forma) {
+            $nif = $forma->cuentaBancaria?->nifTitular();
+
+            if (! $nif) {
+                continue;
+            }
+
+            $mandato = MandatoSepa::firstOrCreate(
+                [
+                    'comunidad_id'       => $comunidad->id,
+                    'cuenta_bancaria_id' => $forma->cuenta_bancaria_id,
+                ],
+                [
+                    // Mismo formato que exige RegistrarMandatoSepa: prefijo + NIF del
+                    // titular de la cuenta + contador.
+                    'referencia'  => MandatoSepa::PREFIJO.$nif.$this->siguienteContador($comunidad, $nif),
+                    'fecha_firma' => $fechaFirma,
+                ]
+            );
+
+            if ($mandato->wasRecentlyCreated) {
+                $creados++;
+            }
+        }
+
+        return $creados;
+    }
+
+    /**
+     * Contador del siguiente mandato de ese NIF en esa comunidad.
+     *
+     * Hace falta porque un mismo titular puede tener varias cuentas: quien firma la
+     * cuenta de un propietario menor de edad es también titular de la suya, así que su
+     * NIF sale dos veces y con el contador fijo se repetiría la referencia.
+     */
+    private function siguienteContador(Comunidad $comunidad, string $nif): int
+    {
+        return MandatoSepa::where('comunidad_id', $comunidad->id)
+            ->where('referencia', 'like', MandatoSepa::PREFIJO.$nif.'%')
+            ->count() + 1;
     }
 
     /** updateOrCreate (no firstOrCreate): así un cambio de coeficiente en el spec se aplica al relanzar. */

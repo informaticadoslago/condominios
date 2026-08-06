@@ -7,12 +7,17 @@ use App\Models\Borrador;
 use App\Models\CuentaBancaria;
 use App\Models\FormaDePago;
 use App\Models\FormaPagoInmueble;
+use App\Exceptions\MandatoSepaInvalidoException;
 use App\Models\Inmueble;
+use App\Models\MandatoSepa;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
+use App\Models\TipoDocumento;
 use App\Models\Titularidad;
+use App\Services\Recibos\RegistrarMandatoSepa;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
+use Livewire\WithFileUploads;
 
 /**
  * Último paso: forma de pago del inmueble y, si es recibo bancario, el propietario
@@ -23,6 +28,8 @@ use Livewire\Attributes\On;
  */
 class DatosFinancierosStep extends CrearInmuebleStep
 {
+    use WithFileUploads;
+
     public ?int $inmuebleId = null;
 
     public $forma_de_pago_id = null;
@@ -30,6 +37,17 @@ class DatosFinancierosStep extends CrearInmuebleStep
     /** persona_comunidad_id del titular elegido como responsable del recibo (solo si RECIBO_BANCARIO). */
     public $persona_comunidad_id_pago = null;
     public $cuenta_bancaria_id = null;
+
+    // Mandato SEPA de la cuenta elegida. Los dos se escriben a mano: el número lo
+    // decide quien numera los mandatos (P19 + NIF del titular + contador) y la fecha es
+    // la del papel firmado. O se rellenan los dos o ninguno.
+    public $mandato_referencia = null;
+    public $mandato_fecha_firma = null;
+
+    /** El PDF firmado, si ya se tiene. Se cuelga del mandato al terminar. */
+    public $mandato_documento = null;
+
+    public bool $modalPlantillaMandatoAbierta = false;
 
     public bool $cargado = false;
 
@@ -117,6 +135,55 @@ class DatosFinancierosStep extends CrearInmuebleStep
     public function updatedPersonaComunidadIdPago(): void
     {
         $this->cuenta_bancaria_id = null;
+        $this->olvidarMandato();
+    }
+
+    /** Cada cuenta tiene su propio mandato: al cambiar de cuenta, lo tecleado ya no vale. */
+    public function updatedCuentaBancariaId(): void
+    {
+        $this->olvidarMandato();
+    }
+
+    private function olvidarMandato(): void
+    {
+        $this->mandato_referencia  = null;
+        $this->mandato_fecha_firma = null;
+        $this->mandato_documento   = null;
+    }
+
+    /** El mandato ya registrado de la cuenta elegida, si lo hay: entonces no se pide otro. */
+    private function mandatoVigente(): ?MandatoSepa
+    {
+        if (! $this->cuenta_bancaria_id || ! $this->comunidadId()) {
+            return null;
+        }
+
+        return app(RegistrarMandatoSepa::class)
+            ->mandatoDeLaCuenta((int) $this->comunidadId(), (int) $this->cuenta_bancaria_id);
+    }
+
+    public function abrirPlantillaMandato(): void
+    {
+        $this->modalPlantillaMandatoAbierta = true;
+    }
+
+    public function cerrarPlantillaMandato(): void
+    {
+        $this->modalPlantillaMandatoAbierta = false;
+    }
+
+    /**
+     * La plantilla se saca a nombre del propietario responsable del pago. Sin el piso:
+     * el mandato es del titular y su cuenta, y con un piso impreso no valdría para los
+     * demás inmuebles de ese mismo titular.
+     */
+    private function urlPlantillaMandato(): ?string
+    {
+        if (! $this->persona_comunidad_id_pago) {
+            return null;
+        }
+
+        return route('mandatos-sepa.plantilla', ['personaComunidad' => $this->persona_comunidad_id_pago]);
     }
 
     /** Comunidad del inmueble en curso, para el wizard de Propietario embebido en el modal. */
@@ -166,10 +233,17 @@ class DatosFinancierosStep extends CrearInmuebleStep
     {
         $esReciboBancario = (int) $this->forma_de_pago_id === FormaDePago::RECIBO_BANCARIO;
 
+        // El mandato es opcional (se registra cuando vuelve firmado), pero no a medias:
+        // un número sin fecha no sirve para remesar, y una fecha sin número tampoco.
+        $conMandato = filled($this->mandato_referencia) || filled($this->mandato_fecha_firma);
+
         return [
             'forma_de_pago_id'          => ['required', 'exists:formas_de_pago,id'],
             'persona_comunidad_id_pago' => ['required', 'exists:personas_comunidad,id'],
             'cuenta_bancaria_id'        => [$esReciboBancario ? 'required' : 'nullable', 'exists:cuentas_bancarias,id'],
+            'mandato_referencia'        => [$conMandato ? 'required' : 'nullable', 'string', 'max:35'],
+            'mandato_fecha_firma'       => [$conMandato ? 'required' : 'nullable', 'date', 'before_or_equal:today'],
+            'mandato_documento'         => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:8192'],
         ];
     }
 
@@ -179,6 +253,9 @@ class DatosFinancierosStep extends CrearInmuebleStep
             'forma_de_pago_id'          => __('forma de pago'),
             'persona_comunidad_id_pago' => __('propietario'),
             'cuenta_bancaria_id'        => __('cuenta bancaria'),
+            'mandato_referencia'        => __('número de mandato'),
+            'mandato_fecha_firma'       => __('fecha de firma del mandato'),
+            'mandato_documento'         => __('documento del mandato'),
         ];
     }
 
@@ -227,7 +304,8 @@ class DatosFinancierosStep extends CrearInmuebleStep
         $propietariosQuitados = $payload['propietarios_quitados'] ?? [];
         $cuentaBancariaId     = $esReciboBancario ? $datos['cuenta_bancaria_id'] : null;
 
-        DB::transaction(function () use ($borrador, $propietarios, $propietariosQuitados, $datos, $cuentaBancariaId) {
+        try {
+            DB::transaction(function () use ($borrador, $propietarios, $propietariosQuitados, $datos, $cuentaBancariaId) {
             if ($this->inmuebleId) {
                 $inmueble = Inmueble::findOrFail($this->inmuebleId);
                 $inmueble->update($borrador->payload['datos']);
@@ -305,7 +383,34 @@ class DatosFinancierosStep extends CrearInmuebleStep
                     'fecha_fin'          => null,
                 ]);
             }
-        });
+
+            // Mandato SEPA de la cuenta, si se ha registrado el papel firmado. Cuelga de
+            // la cuenta y de la comunidad, no del inmueble: sirve para todos los que
+            // paguen con ella.
+            if ($cuentaBancariaId && filled($datos['mandato_referencia'])) {
+                $mandato = app(RegistrarMandatoSepa::class)->ejecutar(
+                    (int) $inmueble->comunidad_id,
+                    CuentaBancaria::findOrFail($cuentaBancariaId),
+                    $datos['mandato_referencia'],
+                    $datos['mandato_fecha_firma'],
+                );
+
+                if ($this->mandato_documento) {
+                    $mandato->adjuntarDocumento(
+                        $this->mandato_documento,
+                        TipoDocumento::MANDATO_SEPA,
+                        __('Mandato firmado'),
+                    );
+                }
+            }
+            });
+        } catch (MandatoSepaInvalidoException $e) {
+            // El número tecleado no cuadra con la cuenta. No se graba nada: la
+            // transacción entera se ha deshecho.
+            $this->addError('mandato_referencia', $e->getMessage());
+
+            return;
+        }
 
         $borrador->delete();
         session()->forget('inmueble_borrador_id');
@@ -321,6 +426,9 @@ class DatosFinancierosStep extends CrearInmuebleStep
             'cuentas'              => $this->cuentasDelTitular(),
             'esReciboBancario'     => (int) $this->forma_de_pago_id === FormaDePago::RECIBO_BANCARIO,
             'comunidadIdParaModal' => $this->comunidadId(),
+            // Si la cuenta ya tiene mandato no se pide otro: se enseña el que hay.
+            'mandatoVigente'       => $this->mandatoVigente(),
+            'urlPlantillaMandato'  => $this->urlPlantillaMandato(),
         ]);
     }
 }

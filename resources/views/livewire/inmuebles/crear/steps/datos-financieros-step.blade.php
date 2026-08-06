@@ -47,7 +47,72 @@
                 </div>
             @endif
         </div>
+
+        {{-- Mandato SEPA de la cuenta. Va con la cuenta, no con el inmueble: sirve para
+             todos los que paguen con ella. --}}
+        @if ($esReciboBancario && $cuenta_bancaria_id)
+            <div class="border-t pt-4">
+                <div class="flex items-center justify-between">
+                    <span class="font-semibold">{{ __('Mandato SEPA') }}</span>
+                    @if ($urlPlantillaMandato)
+                        <x-secondary-button type="button" wire:click="abrirPlantillaMandato">
+                            <i class="fa-solid fa-file-signature mr-1"></i>{{ __('Ver plantilla para firmar') }}
+                        </x-secondary-button>
+                    @endif
+                </div>
+
+                @if ($mandatoVigente)
+                    <p class="mt-2 text-sm">
+                        {{ __('Esta cuenta ya tiene mandato') }}:
+                        <span class="font-semibold">{{ $mandatoVigente->referencia }}</span>
+                        — {{ __('firmado el') }} {{ $mandatoVigente->fecha_firma?->format('d/m/Y') }}
+                    </p>
+                @else
+                    <p class="mt-2 text-sm text-gray-500">
+                        {{ __('Déjalo en blanco si todavía no está firmado. Si lo rellenas, hacen falta los dos datos.') }}
+                    </p>
+                    <div class="flex w-full mt-2">
+                        <div class="w-1/2">
+                            <x-label for="input-mandato-referencia" :value="__('Número de mandato')" />
+                            <x-input id="input-mandato-referencia" class="block mt-1 w-full mayusculas" type="text"
+                                wire:model.blur="mandato_referencia" placeholder="P19..." />
+                            <x-input-error for="mandato_referencia" class="mt-2" />
+                        </div>
+                        <div class="ml-2 w-1/2">
+                            <x-label for="input-mandato-fecha" :value="__('Fecha de firma')" />
+                            <x-input id="input-mandato-fecha" class="block mt-1 w-full" type="date"
+                                wire:model.blur="mandato_fecha_firma" />
+                            <x-input-error for="mandato_fecha_firma" class="mt-2" />
+                        </div>
+                    </div>
+                    <div class="mt-2 w-1/2">
+                        <x-label for="input-mandato-documento" :value="__('Documento firmado (opcional)')" />
+                        <input id="input-mandato-documento" type="file" wire:model="mandato_documento"
+                            accept=".pdf,.jpg,.jpeg,.png" class="block mt-1 w-full text-sm" />
+                        <x-input-error for="mandato_documento" class="mt-2" />
+                    </div>
+                @endif
+            </div>
+        @endif
     </div>
+
+    {{-- La plantilla en blanco, para imprimirla o descargarla y mandársela al
+         propietario: la rellena y la firma el titular de la cuenta. --}}
+    <x-dosl.dialog-modal wire:model.live="modalPlantillaMandatoAbierta" maxWidth="4xl">
+        <x-slot name="title">
+            {{ __('Plantilla del mandato SEPA') }}
+        </x-slot>
+        <x-slot name="content">
+            @if ($modalPlantillaMandatoAbierta && $urlPlantillaMandato)
+                <iframe src="{{ $urlPlantillaMandato }}" class="w-full" style="height: 70vh;"></iframe>
+            @endif
+        </x-slot>
+        <x-slot name="footer">
+            <x-secondary-button type="button" wire:click="cerrarPlantillaMandato">
+                {{ __('Cerrar') }}
+            </x-secondary-button>
+        </x-slot>
+    </x-dosl.dialog-modal>
 
     {{-- Wizard completo de Propietario embebido: al terminar (o salir), dispara un
          evento (ver propietarioActualizado()/cerrarModalPropietario()) en vez de

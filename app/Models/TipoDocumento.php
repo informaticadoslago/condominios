@@ -21,4 +21,6 @@ class TipoDocumento extends Model
     const TIPO_PLANTILLA_DIPLOMA = 8;
 
     const FACTURA = 9;
+
+    const MANDATO_SEPA = 10;
 }
