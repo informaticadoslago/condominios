@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
 <meta charset="UTF-8">
-<title>DosLago</title>
+<title>{{ config('app.name', 'Condominios dosLago') }}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
