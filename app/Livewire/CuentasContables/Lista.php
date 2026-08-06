@@ -3,6 +3,7 @@
 namespace App\Livewire\CuentasContables;
 
 use App\Livewire\ListaComponent;
+use App\Livewire\Traits\ConArbolCuentasContables;
 use App\Livewire\Traits\ConBajaPorEstado;
 use App\Livewire\Traits\ConFiltroEstado;
 use App\Livewire\Traits\ConHistorialEstadoModal;
@@ -13,6 +14,7 @@ use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
 {
+    use ConArbolCuentasContables;
     use ConBajaPorEstado;
     use ConFiltroEstado;
     use ConHistorialEstadoModal;
@@ -77,18 +79,28 @@ class Lista extends ListaComponent
         $search = trim($this->search ?? '');
 
         // Cuentas maestras: aún no asignadas a ninguna empresa contable.
-        $items = $this->aplicarFiltros(
+        $consultaBase = fn () => $this->aplicarFiltros(
             CuentaContable::with(['tipoCuentaContable', 'estado'])
-                ->withCount('historialEstados')
+                ->withCount(['historialEstados', 'subcuentas'])
                 ->whereNull('empresa_contable_id')
         )
             ->when($search, function ($q) use ($search) {
                 $q->where('codigo', 'like', "%{$search}%")
                     ->orWhere('nombre', 'like', "%{$search}%");
-            })
+            });
+
+        $arbol = $this->modoArbol();
+
+        // En árbol solo se paginan las raíces; sus descendientes cuelgan de ellas.
+        $items = $consultaBase()
+            ->when($arbol, fn ($q) => $q->whereNull('cuenta_padre_id'))
             ->orderBy($this->sort, $this->direction)
             ->paginate($this->lineasXPagina);
 
-        return view('livewire.cuentas-contables.lista', compact('items'));
+        $filas = $arbol
+            ? $this->filasArbol($items->getCollection(), $consultaBase)
+            : $items->getCollection();
+
+        return view('livewire.cuentas-contables.lista', compact('items', 'filas', 'arbol'));
     }
 }

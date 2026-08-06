@@ -20,7 +20,7 @@
                 @include('livewire.parciales.buscador', ['placeholder' => "Código o nombre"])
             </div>
             @include('livewire.parciales.filtros')
-            @if (count($items))
+            @if (count($filas))
                 <table class="table-striped w-full table-auto text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
@@ -46,9 +46,11 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y">
-                        @foreach ($items as $item)
+                        @foreach ($filas as $item)
                             <tr wire:key="{{ $item->id }}">
-                                <td class="px-6 py-4">{{ $item->codigo }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @include('livewire.parciales.arbol-cuentas-codigo')
+                                </td>
                                 <td class="px-6 py-4">
                                     <span class="mayusculas">{{ $item->nombre }}</span>
                                 </td>
