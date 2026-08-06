@@ -1,0 +1,73 @@
+/*
+ * Estilos del correo de verificación de dirección de un propietario.
+ *
+ * Fichero hermano de verificacion-correo-propietario.blade.php: x-emails.layout lo
+ * incrusta en un <style> al componer el correo. Para cambiar el aspecto del correo se
+ * toca aquí, sin entrar en la plantilla.
+ *
+ * Conviene no salirse de lo que entienden los clientes de correo: nada de flexbox, grid
+ * ni variables CSS, y las medidas en px.
+ */
+
+body {
+    margin: 0;
+    padding: 0;
+    background: #f3f4f6;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.marco {
+    background: #f3f4f6;
+    padding: 24px 0;
+}
+
+.tarjeta {
+    max-width: 500px;
+    background: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.contenido {
+    padding: 24px;
+    color: #111827;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.pie {
+    padding: 12px 24px;
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.4;
+    background: transparent;
+}
+
+.saludo {
+    margin: 0 0 16px;
+}
+
+.boton-caja {
+    text-align: center;
+    margin: 32px 0;
+}
+
+.boton {
+    background: #16a34a;
+    color: #ffffff;
+    text-decoration: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    display: inline-block;
+    font-weight: bold;
+}
+
+.aviso {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.enlace-plano {
+    color: #2563eb;
+    word-break: break-all;
+}

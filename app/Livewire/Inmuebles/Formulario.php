@@ -94,10 +94,14 @@ class Formulario extends Component
         ]);
     }
 
-    /** Forma de pago vigente del inmueble, con el propietario titular derivado de la cuenta bancaria. */
+    /**
+     * Forma de pago vigente del inmueble. El responsable del pago se lee de su columna,
+     * no de la cuenta bancaria: por transferencia no hay cuenta de la que deducirlo y el
+     * dato volvía vacío.
+     */
     private function financieroDeEdicion(Inmueble $inmueble): ?array
     {
-        $vigente = $inmueble->formaPagoVigente()->with('cuentaBancaria.titular')->first();
+        $vigente = $inmueble->formaPagoVigente()->with('propietario')->first();
 
         if (! $vigente) {
             return null;
@@ -105,7 +109,7 @@ class Formulario extends Component
 
         return [
             'forma_de_pago_id'          => $vigente->forma_de_pago_id,
-            'persona_comunidad_id_pago' => $vigente->cuentaBancaria?->titular?->persona_comunidad_id,
+            'persona_comunidad_id_pago' => $vigente->propietario?->persona_comunidad_id,
             'cuenta_bancaria_id'        => $vigente->cuenta_bancaria_id,
         ];
     }

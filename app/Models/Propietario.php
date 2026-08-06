@@ -62,4 +62,17 @@ class Propietario extends Model
     {
         return $this->morphMany(CuentaBancaria::class, 'titular');
     }
+
+    /**
+     * Primera dirección de correo activa, para saber a dónde escribirle y si ya la ha
+     * confirmado. Se resuelve sobre la relación ya cargada (with('persona.contactos'))
+     * para que un listado no lance una consulta por fila.
+     */
+    public function correo(): ?Contacto
+    {
+        return $this->persona?->contactos
+            ->where('tipo_contacto_id', TipoContacto::EMAIL)
+            ->where('estado_id', Estado::ESTADO_ACTIVO)
+            ->first();
+    }
 }

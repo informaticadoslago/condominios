@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\BackupDescargaController;
 use App\Http\Controllers\ComunidadContextoController;
+use App\Http\Controllers\ConfirmarCorreoPropietarioController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
 use App\Http\Controllers\MandatoSepaPlantillaController;
+use App\Http\Controllers\RemesaFicheroController;
+use App\Livewire\Remesas\Lista as RemesasLista;
 use App\Http\Controllers\EmpresaContableContextoController;
 use App\Livewire\AdministracionSistema\Backups\Lista as BackupsLista;
 use App\Livewire\AdministracionSistema\Empresa\Editar as EmpresaEditar;
@@ -52,6 +55,11 @@ Route::get('/', function () {
 Route::get('/confirmar-correo/{usuario}', ConfirmarCorreoUsuarioController::class)
     ->middleware('signed')
     ->name('usuarios.confirmar-correo');
+
+// El propietario no es usuario de la aplicación: llega desde el correo, sin sesión.
+Route::get('/confirmar-correo-propietario/{contacto}', ConfirmarCorreoPropietarioController::class)
+    ->middleware('signed')
+    ->name('propietarios.confirmar-correo');
 
 Route::middleware([
     'auth:sanctum',
@@ -108,6 +116,8 @@ Route::middleware([
         Route::get('/documentos/{documento}/ver', DocumentoVistaController::class)->name('documentos.ver');
         // Plantilla en blanco del mandato SEPA, para imprimir o mandar al propietario.
         Route::get('/mandatos-sepa/plantilla/{personaComunidad}', MandatoSepaPlantillaController::class)->name('mandatos-sepa.plantilla');
+        Route::get('/remesas', RemesasLista::class)->name('remesas.index');
+        Route::get('/remesas/{remesa}/fichero', RemesaFicheroController::class)->name('remesas.fichero');
         Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');
         Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
         Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');

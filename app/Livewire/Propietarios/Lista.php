@@ -7,10 +7,12 @@ use App\Livewire\Traits\ConFiltroEstado;
 use App\Livewire\Traits\ConHistorialEstadoModal;
 use App\Livewire\Traits\ConSeleccionMultiple;
 use App\Models\Borrador;
+use App\Models\Comunidad;
 use App\Models\Estado;
 use App\Models\Propietario;
 use App\Models\Titularidad;
 use App\Services\Comunidades\EnlaceContableComunidad;
+use App\Services\Propietarios\EnviarVerificacionCorreo;
 use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
@@ -162,7 +164,7 @@ class Lista extends ListaComponent
     {
         $search = trim($this->search ?? '');
 
-        return Propietario::with(['persona', 'estado'])
+        return Propietario::with(['persona.contactos', 'estado'])
             ->withCount('historialEstados')
             ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
             // Ver solo seleccionados manda también sobre la búsqueda: aunque ya no case
@@ -215,6 +217,32 @@ class Lista extends ListaComponent
 
         $this->dispatch('toast-success', [
             'title' => __(':enlazados propietarios enlazados', $resultado),
+        ]);
+    }
+
+    /**
+     * Le manda el correo que le pide confirmar su dirección. Solo se escribe a las
+     * direcciones sin confirmar (lo filtra el servicio), así que pulsarlo dos veces no
+     * molesta a quien ya contestó.
+     */
+    public function enviarVerificacionCorreo($id, EnviarVerificacionCorreo $servicio): void
+    {
+        $propietario = Propietario::whereKey($id)
+            ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+            ->first();
+
+        $comunidad = Comunidad::find(session('comunidad_actual_id'));
+
+        if (! $propietario || ! $comunidad) {
+            return;
+        }
+
+        $enviados = $servicio->aPropietario($propietario, $comunidad);
+
+        $this->dispatch($enviados ? 'toast-success' : 'toast-error', [
+            'title' => $enviados
+                ? __('Correo de verificación enviado')
+                : __('No tiene ninguna dirección de correo pendiente de confirmar'),
         ]);
     }
 

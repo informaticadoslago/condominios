@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Comunidad;
+use App\Models\EntidadBancaria;
 use App\Models\Pais;
 use App\Models\Persona;
 use App\Models\TipoDocumentoIdentificativo;
@@ -34,6 +35,9 @@ class DemoComunidadSeeder extends Seeder
         ];
     }
 
+    /** Toda la demo va contra la misma entidad, para poder probar con un banco concreto. */
+    private const ENTIDAD = '2080';
+
     private function crearComunidad(): Comunidad
     {
         $nombre = $this->nombreAlAzar();
@@ -52,11 +56,67 @@ class DemoComunidadSeeder extends Seeder
             'genero_id'                => TipoGenero::GENERO_OTRO,
         ]);
 
-        $comunidad = Comunidad::create(['persona_id' => $persona->id]);
+        $sufijo = '000';
 
-        $this->command?->info("Comunidad «{$nombre}» ({$cif}): id {$comunidad->id}");
+        $comunidad = Comunidad::create([
+            'persona_id'                  => $persona->id,
+            'sufijo'                      => $sufijo,
+            'identificador_acreedor_sepa' => Comunidad::calcularIdentificadorAcreedor($cif, $sufijo),
+        ]);
+
+        // Cuenta de abono de la comunidad: es a donde el banco ingresa cada remesa, y
+        // sin ella no se puede generar ninguna.
+        $cuenta = $comunidad->cuentasBancarias()->create([
+            'iban'                => $this->ibanComunidad($comunidad->id),
+            'entidad_bancaria_id' => EntidadBancaria::where('codigo', self::ENTIDAD)->value('id'),
+            'alias'               => 'Cuenta de la comunidad',
+        ]);
+
+        $this->command?->info(
+            "Comunidad «{$nombre}» ({$cif}): id {$comunidad->id}, "
+            ."acreedor {$comunidad->identificador_acreedor_sepa}, cuenta {$cuenta->iban}"
+        );
 
         return $comunidad;
+    }
+
+    /**
+     * IBAN de la cuenta de la comunidad, en la entidad 2080. El número de cuenta lleva
+     * el id dentro para que dos comunidades demo nunca compartan IBAN.
+     */
+    private function ibanComunidad(int $comunidadId): string
+    {
+        $oficina = '0001';
+        $cuenta  = str_pad((string) $comunidadId, 10, '0', STR_PAD_LEFT);
+
+        $ccc = self::ENTIDAD.$oficina
+            .$this->digitoControlCcc('00'.self::ENTIDAD.$oficina).$this->digitoControlCcc($cuenta)
+            .$cuenta;
+
+        // Control del IBAN: 'ES00' al final (E=14, S=28) y lo que falta hasta 98 del
+        // resto de dividir entre 97.
+        $control = 98 - (int) bcmod($ccc.'142800', '97');
+
+        return 'ES'.str_pad((string) $control, 2, '0', STR_PAD_LEFT).$ccc;
+    }
+
+    /** Dígito de control del CCC: pesos 1,2,4,8,5,10,9,7,3,6; un resto de 10 vale 1 y uno de 11 vale 0. */
+    private function digitoControlCcc(string $digitos): string
+    {
+        $pesos = [1, 2, 4, 8, 5, 10, 9, 7, 3, 6];
+        $suma  = 0;
+
+        foreach (str_split($digitos) as $posicion => $digito) {
+            $suma += ((int) $digito) * $pesos[$posicion];
+        }
+
+        $resto = 11 - ($suma % 11);
+
+        return (string) match ($resto) {
+            11 => 0,
+            10 => 1,
+            default => $resto,
+        };
     }
 
     /** "Residencial/Edificio/... + nombre" al azar: no hace falta que sea único, solo variado. */

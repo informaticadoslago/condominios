@@ -106,6 +106,7 @@
                             </th>
                             <th class="py-3 px-6">{{ __('Nombre') }}</th>
                             <th class="py-3 px-6">{{ __('Documento') }}</th>
+                            <th class="py-3 px-6">{{ __('Correo') }}</th>
                             @if (contabilidad_activa())
                                 <th class="py-3 px-6">{{ __('Cuenta') }}</th>
                             @endif
@@ -123,6 +124,21 @@
                                     <span class="mayusculas">{{ $item->persona->nombreCompleto ?? '' }}</span>
                                 </td>
                                 <td class="px-6 py-4">{{ $item->persona->documento_identificativo ?? '' }}</td>
+                                @php($correo = $item->correo())
+                                <td class="px-6 py-4">
+                                    @if ($correo)
+                                        <span class="whitespace-nowrap">{{ $correo->valor }}</span>
+                                        @if ($correo->estaValidado())
+                                            <i class="fa-solid fa-circle-check text-green-600 ml-1"
+                                                title="{{ __('Validado el :fecha', ['fecha' => $correo->verified_at->format('d-m-Y')]) }}"></i>
+                                        @else
+                                            <i class="fa-solid fa-circle-exclamation text-amber-500 ml-1"
+                                                title="{{ __('Sin validar') }}"></i>
+                                        @endif
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 @if (contabilidad_activa())
                                     {{-- Su subcuenta de cliente, 43000001. --}}
                                     <td class="px-6 py-4">{{ $item->cuenta_contable ?? '—' }}</td>
@@ -141,6 +157,15 @@
                                         id="btn-editar-propietario-{{ $item->id }}" title="{{ __('Modificar') }}">
                                         <i class="fa-solid fa-pen"> </i>
                                     </a>
+                                    {{-- Solo si hay dirección y está sin confirmar: a quien ya
+                                         contestó no hay nada que mandarle. --}}
+                                    @if ($correo && ! $correo->estaValidado())
+                                        <x-button type="button" class="bg-blue-600 hover:bg-blue-700 text-white ml-1"
+                                            wire:click="enviarVerificacionCorreo({{ $item->id }})"
+                                            title="{{ __('Enviar correo de verificación') }}">
+                                            <i class="fa-solid fa-envelope"> </i>
+                                        </x-button>
+                                    @endif
                                     @if ($item->estado_id == \App\Models\Propietario::ESTADO_ACTIVO)
                                         <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white ml-1"
                                             wire:click="confirmarBaja({{ $item->id }})" title="{{ __('Dar de baja') }}">

@@ -12,8 +12,31 @@
             </div>
             <div class="mt-2 w-1/2">
                 <x-label :value="__('Email')" />
-                <x-input class="block mt-1 w-full" type="email" wire:model="email" />
+                <x-input class="block mt-1 w-full" type="email" wire:model.blur="email" />
                 <x-input-error for="email" class="mt-2" />
+
+                {{-- Estado de la dirección ya guardada. Mientras no se confirme no se le
+                     pueden mandar recibos ni avisos con garantía de que llegan. --}}
+                @if ($contactoCorreo)
+                    <p class="mt-2 text-sm">
+                        @if ($contactoCorreo->estaValidado())
+                            <i class="fa-solid fa-circle-check text-green-600"></i>
+                            <span class="text-gray-600 dark:text-gray-400">
+                                {{ __('Validado el :fecha', ['fecha' => $contactoCorreo->verified_at->format('d-m-Y')]) }}
+                            </span>
+                        @else
+                            <i class="fa-solid fa-circle-exclamation text-amber-500"></i>
+                            <span class="text-gray-600 dark:text-gray-400">{{ __('Sin validar') }}</span>
+                        @endif
+                    </p>
+
+                    @if ($puedeVerificar)
+                        <button type="button" wire:click="enviarVerificacion"
+                            class="mt-1 text-sm text-indigo-600 hover:underline">
+                            <i class="fa-solid fa-envelope"></i> {{ __('Enviar correo de verificación') }}
+                        </button>
+                    @endif
+                @endif
             </div>
         </div>
     </div>

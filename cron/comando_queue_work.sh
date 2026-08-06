@@ -19,7 +19,7 @@ LOGS=/var/www/condominios/storage/logs
 
 $PHP $ART queue:work --rest=2 --stop-when-empty --tries=2 --queue=backup >> $LOGS/queue_backup.log 2>&1 &
 
-# $PHP $ART queue:work --rest=2 --stop-when-empty --tries=2 --queue=EnviarCorreo >> $LOGS/queue_enviar_correo.log 2>&1 &
+$PHP $ART queue:work --rest=2 --stop-when-empty --tries=2 --queue=EnviarCorreo >> $LOGS/queue_enviar_correo.log 2>&1 &
 
 
 wait
