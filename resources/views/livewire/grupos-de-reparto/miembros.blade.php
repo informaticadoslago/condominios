@@ -28,7 +28,7 @@
                             <td class="py-2 px-4">{{ $inmueble->puerta }}</td>
                             <td class="py-2 px-4">{{ $inmueble->coeficiente }}%</td>
                             <td class="py-2 px-4">
-                                <x-input type="number" step="0.01" class="w-28"
+                                <x-input type="number" step="0.001" class="w-28"
                                     placeholder="{{ $inmueble->coeficiente }}"
                                     wire:model="miembros.{{ $inmueble->id }}.coeficiente" />
                             </td>

@@ -17,7 +17,7 @@ class Inmueble extends Model
     ];
 
     protected $casts = [
-        'coeficiente' => 'decimal:2',
+        'coeficiente' => 'decimal:3',
     ];
 
     public function comunidad()

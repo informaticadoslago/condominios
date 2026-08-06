@@ -118,7 +118,9 @@ class Lista extends ListaComponent
         // Suma sobre TODOS los inmuebles de la comunidad (no solo la página o el
         // filtro actuales): lo que se comprueba es si la comunidad está
         // completamente repartida al 100%, no el resultado de la búsqueda.
-        $sumaCoeficientes = Inmueble::where('comunidad_id', session('comunidad_actual_id'))->sum('coeficiente');
+        // El round a 3 es el mismo número de decimales que admite el coeficiente: evita
+        // que la coma flotante deje la suma en 99.99999999 y el 100% exacto no se detecte.
+        $sumaCoeficientes = round((float) Inmueble::where('comunidad_id', session('comunidad_actual_id'))->sum('coeficiente'), 3);
 
         return view('livewire.inmuebles.lista', compact('items', 'borradores', 'sumaCoeficientes'));
     }

@@ -82,7 +82,7 @@
                                         'text-red-600 dark:text-red-400 animate-pulse' => $sumaCoeficientes > 100,
                                     ])
                                 >
-                                    {{ __('Suma') }}: {{ $sumaCoeficientes }}%
+                                    {{ __('Suma') }}: {{ number_format($sumaCoeficientes, 3) }}%
                                 </div>
                             </th>
                             <th class="py-3 px-6">{{ __('Propietarios') }}</th>

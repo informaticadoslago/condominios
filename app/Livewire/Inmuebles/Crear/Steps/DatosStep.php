@@ -70,7 +70,7 @@ class DatosStep extends CrearInmuebleStep
             'tipo_inmueble_id'     => ['required', 'exists:tipo_inmuebles,id'],
             'planta'               => ['required', 'integer', 'between:-99,99'],
             'puerta'               => ['nullable', 'string', 'max:5'],
-            'coeficiente'          => ['required', 'numeric', 'min:0.01', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
+            'coeficiente'          => ['required', 'numeric', 'min:0.001', 'max:100', 'regex:/^\d{1,3}(\.\d{1,3})?$/'],
             'referencia_catastral' => ['nullable', 'string', 'max:20'],
         ];
     }
