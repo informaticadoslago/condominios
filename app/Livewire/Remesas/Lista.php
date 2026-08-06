@@ -13,6 +13,7 @@ use App\Models\Inmueble;
 use App\Models\LineaRemesa;
 use App\Models\Recibo;
 use App\Models\Remesa;
+use App\Services\Recibos\EnviarAvisosRecibos;
 use App\Services\Recibos\GeneradorRemesa;
 use App\Services\Recibos\RegistrarCobro;
 use App\Services\Recibos\RegistrarDevolucion;
@@ -55,6 +56,13 @@ class Lista extends ListaComponent
     public ?int $cobroRemesaId = null;
 
     public ?string $cobroFecha = null;
+
+    public bool $avisoTransferenciaAbierto = false;
+
+    public ?string $avisoVencimiento = null;
+
+    /** Recibos por transferencia marcados para avisar; se pueden desmarcar. */
+    public array $avisoSeleccion = [];
 
     public function mount()
     {
@@ -321,6 +329,134 @@ class Lista extends ListaComponent
         ]);
     }
 
+    /**
+     * Avisa por correo a los propietarios incluidos en la remesa. No se manda solo al
+     * generarla: el botón está para pulsarlo cuando la remesa ya se ha mandado al banco
+     * de verdad, que es cuando el cargo va a ocurrir.
+     */
+    public function avisarRemesa(int $remesaId, EnviarAvisosRecibos $servicio): void
+    {
+        if (! config('recibos.enviar_email_al_enviar_remesa')) {
+            return;
+        }
+
+        $remesa = Remesa::where('comunidad_id', session('comunidad_actual_id'))->find($remesaId);
+
+        if (! $remesa) {
+            return;
+        }
+
+        $resultado = $servicio->deRemesa($remesa);
+
+        $this->avisar($resultado);
+    }
+
+    /**
+     * Abre la lista de recibos por transferencia de un vencimiento, todos marcados, para
+     * poder dejar fuera a quien no toque antes de mandar los avisos.
+     */
+    public function abrirAvisoTransferencia(): void
+    {
+        if (! config('recibos.enviar_email_transferencias')) {
+            return;
+        }
+
+        $this->avisoVencimiento = $this->primerVencimientoTransferenciaPendiente();
+
+        $recibos = $this->recibosPorTransferencia($this->avisoVencimiento);
+
+        if ($recibos->isEmpty()) {
+            $this->dispatch('toast-error', [
+                'title' => __('No hay recibos por transferencia pendientes'),
+            ]);
+
+            return;
+        }
+
+        $this->avisoSeleccion            = $recibos->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->avisoTransferenciaAbierto = true;
+    }
+
+    /** Al cambiar el vencimiento en el modal, se rehace la lista con todos marcados. */
+    public function updatedAvisoVencimiento(): void
+    {
+        $this->avisoSeleccion = $this->recibosPorTransferencia($this->avisoVencimiento)
+            ->pluck('id')->map(fn ($id) => (string) $id)->all();
+    }
+
+    public function enviarAvisosTransferencia(EnviarAvisosRecibos $servicio): void
+    {
+        $comunidad = $this->comunidad();
+
+        if (! $comunidad) {
+            return;
+        }
+
+        if ($this->avisoSeleccion === []) {
+            $this->dispatch('toast-error', ['title' => __('No queda ningún recibo marcado')]);
+
+            return;
+        }
+
+        // Solo los que siguen saliendo en la lista: entre abrir el modal y confirmar,
+        // alguno puede haberse cobrado ya.
+        $ids = $this->recibosPorTransferencia($this->avisoVencimiento)
+            ->whereIn('id', array_map('intval', $this->avisoSeleccion))
+            ->pluck('id')
+            ->all();
+
+        $resultado = $servicio->deTransferencia($ids, $comunidad);
+
+        $this->avisoTransferenciaAbierto = false;
+        $this->avisoSeleccion            = [];
+
+        $this->avisar($resultado);
+    }
+
+    /** Mensaje común de los dos avisos: cuántos han salido y a cuántos no se ha podido. */
+    private function avisar(array $resultado): void
+    {
+        if ($resultado['avisados'] === 0) {
+            $this->dispatch('toast-error', [
+                'title' => __('No se ha avisado a nadie: ninguno tiene dirección de correo'),
+            ]);
+
+            return;
+        }
+
+        $this->dispatch('toast-success', [
+            'title' => $resultado['sin_correo'] > 0
+                ? __(':avisados avisados; :sin_correo sin dirección de correo', $resultado)
+                : __(':avisados avisados por correo', $resultado),
+        ]);
+    }
+
+    /** Recibos por transferencia de ese vencimiento que todavía deben algo. */
+    private function recibosPorTransferencia(?string $vencimiento)
+    {
+        if (! $vencimiento) {
+            return collect();
+        }
+
+        return Recibo::query()
+            ->whereIn('inmueble_id', Inmueble::where('comunidad_id', session('comunidad_actual_id'))->select('id'))
+            ->where('forma_de_pago_id', FormaDePago::TRANSFERENCIA)
+            ->where('fecha_vencimiento', $vencimiento)
+            ->where('saldo', '>', 0)
+            ->with(['propietario.persona.contactos', 'inmueble', 'avisos'])
+            ->orderBy('id')
+            ->get();
+    }
+
+    private function primerVencimientoTransferenciaPendiente(): ?string
+    {
+        return Recibo::query()
+            ->whereIn('inmueble_id', Inmueble::where('comunidad_id', session('comunidad_actual_id'))->select('id'))
+            ->where('forma_de_pago_id', FormaDePago::TRANSFERENCIA)
+            ->where('saldo', '>', 0)
+            ->min('fecha_vencimiento');
+    }
+
     public function confirmarDeshacer(int $remesaId): void
     {
         $this->dispatch('swalConfirm', [
@@ -445,6 +581,11 @@ class Lista extends ListaComponent
             'items'           => $items,
             'recibosAremesar' => $recibosAremesar,
             'lineasRemesa'    => $this->devolucionAbierta ? $this->lineasDeRemesa($this->devolucionRemesaId) : collect(),
+            'recibosAavisar'  => $this->avisoTransferenciaAbierto
+                ? $this->recibosPorTransferencia($this->avisoVencimiento)
+                : collect(),
+            'avisoRemesaActivo'         => (bool) config('recibos.enviar_email_al_enviar_remesa'),
+            'avisoTransferenciaActivo'  => (bool) config('recibos.enviar_email_transferencias'),
         ]);
     }
 }

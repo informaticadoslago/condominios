@@ -48,6 +48,17 @@
                                     ({{ count($seleccionados) }})
                                 @endif
                             </x-dropdown-link>
+                            {{-- Solo si está puesta ENVIAR_EMAIL_TRANSFERENCIAS. De lo
+                                 marcado avisa únicamente a los de transferencia: los
+                                 domiciliados tienen su propio aviso desde la remesa. --}}
+                            @if ($avisoTransferenciaActivo)
+                                <x-dropdown-link href="#" wire:click="avisarTransferencias">
+                                    <i class="fa-solid fa-envelope mr-1"></i>{{ __('Avisar envío transferencia') }}
+                                    @if (count($seleccionados))
+                                        ({{ count($seleccionados) }})
+                                    @endif
+                                </x-dropdown-link>
+                            @endif
                             {{-- Solo donde hay contabilidad con la que enlazar; los recibos
                                  que ya tienen asiento se saltan solos. --}}
                             @if (contabilidad_activa())

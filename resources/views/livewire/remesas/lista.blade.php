@@ -6,6 +6,14 @@
         {{ __('Envíos de adeudos al banco') }}
     </x-slot>
     <x-slot name="botonera">
+        {{-- Solo si está puesta ENVIAR_EMAIL_TRANSFERENCIAS. Aquí y no en cada remesa:
+             los que pagan por transferencia no salen en ninguna remesa. --}}
+        @if ($avisoTransferenciaActivo)
+            <x-secondary-button type="button" wire:click="abrirAvisoTransferencia" class="mr-1"
+                title="{{ __('Avisar a los que pagan por transferencia') }}">
+                <i class="fa-solid fa-envelope mr-1"></i>{{ __('Avisar transferencias') }}
+            </x-secondary-button>
+        @endif
         <x-button type="button" class="btn btn-nuevo" wire:click="abrirNueva" title="{{ __('Nueva') }}">
             <i class="fa-solid fa-plus"> </i>{{ __('Nueva') }}
         </x-button>
@@ -109,6 +117,15 @@
                                             wire:click="abrirCobro({{ $item->id }})"
                                             title="{{ __('Dar por cobrada') }}">
                                             <i class="fa-solid fa-hand-holding-dollar"> </i>
+                                        </x-button>
+                                    @endif
+                                    {{-- Solo si está puesta ENVIAR_EMAIL_AL_ENVIAR_REMESA:
+                                         el aviso nunca sale solo, hay que pulsarlo. --}}
+                                    @if ($avisoRemesaActivo)
+                                        <x-button type="button" class="bg-blue-600 hover:bg-blue-700 text-white ml-1"
+                                            wire:click="avisarRemesa({{ $item->id }})"
+                                            title="{{ __('Avisar por correo del cargo') }}">
+                                            <i class="fa-solid fa-envelope"> </i>
                                         </x-button>
                                     @endif
                                     {{-- Devoluciones solo de lo ya cobrado: el banco no puede
@@ -346,6 +363,84 @@
                 </x-secondary-button>
                 <x-button type="button" class="ml-2 bg-red-600 hover:bg-red-700" wire:click="marcarDevueltos">
                     {{ __('Marcar como devueltos') }}
+                </x-button>
+            </x-slot>
+        </x-dosl.dialog-modal>
+
+        {{-- Aviso a los que pagan por transferencia. A diferencia de la remesa, aquí no
+             hay nada que presentar al banco: solo se elige a quién se le recuerda que
+             tiene que ingresar. Sale todo marcado y se desmarca lo que no toque. --}}
+        <x-dosl.dialog-modal wire:model.live="avisoTransferenciaAbierto" maxWidth="4xl">
+            <x-slot name="title">
+                {{ __('Avisar a los que pagan por transferencia') }}
+            </x-slot>
+
+            <x-slot name="content">
+                <div class="mb-3 w-64">
+                    <x-label for="avisoVencimiento">{{ __('Vencimiento') }}:</x-label>
+                    <x-input class="block mt-1 w-full" type="date" id="avisoVencimiento"
+                        wire:model.live="avisoVencimiento" />
+                </div>
+
+                @if (count($recibosAavisar))
+                    <div class="max-h-96 overflow-y-auto border rounded-lg">
+                        <table class="table-striped w-full table-auto text-sm text-left">
+                            <thead class="font-medium border-b">
+                                <tr>
+                                    <th class="py-2 px-3 w-px"></th>
+                                    <th class="py-2 px-3">{{ __('Inmueble') }}</th>
+                                    <th class="py-2 px-3">{{ __('Propietario') }}</th>
+                                    <th class="py-2 px-3">{{ __('Correo') }}</th>
+                                    <th class="py-2 px-3">{{ __('Último aviso') }}</th>
+                                    <th class="py-2 px-3 text-right">{{ __('Pendiente') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach ($recibosAavisar as $recibo)
+                                    @php($correoRecibo = $recibo->propietario?->correo())
+                                    <tr wire:key="avisar-{{ $recibo->id }}">
+                                        <td class="py-2 px-3">
+                                            <input type="checkbox" wire:model.live="avisoSeleccion" value="{{ $recibo->id }}" />
+                                        </td>
+                                        <td class="py-2 px-3 whitespace-nowrap">
+                                            {{ $recibo->inmueble?->planta }} {{ $recibo->inmueble?->puerta }}
+                                        </td>
+                                        <td class="py-2 px-3 mayusculas">{{ $recibo->propietario?->persona?->nombreCompleto }}</td>
+                                        <td class="py-2 px-3">
+                                            @if ($correoRecibo)
+                                                {{ $correoRecibo->valor }}
+                                            @else
+                                                {{-- Sin dirección no se le puede avisar; se ve
+                                                     aquí para no contarlo como enviado. --}}
+                                                <span class="text-amber-600">{{ __('sin correo') }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-2 px-3 whitespace-nowrap text-gray-500">
+                                            {{ $recibo->avisos->first()?->enviado_at?->format('d/m/Y') ?? '—' }}
+                                        </td>
+                                        <td class="py-2 px-3 text-right">{{ number_format((float) $recibo->saldo, 2, ',', '.') }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="mt-3 font-medium">
+                        {{ __('Marcados') }}: {{ count($avisoSeleccion) }} {{ __('de') }} {{ count($recibosAavisar) }}
+                    </p>
+                @else
+                    <p class="text-sm text-gray-500">
+                        {{ __('No hay recibos por transferencia pendientes con ese vencimiento.') }}
+                    </p>
+                @endif
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button type="button" wire:click="$set('avisoTransferenciaAbierto', false)">
+                    {{ __('Cancelar') }}
+                </x-secondary-button>
+                <x-button type="button" class="ml-2" wire:click="enviarAvisosTransferencia">
+                    {{ __('Enviar avisos') }}
                 </x-button>
             </x-slot>
         </x-dosl.dialog-modal>

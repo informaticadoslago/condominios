@@ -6,10 +6,12 @@ use App\Livewire\ListaComponent;
 use App\Livewire\Traits\ConFiltroEstado;
 use App\Livewire\Traits\ConHistorialEstadoModal;
 use App\Livewire\Traits\ConSeleccionMultiple;
+use App\Models\Comunidad;
 use App\Models\FormaDePago;
 use App\Models\Recibo;
 use App\Models\TipoEstadoRecibo;
 use App\Services\Recibos\EnlazarRecibosContabilidad;
+use App\Services\Recibos\EnviarAvisosRecibos;
 use App\Services\Recibos\RegistrarCobro;
 
 /**
@@ -302,6 +304,59 @@ class Lista extends ListaComponent
         ]);
     }
 
+    /**
+     * Avisa por correo a los que pagan por transferencia de que les toca ingresar.
+     *
+     * De la selección solo se avisa a los de transferencia y con saldo pendiente: los
+     * domiciliados se cobran solos y su aviso es otro (el del cargo, desde la remesa).
+     * Los que se quedan fuera se cuentan y se dicen, para que no parezca que se avisó a
+     * todo lo marcado.
+     */
+    public function avisarTransferencias(EnviarAvisosRecibos $servicio): void
+    {
+        if (! config('recibos.enviar_email_transferencias')) {
+            return;
+        }
+
+        $comunidad = Comunidad::find(session('comunidad_actual_id'));
+
+        if (! $comunidad) {
+            return;
+        }
+
+        $ids = Recibo::whereIn('id', $this->idsParaAccion())
+            ->where('forma_de_pago_id', FormaDePago::TRANSFERENCIA)
+            ->where('saldo', '>', 0)
+            ->pluck('id')
+            ->all();
+
+        if ($ids === []) {
+            $this->dispatch('toast-error', [
+                'title' => __('Ninguno de los recibos marcados paga por transferencia y sigue pendiente'),
+            ]);
+
+            return;
+        }
+
+        $resultado = $servicio->deTransferencia($ids, $comunidad);
+
+        $this->limpiarSeleccion();
+
+        if ($resultado['avisados'] === 0) {
+            $this->dispatch('toast-error', [
+                'title' => __('No se ha avisado a nadie: ninguno tiene dirección de correo'),
+            ]);
+
+            return;
+        }
+
+        $this->dispatch('toast-success', [
+            'title' => $resultado['sin_correo'] > 0
+                ? __(':avisados avisados; :sin_correo sin dirección de correo', $resultado)
+                : __(':avisados avisados por correo', $resultado),
+        ]);
+    }
+
     public function render()
     {
         $items = $this->aplicarSeleccion($this->consultaBase())
@@ -318,6 +373,8 @@ class Lista extends ListaComponent
 
         $formasDePago = FormaDePago::activo()->orderBy('descripcion')->pluck('descripcion', 'id');
 
-        return view('livewire.recibos.lista', compact('items', 'formasDePago'));
+        return view('livewire.recibos.lista', compact('items', 'formasDePago') + [
+            'avisoTransferenciaActivo' => (bool) config('recibos.enviar_email_transferencias'),
+        ]);
     }
 }

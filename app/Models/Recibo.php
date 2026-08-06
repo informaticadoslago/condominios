@@ -85,6 +85,12 @@ class Recibo extends Model
         return $this->hasMany(LineaRemesa::class);
     }
 
+    /** Avisos mandados por este recibo, del más reciente al más antiguo. */
+    public function avisos()
+    {
+        return $this->hasMany(AvisoRecibo::class)->orderByDesc('enviado_at');
+    }
+
     /** Pendiente de cobro: `saldo` es columna generada, la mantiene el motor. */
     public function scopePendiente($query)
     {

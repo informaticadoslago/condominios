@@ -1,0 +1,109 @@
+/*
+ * Estilos del aviso de pago por transferencia.
+ *
+ * Fichero hermano de aviso-transferencia.blade.php: x-emails.layout lo incrusta en un
+ * <style> al componer el correo. Para cambiar el aspecto se toca aquí, sin entrar en la
+ * plantilla.
+ *
+ * Nada de flexbox, grid ni variables CSS: no todos los clientes de correo los entienden.
+ */
+
+body {
+    margin: 0;
+    padding: 0;
+    background: #f3f4f6;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.marco {
+    background: #f3f4f6;
+    padding: 24px 0;
+}
+
+.tarjeta {
+    max-width: 560px;
+    background: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.contenido {
+    padding: 24px;
+    color: #111827;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.pie {
+    padding: 12px 24px;
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.saludo {
+    margin: 0 0 16px;
+}
+
+/* Cuadro de datos del recibo: importe, vencimiento e inmueble. */
+.datos {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 15px;
+}
+
+.datos th {
+    text-align: left;
+    padding: 8px 0;
+    color: #6b7280;
+    font-weight: normal;
+    width: 45%;
+    vertical-align: top;
+}
+
+.datos td {
+    text-align: right;
+    padding: 8px 0;
+    color: #111827;
+    font-weight: bold;
+}
+
+.datos tr + tr th,
+.datos tr + tr td {
+    border-top: 1px solid #e5e7eb;
+}
+
+.importe {
+    font-size: 20px;
+}
+
+/*
+ * Los datos para transferir. Es lo único que el propietario tiene que copiar, así que
+ * va destacado y con tipografía monoespaciada para que no se confundan caracteres.
+ */
+.destacado {
+    background: #f9fafb;
+    border-left: 4px solid #2563eb;
+    padding: 12px 16px;
+    margin: 20px 0;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.iban {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.concepto {
+    font-family: "Courier New", Courier, monospace;
+    font-weight: bold;
+}
+
+.aviso {
+    color: #6b7280;
+    font-size: 13px;
+}
