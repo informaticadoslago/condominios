@@ -36,6 +36,7 @@ use App\Livewire\Maestros\Periodicidades\Lista as PeriodicidadesLista;
 use App\Livewire\Presupuestos\Conceptos as PresupuestosConceptos;
 use App\Livewire\Presupuestos\Lista as PresupuestosLista;
 use App\Livewire\Presupuestos\Reparto as PresupuestosReparto;
+use App\Livewire\Recibos\Lista as RecibosLista;
 use Illuminate\Support\Facades\Route;
 use Lab404\Impersonate\Controllers\ImpersonateController;
 
@@ -114,6 +115,7 @@ Route::middleware([
         Route::get('/presupuestos', PresupuestosLista::class)->name('presupuestos.index');
         Route::get('/presupuestos/{presupuesto}/conceptos', PresupuestosConceptos::class)->name('presupuestos.conceptos');
         Route::get('/presupuestos/{presupuesto}/reparto', PresupuestosReparto::class)->name('presupuestos.reparto');
+        Route::get('/recibos', RecibosLista::class)->name('recibos.index');
     });
 
     // Gestión contable: módulo independiente de comunidades (empresas por CIF).

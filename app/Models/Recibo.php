@@ -34,6 +34,8 @@ class Recibo extends Model
         'forma_de_pago_id',
         'cuenta_bancaria_id',
         'estado_id',
+        // Asiento en el que entró; lo pone EnlazarRecibosContabilidad.
+        'asiento_contable',
     ];
 
     protected $casts = [

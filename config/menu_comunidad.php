@@ -19,6 +19,7 @@ return [
                 ['icon' => 'fa-solid fa-file-invoice', 'label' => trans_key('menu.Facturas'), 'route' => 'facturas.index'],
                 ['icon' => 'fa-solid fa-door-open', 'label' => trans_key('menu.Inmuebles'), 'route' => 'inmuebles.index'],
                 ['icon' => 'fa-solid fa-file-invoice-dollar', 'label' => trans_key('menu.Presupuestos'), 'route' => 'presupuestos.index'],
+                ['icon' => 'fa-solid fa-receipt', 'label' => trans_key('menu.Recibos'), 'route' => 'recibos.index'],
                 ['type' => 'spacer'],
                 ['icon' => 'fa-solid fa-people-roof', 'label' => trans_key('menu.Grupos de reparto'), 'route' => 'grupos-de-reparto.index'],
                 ['icon' => 'fa-solid fa-user-tie', 'label' => trans_key('menu.Propietarios'), 'route' => 'propietarios.index'],
