@@ -104,8 +104,13 @@
                                     </td>
                                 @endif
                                 <td class="px-4 whitespace-nowrap">
+                                    <x-button type="button" class="bg-gray-500 hover:bg-gray-600 text-white"
+                                        wire:click="verDetalle({{ $item->id }})"
+                                        title="{{ __('Ver los recibos de la remesa') }}">
+                                        <i class="fa-solid fa-eye"> </i>
+                                    </x-button>
                                     {{-- Enlace normal y no wire:navigate: es una descarga, no una página. --}}
-                                    <a href="{{ route('remesas.fichero', $item) }}" class="btn-editar"
+                                    <a href="{{ route('remesas.fichero', $item) }}" class="btn-editar ml-1"
                                         title="{{ __('Descargar el fichero para el banco') }}">
                                         <i class="fa-solid fa-download"> </i>
                                     </a>
@@ -364,6 +369,75 @@
                 <x-button type="button" class="ml-2 bg-red-600 hover:bg-red-700" wire:click="marcarDevueltos">
                     {{ __('Marcar como devueltos') }}
                 </x-button>
+            </x-slot>
+        </x-dosl.dialog-modal>
+
+        {{-- Lo que entró en la remesa. Solo lectura: una remesa presentada no se corrige,
+             lo que venga después son devoluciones. --}}
+        <x-dosl.dialog-modal wire:model.live="detalleAbierto" maxWidth="4xl">
+            <x-slot name="title">
+                {{ __('Recibos de la remesa') }} {{ $remesaDetalle?->referencia }}
+            </x-slot>
+
+            <x-slot name="content">
+                @if (count($lineasDetalle))
+                    <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">
+                        {{ __('Cargo el :cargo — :count recibos, :importe', [
+                            'cargo'   => $remesaDetalle?->fecha_cargo?->format('d/m/Y'),
+                            'count'   => count($lineasDetalle),
+                            'importe' => number_format((float) $lineasDetalle->sum('importe'), 2, ',', '.').' €',
+                        ]) }}
+                    </p>
+
+                    <div class="max-h-96 overflow-y-auto border rounded-lg">
+                        <table class="table-striped w-full table-auto text-sm text-left">
+                            <thead class="font-medium border-b">
+                                <tr>
+                                    <th class="py-2 px-3">{{ __('Inmueble') }}</th>
+                                    <th class="py-2 px-3">{{ __('Propietario') }}</th>
+                                    <th class="py-2 px-3">{{ __('Cuenta') }}</th>
+                                    <th class="py-2 px-3 text-right">{{ __('Importe') }}</th>
+                                    <th class="py-2 px-3">{{ __('Situación') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach ($lineasDetalle as $linea)
+                                    <tr wire:key="detalle-{{ $linea->id }}">
+                                        <td class="py-2 px-3 whitespace-nowrap">
+                                            {{ $linea->recibo?->inmueble?->tipoInmueble?->descripcion }}
+                                            {{ $linea->recibo?->inmueble?->planta }} {{ $linea->recibo?->inmueble?->puerta }}
+                                        </td>
+                                        <td class="py-2 px-3 mayusculas">{{ $linea->recibo?->propietario?->persona?->nombreCompleto }}</td>
+                                        <td class="py-2 px-3">{{ $linea->iban }}</td>
+                                        <td class="py-2 px-3 text-right">{{ number_format((float) $linea->importe, 2, ',', '.') }}</td>
+                                        <td class="py-2 px-3 whitespace-nowrap">
+                                            @if ($linea->fecha_devolucion)
+                                                <span class="text-red-600">
+                                                    {{ __('Devuelto') }} {{ $linea->fecha_devolucion->format('d/m/Y') }}
+                                                </span>
+                                                @if ($linea->motivo_devolucion)
+                                                    <div class="text-xs text-gray-500">{{ $linea->motivo_devolucion }}</div>
+                                                @endif
+                                            @elseif ($linea->cobros_count)
+                                                <span class="text-green-600">{{ __('Cobrado') }}</span>
+                                            @else
+                                                <span class="text-gray-500">{{ __('Presentado') }}</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-500">{{ __('Esta remesa no tiene recibos.') }}</p>
+                @endif
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button type="button" wire:click="$set('detalleAbierto', false)">
+                    {{ __('Cerrar') }}
+                </x-secondary-button>
             </x-slot>
         </x-dosl.dialog-modal>
 

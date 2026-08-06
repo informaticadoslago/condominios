@@ -324,15 +324,22 @@ class Lista extends ListaComponent
             return;
         }
 
-        $ids = Recibo::whereIn('id', $this->idsParaAccion())
+        $porTransferencia = Recibo::whereIn('id', $this->idsParaAccion())
             ->where('forma_de_pago_id', FormaDePago::TRANSFERENCIA)
-            ->where('saldo', '>', 0)
-            ->pluck('id')
-            ->all();
+            ->get(['id', 'saldo']);
+
+        $ids = $porTransferencia->where('saldo', '>', 0)->pluck('id')->all();
 
         if ($ids === []) {
+            // Los dos motivos se dicen por separado: con el filtro puesto en
+            // Transferencia, un «ninguno paga por transferencia» contradice lo que se
+            // está viendo en pantalla y parece un fallo.
             $this->dispatch('toast-error', [
-                'title' => __('Ninguno de los recibos marcados paga por transferencia y sigue pendiente'),
+                'title' => $porTransferencia->isEmpty()
+                    ? __('Ninguno de los recibos marcados paga por transferencia')
+                    : __('Los :count recibos por transferencia marcados ya están cobrados', [
+                        'count' => $porTransferencia->count(),
+                    ]),
             ]);
 
             return;

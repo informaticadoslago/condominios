@@ -57,6 +57,10 @@ class Lista extends ListaComponent
 
     public ?string $cobroFecha = null;
 
+    public bool $detalleAbierto = false;
+
+    public ?int $detalleRemesaId = null;
+
     public bool $avisoTransferenciaAbierto = false;
 
     public ?string $avisoVencimiento = null;
@@ -329,6 +333,19 @@ class Lista extends ListaComponent
         ]);
     }
 
+    /** Qué recibos entraron en la remesa. Solo mirar: lo presentado ya no se toca. */
+    public function verDetalle(int $remesaId): void
+    {
+        $remesa = Remesa::where('comunidad_id', session('comunidad_actual_id'))->find($remesaId);
+
+        if (! $remesa) {
+            return;
+        }
+
+        $this->detalleRemesaId = $remesa->id;
+        $this->detalleAbierto  = true;
+    }
+
     /**
      * Avisa por correo a los propietarios incluidos en la remesa. No se manda solo al
      * generarla: el botón está para pulsarlo cuando la remesa ya se ha mandado al banco
@@ -581,6 +598,8 @@ class Lista extends ListaComponent
             'items'           => $items,
             'recibosAremesar' => $recibosAremesar,
             'lineasRemesa'    => $this->devolucionAbierta ? $this->lineasDeRemesa($this->devolucionRemesaId) : collect(),
+            'lineasDetalle'   => $this->detalleAbierto ? $this->lineasDeRemesa($this->detalleRemesaId) : collect(),
+            'remesaDetalle'   => $this->detalleAbierto ? Remesa::find($this->detalleRemesaId) : null,
             'recibosAavisar'  => $this->avisoTransferenciaAbierto
                 ? $this->recibosPorTransferencia($this->avisoVencimiento)
                 : collect(),

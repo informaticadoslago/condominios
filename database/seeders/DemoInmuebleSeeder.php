@@ -17,6 +17,7 @@ use App\Models\TipoGenero;
 use App\Models\TipoInmueble;
 use App\Models\TipoOcupacion;
 use App\Models\Titularidad;
+use App\Services\Propietarios\CorreoFicticio;
 use Illuminate\Database\Seeder;
 
 /**
@@ -116,6 +117,11 @@ class DemoInmuebleSeeder extends Seeder
                 'genero_id'         => $datos['genero'],
             ]
         );
+
+        // Correo de mentira, para poder probar los avisos de recibo sin escribirlos a
+        // mano uno a uno. Ver CorreoFicticio, que comparte con el comando que rellena
+        // los propietarios ya creados.
+        app(CorreoFicticio::class)->asignarA($persona);
 
         return Propietario::firstOrCreate(['persona_comunidad_id' => $persona->id]);
     }
