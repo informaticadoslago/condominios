@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\ConHistorialEstado;
+use App\Services\Comunidades\EnlaceContableComunidad;
 use App\Services\Recibos\GeneradorRecibos;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,10 @@ class Presupuesto extends Model
         'comunidad_id',
         'nombre',
         'anho',
+        'tipo_presupuesto_id',
+        // Su subcuenta de ingresos en la contabilidad; la pone EnlaceContableComunidad
+        // al aprobarlo.
+        'cuenta_contable',
         'estado_id',
         'numero_pagos',
         'fecha_primer_pago',
@@ -35,6 +40,12 @@ class Presupuesto extends Model
     public function estado()
     {
         return $this->belongsTo(TipoEstadoPresupuesto::class, 'estado_id');
+    }
+
+    /** De cuotas o de derrama: decide a qué grupo de ingresos va en la contabilidad. */
+    public function tipoPresupuesto()
+    {
+        return $this->belongsTo(TipoPresupuesto::class);
     }
 
     public function periodicidad()
@@ -192,6 +203,11 @@ class Presupuesto extends Model
                 // juntos en una transacción para que no pueda quedar la rotación avanzada
                 // sin los recibos que la justifican.
                 DB::transaction(function () use ($presupuesto) {
+                    // Si la comunidad lleva contabilidad, el presupuesto estrena aquí su
+                    // cuenta de ingresos: los recibos que salen abajo ya se cobran contra
+                    // ella. Si no la lleva, esto no hace nada.
+                    app(EnlaceContableComunidad::class)->asignarCuentaIngresoPresupuesto($presupuesto);
+
                     app(GeneradorRecibos::class)->generar($presupuesto);
 
                     $presupuesto->avanzarRotacionReparto();

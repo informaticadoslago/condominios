@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\ConHistorialEstado;
+use App\Services\Comunidades\EnlaceContableComunidad;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -17,7 +18,22 @@ class Propietario extends Model
     protected $fillable = [
         'persona_comunidad_id',
         'estado_id',
+        // Su subcuenta de cliente en la contabilidad; la pone EnlaceContableComunidad.
+        'cuenta_contable',
     ];
+
+    /**
+     * Se engancha aquí, y no en cada asistente de alta, porque un propietario nace en
+     * varios sitios (su propio alta, el alta de un inmueble) y en todos tiene que
+     * acabar con su cuenta de cliente si la comunidad lleva contabilidad. Si no la
+     * lleva, no hace nada.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (self $propietario) {
+            app(EnlaceContableComunidad::class)->asignarCuentaPropietario($propietario);
+        });
+    }
 
     public function persona()
     {

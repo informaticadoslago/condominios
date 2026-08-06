@@ -4,6 +4,7 @@ namespace App\Livewire\Presupuestos;
 
 use App\Models\Presupuesto;
 use App\Models\TipoEstadoPresupuesto;
+use App\Models\TipoPresupuesto;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -15,11 +16,15 @@ class Formulario extends Component
     public string $nombre = '';
     public ?int $anho = null;
 
+    /** De cuotas o de derrama, entero: decide contra qué cuenta de ingresos se cobra. */
+    public int $tipo_presupuesto_id = TipoPresupuesto::CUOTAS;
+
     protected function rules()
     {
         return [
-            'nombre' => ['required', 'string', 'max:100'],
-            'anho'   => ['required', 'integer', 'digits:4'],
+            'nombre'              => ['required', 'string', 'max:100'],
+            'anho'                => ['required', 'integer', 'digits:4'],
+            'tipo_presupuesto_id' => ['required', 'exists:tipo_presupuestos,id'],
         ];
     }
 
@@ -35,15 +40,16 @@ class Formulario extends Component
     protected function validationAttributes()
     {
         return [
-            'nombre' => __('nombre'),
-            'anho'   => __('año'),
+            'nombre'              => __('nombre'),
+            'anho'                => __('año'),
+            'tipo_presupuesto_id' => __('tipo'),
         ];
     }
 
     #[On('abrir-crear-presupuesto')]
     public function crear()
     {
-        $this->reset(['itemId', 'nombre', 'anho']);
+        $this->reset(['itemId', 'nombre', 'anho', 'tipo_presupuesto_id']);
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -55,9 +61,10 @@ class Formulario extends Component
         if (! $item) {
             return;
         }
-        $this->itemId = $item->id;
-        $this->nombre = $item->nombre;
-        $this->anho   = $item->anho;
+        $this->itemId              = $item->id;
+        $this->nombre              = $item->nombre;
+        $this->anho                = $item->anho;
+        $this->tipo_presupuesto_id = $item->tipo_presupuesto_id;
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -89,6 +96,8 @@ class Formulario extends Component
 
     public function render()
     {
-        return view('livewire.presupuestos.formulario');
+        return view('livewire.presupuestos.formulario', [
+            'tipos' => TipoPresupuesto::orderBy('id')->pluck('descripcion', 'id'),
+        ]);
     }
 }

@@ -19,3 +19,28 @@ if (! function_exists('trans_key')) {
         return $key;
     }
 }
+
+if (! function_exists('comunidad_actual')) {
+    /**
+     * La comunidad en la que se está trabajando, leída UNA vez por petición.
+     *
+     * Existe para que preguntar por ella salga gratis: la respuesta se memoiza, así que
+     * da igual que la pregunten una pantalla, un menú y tres filas de una tabla.
+     */
+    function comunidad_actual(): ?App\Models\Comunidad
+    {
+        return once(fn () => App\Models\Comunidad::find(session('comunidad_actual_id')));
+    }
+}
+
+if (! function_exists('contabilidad_activa')) {
+    /**
+     * ¿La comunidad activa lleva contabilidad? Es lo que decide si se enseñan las
+     * acciones que hablan con ella; las de dentro (EnlaceContableComunidad) no
+     * preguntan: si no está enlazada, no hacen nada.
+     */
+    function contabilidad_activa(): bool
+    {
+        return comunidad_actual()?->empresa_contable_id !== null;
+    }
+}

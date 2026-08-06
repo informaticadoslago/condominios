@@ -19,6 +19,7 @@ class Comunidad extends Model
         'estado_id',
         'identificador_acreedor_sepa',
         'sufijo',
+        'empresa_contable_id',
     ];
 
     protected $with = ['persona'];

@@ -37,7 +37,13 @@
                                 <td class="px-6 py-4">
                                     <span class="mayusculas">{{ $item->nombre }}</span>
                                 </td>
-                                <td class="px-6 py-4">{{ $item->cif }}</td>
+                                <td class="px-6 py-4">
+                                    {{ $item->cif }}
+                                    @if ($item->empresa_contable_id)
+                                        <i class="fa-solid fa-link ml-1 text-green-600"
+                                            title="{{ __('Enlazada con la contabilidad') }}"></i>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4">{{ $item->estado?->descripcion }}</td>
                                 <td class="px-4 whitespace-nowrap">
                                     @if ($item->estado_id == \App\Models\Comunidad::ESTADO_ACTIVO)
@@ -45,6 +51,15 @@
                                             wire:click="$dispatch('comunidad-editar', {id: {{ $item->id }}})"
                                             title="{{ __('Modificar') }}">
                                             <i class="fa-solid fa-pen"> </i>
+                                        </x-button>
+                                        {{-- :disabled y no @disabled: la directiva dentro
+                                             de la etiqueta de un componente Blade
+                                             descuadra la plantilla al compilarla. --}}
+                                        <x-button type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white ml-1"
+                                            wire:click="enlazarContabilidad({{ $item->id }})"
+                                            :disabled="(bool) $item->empresa_contable_id"
+                                            title="{{ $item->empresa_contable_id ? __('Ya enlazada con la contabilidad') : __('Enlace contabilidad') }}">
+                                            <i class="fa-solid fa-link"> </i>
                                         </x-button>
                                         <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white ml-1"
                                             wire:click="confirmarBaja({{ $item->id }})" title="{{ __('Dar de baja') }}">

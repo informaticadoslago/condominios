@@ -5,16 +5,19 @@ namespace App\Livewire\Propietarios;
 use App\Livewire\ListaComponent;
 use App\Livewire\Traits\ConFiltroEstado;
 use App\Livewire\Traits\ConHistorialEstadoModal;
+use App\Livewire\Traits\ConSeleccionMultiple;
 use App\Models\Borrador;
 use App\Models\Estado;
 use App\Models\Propietario;
 use App\Models\Titularidad;
+use App\Services\Comunidades\EnlaceContableComunidad;
 use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
 {
     use ConFiltroEstado;
     use ConHistorialEstadoModal;
+    use ConSeleccionMultiple;
 
     public function mount()
     {
@@ -150,10 +153,73 @@ class Lista extends ListaComponent
         // el usuario canceló; no hacemos nada
     }
 
-    public function render()
+    /**
+     * La consulta base (comunidad y búsqueda), SIN filtros/selección ni orden ni
+     * paginación: la usan render(), invertirSeleccion() —que necesita los ids de TODO lo
+     * filtrado, no solo de la página— y las acciones en lote.
+     */
+    private function consultaBase()
     {
         $search = trim($this->search ?? '');
 
+        return Propietario::with(['persona', 'estado'])
+            ->withCount('historialEstados')
+            ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+            // Ver solo seleccionados manda también sobre la búsqueda: aunque ya no case
+            // con el texto buscado, tiene que poder verse para actuar sobre él.
+            ->when($search && ! $this->verSoloSeleccionados, function ($q) use ($search) {
+                $q->whereHas('persona', fn ($p) => $p
+                    ->buscarNombreCompleto($search)
+                    ->orWhere('documento_identificativo', 'like', "%{$search}%"));
+            });
+    }
+
+    /** Invierte la selección dentro de TODO lo que cumple el filtro actual (no solo la página). */
+    public function invertirSeleccion(): void
+    {
+        $this->invertirSeleccionEn($this->consultaBase());
+    }
+
+    /**
+     * Ids sobre los que actúan las acciones en lote: los marcados si hay alguno y, si no
+     * hay ninguno, todo lo que cumple el filtro actual.
+     */
+    public function idsParaAccion(): array
+    {
+        if ($this->seleccionados !== []) {
+            return array_values($this->seleccionados);
+        }
+
+        return $this->aplicarFiltros($this->consultaBase())
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+    }
+
+    /**
+     * Da de alta en la contabilidad a los propietarios que aún no tienen subcuenta. Se
+     * hace a mano porque una comunidad puede enlazarse con la contabilidad cuando ya
+     * tenía propietarios dados de alta.
+     */
+    public function enlazarContabilidad(EnlaceContableComunidad $enlace): void
+    {
+        $resultado = $enlace->asignarCuentasPropietarios($this->idsParaAccion());
+
+        $this->limpiarSeleccion();
+
+        if ($resultado['enlazados'] === 0) {
+            $this->dispatch('toast-error', ['title' => __('No se ha enlazado ningún propietario')]);
+
+            return;
+        }
+
+        $this->dispatch('toast-success', [
+            'title' => __(':enlazados propietarios enlazados', $resultado),
+        ]);
+    }
+
+    public function render()
+    {
         $borradores = Borrador::delUsuario()->deTipo(Borrador::TIPO_PROPIETARIO)
             ->orderByDesc('updated_at')
             ->get()
@@ -167,18 +233,11 @@ class Lista extends ListaComponent
             })
             ->values();
 
-        $items = $this->aplicarFiltros(
-            Propietario::with(['persona', 'estado'])
-                ->withCount('historialEstados')
-                ->whereHas('persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
-        )
-            ->when($search, function ($q) use ($search) {
-                $q->whereHas('persona', fn ($p) => $p
-                    ->buscarNombreCompleto($search)
-                    ->orWhere('documento_identificativo', 'like', "%{$search}%"));
-            })
+        $items = $this->aplicarSeleccion($this->consultaBase())
             ->orderBy($this->sort, $this->direction)
             ->paginate($this->lineasXPagina);
+
+        $this->sincronizarSeleccionVisible($items);
 
         return view('livewire.propietarios.lista', compact('items', 'borradores'));
     }
