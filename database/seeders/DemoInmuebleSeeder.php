@@ -3,6 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Comunidad;
+use App\Models\CuentaBancaria;
+use App\Models\EntidadBancaria;
+use App\Models\FormaDePago;
+use App\Models\FormaPagoInmueble;
 use App\Models\Inmueble;
 use App\Models\Pais;
 use App\Models\PersonaComunidad;
@@ -17,8 +21,10 @@ use Illuminate\Database\Seeder;
 /**
  * Un edificio de demo por comunidad: planta baja + 3 plantas, con propietarios
  * variados (hombres y mujeres, algún menor de edad, algún NIE) y algún inmueble
- * compartido entre varios. El edificio 1 tiene además 15 plazas de garaje en planta
- * -1. Las comunidades a las que se cuelgan estos edificios las genera
+ * compartido entre varios. Cada propietario tiene una cuenta bancaria (IBAN
+ * ficticio pero válido) y cada inmueble su forma de pago vigente: la mayoría por
+ * recibo bancario y unos cuantos por transferencia. El edificio 1 tiene además 15
+ * plazas de garaje en planta -1. Las comunidades a las que se cuelgan estos edificios las genera
  * DemoComunidadSeeder (nombre y CIF al azar en cada pasada, para poder acumular);
  * por eso este seeder ya no busca una comunidad por CIF fijo, sino que recibe las
  * comunidades recién creadas (ver generar()). Aparte de DatabaseSeeder: mejor
@@ -47,6 +53,20 @@ class DemoInmuebleSeeder extends Seeder
                 $propietarios[$clavePersona] = $this->crearPropietario($comunidad, $datos);
             }
 
+            // En una segunda pasada, porque la cuenta de un propietario menor de edad
+            // la firma OTRA persona del mismo edificio, que puede ir después en el spec.
+            $cuentas = [];
+            $orden   = 0;
+            foreach ($spec['personas'] as $clavePersona => $datos) {
+                $cuentas[$clavePersona] = $this->crearCuentaBancaria(
+                    $comunidad,
+                    $propietarios[$clavePersona],
+                    $datos,
+                    ++$orden,
+                    isset($datos['titular_cuenta']) ? $propietarios[$datos['titular_cuenta']] : null,
+                );
+            }
+
             $inmuebles = [];
             foreach ($spec['inmuebles'] as $claveInmueble => $datos) {
                 $inmuebles[$claveInmueble] = $this->crearInmueble($comunidad, $datos);
@@ -69,8 +89,12 @@ class DemoInmuebleSeeder extends Seeder
                 }
             }
 
+            $porTransferencia = $this->crearFormasDePago($spec, $inmuebles, $propietarios, $cuentas);
+
             $this->command?->info(
-                "Edificio de «{$comunidad->nombre}»: ".count($inmuebles).' inmuebles, '.count($propietarios).' propietarios.'
+                "Edificio de «{$comunidad->nombre}»: ".count($inmuebles).' inmuebles, '.count($propietarios)
+                .' propietarios (todos con cuenta bancaria), '.$porTransferencia
+                .' inmuebles por transferencia y '.(count($inmuebles) - $porTransferencia).' por recibo bancario.'
             );
         }
     }
@@ -91,6 +115,140 @@ class DemoInmuebleSeeder extends Seeder
         );
 
         return Propietario::firstOrCreate(['persona_comunidad_id' => $persona->id]);
+    }
+
+    /**
+     * Una cuenta por propietario, con IBAN ficticio pero válido y distinto en cada
+     * comunidad (el número de cuenta lleva dentro el id de la comunidad y el orden de
+     * la persona en el spec, así relanzar el seeder no cambia los IBAN ya creados).
+     *
+     * $titularReal solo viene cuando el propietario es menor de edad: los menores no
+     * tienen firma, así que la cuenta es suya pero la titula un adulto (misma regla
+     * que App\Livewire\Propietarios\Crear\Steps\CuentaBancariaStep).
+     */
+    private function crearCuentaBancaria(
+        Comunidad $comunidad,
+        Propietario $propietario,
+        array $datos,
+        int $orden,
+        ?Propietario $titularReal = null,
+    ): CuentaBancaria {
+        $atributos = [
+            'iban'                 => $this->ibanEspanol(
+                $datos['entidad'],
+                // Oficina inventada, una distinta por persona.
+                str_pad((string) (1000 + $orden), 4, '0', STR_PAD_LEFT),
+                str_pad((string) $comunidad->id, 6, '0', STR_PAD_LEFT).str_pad((string) $orden, 4, '0', STR_PAD_LEFT),
+            ),
+            'entidad_bancaria_id'  => $this->entidadBancariaId($datos['entidad']),
+            'persona_comunidad_id' => ($titularReal ?? $propietario)->persona_comunidad_id,
+        ];
+
+        $cuenta = $propietario->cuentasBancarias()->first();
+
+        if ($cuenta) {
+            $cuenta->update($atributos);
+
+            return $cuenta;
+        }
+
+        return $propietario->cuentasBancarias()->create($atributos);
+    }
+
+    /** id de la entidad bancaria por su código de 4 dígitos (ver EntidadesBancariasSeeder), cacheado. */
+    private function entidadBancariaId(string $codigo): ?int
+    {
+        static $ids = [];
+
+        return $ids[$codigo] ??= EntidadBancaria::where('codigo', $codigo)->value('id');
+    }
+
+    /**
+     * IBAN español a partir de entidad + oficina + número de cuenta: calcula los dos
+     * dígitos de control del CCC y después los del propio IBAN. Los datos son
+     * ficticios, pero el IBAN resultante pasa la validación real (ver App\Rules\IsIBANRule).
+     */
+    private function ibanEspanol(string $entidad, string $oficina, string $cuenta): string
+    {
+        $ccc = $entidad.$oficina
+            .$this->digitoControlCcc('00'.$entidad.$oficina).$this->digitoControlCcc($cuenta)
+            .$cuenta;
+
+        // Control del IBAN: se pasa "ES00" al final (E=14, S=28) y se completa a 98 el
+        // resto de dividir entre 97.
+        $control = 98 - (int) bcmod($ccc.'142800', '97');
+
+        return 'ES'.str_pad((string) $control, 2, '0', STR_PAD_LEFT).$ccc;
+    }
+
+    /** Dígito de control del CCC: pesos 1,2,4,8,5,10,9,7,3,6; un resto de 10 vale 1 y uno de 11 vale 0. */
+    private function digitoControlCcc(string $digitos): string
+    {
+        $pesos = [1, 2, 4, 8, 5, 10, 9, 7, 3, 6];
+        $suma  = 0;
+
+        foreach (str_split($digitos) as $posicion => $digito) {
+            $suma += ((int) $digito) * $pesos[$posicion];
+        }
+
+        $resto = 11 - ($suma % 11);
+
+        return (string) match ($resto) {
+            11 => 0,
+            10 => 1,
+            default => $resto,
+        };
+    }
+
+    /**
+     * Forma de pago vigente de cada inmueble. Paga el titular de mayor cuota (el
+     * primero de la lista de titularidades) y, salvo los que el spec manda por
+     * transferencia, va por recibo bancario contra la cuenta de ese titular. La fecha
+     * de inicio es la de su titularidad: la forma de pago nace con el propietario.
+     *
+     * @param  array<string, Inmueble>       $inmuebles
+     * @param  array<string, Propietario>    $propietarios
+     * @param  array<string, CuentaBancaria> $cuentas
+     * @return int inmuebles que quedan por transferencia
+     */
+    private function crearFormasDePago(array $spec, array $inmuebles, array $propietarios, array $cuentas): int
+    {
+        $porTransferencia = 0;
+
+        foreach ($spec['titularidades'] as $inmuebleClave => $lineas) {
+            $linea = $lineas[0];
+            // (string): la clave '3' (la planta entera) PHP la guarda como entero al ser
+            // índice de array, y la lista de transferencias son cadenas.
+            $transfiere  = in_array((string) $inmuebleClave, $spec['transferencias'], true);
+            $propietario = $propietarios[$linea['persona']];
+
+            if ($transfiere) {
+                $porTransferencia++;
+            }
+
+            $atributos = [
+                'propietario_id'     => $propietario->id,
+                'forma_de_pago_id'   => $transfiere ? FormaDePago::TRANSFERENCIA : FormaDePago::RECIBO_BANCARIO,
+                'cuenta_bancaria_id' => $transfiere ? null : $cuentas[$linea['persona']]->id,
+                'fecha_inicio'       => $linea['inicio'],
+            ];
+
+            // En la app un cambio de forma de pago cierra la fila vigente y abre otra
+            // (ver FormaPagoInmueble). Aquí no: son datos de demo y lo que interesa es
+            // que relanzar el seeder deje lo que dice el spec, no un historial inventado.
+            $vigente = FormaPagoInmueble::vigente()->where('inmueble_id', $inmuebles[$inmuebleClave]->id)->first();
+
+            if ($vigente) {
+                $vigente->update($atributos);
+            } else {
+                FormaPagoInmueble::create($atributos + [
+                    'inmueble_id' => $inmuebles[$inmuebleClave]->id,
+                    'fecha_fin'   => null,
+                ]);
+            }
+        }
+
+        return $porTransferencia;
     }
 
     /** updateOrCreate (no firstOrCreate): así un cambio de coeficiente en el spec se aplica al relanzar. */
@@ -206,20 +364,22 @@ class DemoInmuebleSeeder extends Seeder
     {
         return [
             'personas' => [
-                'p1'  => ['nombre' => 'Antonio', 'apellido1' => 'García', 'apellido2' => 'Pérez', 'documento' => '11111111H', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1975-03-14'],
-                'p2'  => ['nombre' => 'María', 'apellido1' => 'Fernández', 'apellido2' => 'López', 'documento' => '22222222J', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1980-07-22'],
-                'p3'  => ['nombre' => 'Lucía', 'apellido1' => 'Rodríguez', 'apellido2' => 'Sánchez', 'documento' => '33333333P', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1990-11-05'],
-                'p4'  => ['nombre' => 'Diego', 'apellido1' => 'García', 'apellido2' => 'Fernández', 'documento' => '44444444A', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '2010-05-20'],
-                'p5'  => ['nombre' => 'Klaus', 'apellido1' => 'Weber', 'apellido2' => null, 'documento' => 'X1234567L', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIE, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1985-02-10'],
-                'p6'  => ['nombre' => 'Carmen', 'apellido1' => 'Sánchez', 'apellido2' => 'Domínguez', 'documento' => '66666666Q', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1978-09-30'],
+                'p1'  => ['nombre' => 'Antonio', 'apellido1' => 'García', 'apellido2' => 'Pérez', 'documento' => '11111111H', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1975-03-14', 'entidad' => '2100'],
+                'p2'  => ['nombre' => 'María', 'apellido1' => 'Fernández', 'apellido2' => 'López', 'documento' => '22222222J', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1980-07-22', 'entidad' => '0182'],
+                'p3'  => ['nombre' => 'Lucía', 'apellido1' => 'Rodríguez', 'apellido2' => 'Sánchez', 'documento' => '33333333P', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1990-11-05', 'entidad' => '0049'],
+                // Menor: su cuenta la titula Antonio (p1), del que lleva el primer apellido.
+                'p4'  => ['nombre' => 'Diego', 'apellido1' => 'García', 'apellido2' => 'Fernández', 'documento' => '44444444A', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '2010-05-20', 'entidad' => '2100', 'titular_cuenta' => 'p1'],
+                'p5'  => ['nombre' => 'Klaus', 'apellido1' => 'Weber', 'apellido2' => null, 'documento' => 'X1234567L', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIE, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1985-02-10', 'entidad' => '1465'],
+                'p6'  => ['nombre' => 'Carmen', 'apellido1' => 'Sánchez', 'apellido2' => 'Domínguez', 'documento' => '66666666Q', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1978-09-30', 'entidad' => '0081'],
                 // Solo tienen garaje, ningún piso.
-                'p7'  => ['nombre' => 'Roberto', 'apellido1' => 'Delgado', 'apellido2' => 'Vega', 'documento' => '12345678Z', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1982-03-11'],
-                'p8'  => ['nombre' => 'Beatriz', 'apellido1' => 'Morales', 'apellido2' => 'Reyes', 'documento' => '23456789D', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1976-08-29'],
-                'p9'  => ['nombre' => 'Fernando', 'apellido1' => 'Ibáñez', 'apellido2' => 'Cano', 'documento' => '34567890V', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1993-01-17'],
-                'p10' => ['nombre' => 'Alicia', 'apellido1' => 'Serrano', 'apellido2' => 'Pascual', 'documento' => '45678901G', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1987-10-03'],
-                'p11' => ['nombre' => 'Hugo', 'apellido1' => 'Prieto', 'apellido2' => 'Gallardo', 'documento' => '56789012B', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '2011-02-14'],
-                'p12' => ['nombre' => 'Marta', 'apellido1' => 'Cortés', 'apellido2' => 'Reyes', 'documento' => '67890123B', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1995-06-25'],
-                'p13' => ['nombre' => 'Giulia', 'apellido1' => 'Rossi', 'apellido2' => null, 'documento' => 'Z9876543A', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIE, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1989-07-19'],
+                'p7'  => ['nombre' => 'Roberto', 'apellido1' => 'Delgado', 'apellido2' => 'Vega', 'documento' => '12345678Z', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1982-03-11', 'entidad' => '0128'],
+                'p8'  => ['nombre' => 'Beatriz', 'apellido1' => 'Morales', 'apellido2' => 'Reyes', 'documento' => '23456789D', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1976-08-29', 'entidad' => '2080'],
+                'p9'  => ['nombre' => 'Fernando', 'apellido1' => 'Ibáñez', 'apellido2' => 'Cano', 'documento' => '34567890V', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1993-01-17', 'entidad' => '3058'],
+                'p10' => ['nombre' => 'Alicia', 'apellido1' => 'Serrano', 'apellido2' => 'Pascual', 'documento' => '45678901G', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1987-10-03', 'entidad' => '2103'],
+                // Menor sin ningún parentesco en el edificio: firma por él otra adulta, Alicia (p10).
+                'p11' => ['nombre' => 'Hugo', 'apellido1' => 'Prieto', 'apellido2' => 'Gallardo', 'documento' => '56789012B', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '2011-02-14', 'entidad' => '0073', 'titular_cuenta' => 'p10'],
+                'p12' => ['nombre' => 'Marta', 'apellido1' => 'Cortés', 'apellido2' => 'Reyes', 'documento' => '67890123B', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1995-06-25', 'entidad' => '0049'],
+                'p13' => ['nombre' => 'Giulia', 'apellido1' => 'Rossi', 'apellido2' => null, 'documento' => 'Z9876543A', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIE, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1989-07-19', 'entidad' => '0182'],
             ],
             'inmuebles' => array_merge($this->pisosEdificio1(), $this->garajesEdificio1()),
             'titularidades' => array_merge(
@@ -248,6 +408,9 @@ class DemoInmuebleSeeder extends Seeder
                 ],
                 $this->titularidadesGarajesEdificio1()
             ),
+            // El resto va por recibo bancario. Aquí: un piso de un menor (1ºB, Diego), uno
+            // de un residente extranjero (2ºA, Klaus) y tres plazas sueltas.
+            'transferencias' => ['1b', '2a', 'garaje9', 'garaje12', 'garaje14'],
         ];
     }
 
@@ -256,14 +419,18 @@ class DemoInmuebleSeeder extends Seeder
     {
         return [
             'personas' => [
-                'q1' => ['nombre' => 'Manuel', 'apellido1' => 'Torres', 'apellido2' => 'Vidal', 'documento' => '77777777B', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1972-01-25'],
-                'q2' => ['nombre' => 'Isabel', 'apellido1' => 'Romero', 'apellido2' => 'Castro', 'documento' => '88888888Y', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1988-06-14'],
-                'q3' => ['nombre' => 'Sofía', 'apellido1' => 'Jiménez', 'apellido2' => 'Ortega', 'documento' => '99999999R', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '2012-08-02'],
-                'q4' => ['nombre' => 'Sophie', 'apellido1' => 'Dubois', 'apellido2' => null, 'documento' => 'Y7654321G', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIE, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1983-12-19'],
-                'q5' => ['nombre' => 'Elena', 'apellido1' => 'Vázquez', 'apellido2' => 'Molina', 'documento' => '20202020Q', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1979-04-08'],
-                'q6' => ['nombre' => 'Raúl', 'apellido1' => 'Castillo', 'apellido2' => 'Herrera', 'documento' => '30303030R', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1991-10-30'],
+                'q1' => ['nombre' => 'Manuel', 'apellido1' => 'Torres', 'apellido2' => 'Vidal', 'documento' => '77777777B', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1972-01-25', 'entidad' => '2100'],
+                'q2' => ['nombre' => 'Isabel', 'apellido1' => 'Romero', 'apellido2' => 'Castro', 'documento' => '88888888Y', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1988-06-14', 'entidad' => '0182'],
+                // Menor sin ningún parentesco en el edificio: firma por ella Isabel (q2).
+                'q3' => ['nombre' => 'Sofía', 'apellido1' => 'Jiménez', 'apellido2' => 'Ortega', 'documento' => '99999999R', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '2012-08-02', 'entidad' => '0049', 'titular_cuenta' => 'q2'],
+                'q4' => ['nombre' => 'Sophie', 'apellido1' => 'Dubois', 'apellido2' => null, 'documento' => 'Y7654321G', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIE, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1983-12-19', 'entidad' => '1465'],
+                'q5' => ['nombre' => 'Elena', 'apellido1' => 'Vázquez', 'apellido2' => 'Molina', 'documento' => '20202020Q', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_MUJER, 'nacimiento' => '1979-04-08', 'entidad' => '0081'],
+                'q6' => ['nombre' => 'Raúl', 'apellido1' => 'Castillo', 'apellido2' => 'Herrera', 'documento' => '30303030R', 'tipo_documento' => TipoDocumentoIdentificativo::DOCUMENTO_NIF, 'genero' => TipoGenero::GENERO_HOMBRE, 'nacimiento' => '1991-10-30', 'entidad' => '0128'],
             ],
             'inmuebles' => $this->inmueblesDelEdificio(),
+            // Aquí el menor (1ºB, Sofía) sí va por recibo bancario, contra la cuenta que le
+            // titula Isabel: en el edificio 1 es al revés, para tener los dos casos.
+            'transferencias' => ['1a', '3'],
             'titularidades' => [
                 'bajo' => [['persona' => 'q1', 'cuota' => 100.00, 'causa' => Titularidad::CAUSA_COMPRAVENTA, 'inicio' => '2016-02-20']],
                 '1a'   => [['persona' => 'q2', 'cuota' => 100.00, 'causa' => Titularidad::CAUSA_COMPRAVENTA, 'inicio' => '2017-05-11']],

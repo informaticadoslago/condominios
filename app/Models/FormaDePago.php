@@ -12,7 +12,8 @@ class FormaDePago extends Model
 
     const
     RECIBO_BANCARIO = 1,
-    EFECTIVO = 2;
+    EFECTIVO = 2,
+    TRANSFERENCIA = 3;
 
     protected $table = 'formas_de_pago';
 
