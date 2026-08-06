@@ -21,6 +21,27 @@ class PlanCuentasComunidadesSeeder extends Seeder
      */
     public function run(): void
     {
+        // Grupos (1 cifra) y subgrupos (2), con la denominación del PGC. No se apunta en
+        // ellos: solo agrupan a las cuentas de 3 cifras, que entre sí son hermanas. Van
+        // sin tipo porque no tienen naturaleza propia: del grupo 4 cuelgan clientes
+        // (activo) y proveedores (pasivo).
+        $agrupaciones = [
+            ['codigo' => '1',  'nombre' => 'Financiación básica'],
+            ['codigo' => '12', 'nombre' => 'Resultados pendientes de aplicación'],
+            ['codigo' => '4',  'nombre' => 'Acreedores y deudores por operaciones comerciales'],
+            ['codigo' => '40', 'nombre' => 'Proveedores'],
+            ['codigo' => '43', 'nombre' => 'Clientes'],
+            ['codigo' => '5',  'nombre' => 'Cuentas financieras'],
+            ['codigo' => '57', 'nombre' => 'Tesorería'],
+            ['codigo' => '6',  'nombre' => 'Compras y gastos'],
+            ['codigo' => '62', 'nombre' => 'Servicios exteriores'],
+            ['codigo' => '7',  'nombre' => 'Ventas e ingresos'],
+            ['codigo' => '75', 'nombre' => 'Otros ingresos de gestión'],
+            // El 750 lo deja libre el PGC; aquí agrupa lo que cobra la comunidad, que se
+            // desglosa en las cuentas 7500 (cuotas) y 7501 (derramas).
+            ['codigo' => '750', 'nombre' => 'Ingresos de la comunidad'],
+        ];
+
         $cuentas = [
             // 120, del subgrupo 12 «Resultados pendientes de aplicación». El grupo 3 es
             // Existencias y no pintaba nada aquí.
@@ -39,13 +60,17 @@ class PlanCuentasComunidadesSeeder extends Seeder
             ['codigo' => '62900000', 'nombre' => 'Servicios de limpieza', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             // Subgrupo 75 «Otros ingresos de gestión»: el PGC llega hasta 3 dígitos y deja
             // libre el 750, así que las cuotas y las derramas se abren ahí con el 4.º
-            // dígito, que es nuestro. Ver docs/plan-de-cuentas.md.
+            // dígito, que es nuestro: son las cuentas 7500 y 7501, hermanas dentro del
+            // 750, no una colgando de la otra. Ver docs/plan-de-cuentas.md.
             ['codigo' => '75000000', 'nombre' => 'Ingresos por cuotas de comunidad', 'tipo_cuenta_contable_id' => TipoCuentaContable::INGRESO],
             ['codigo' => '75010000', 'nombre' => 'Ingresos por derramas', 'tipo_cuenta_contable_id' => TipoCuentaContable::INGRESO],
         ];
 
-        foreach ($cuentas as $cuenta) {
+        foreach ([...$agrupaciones, ...$cuentas] as $cuenta) {
             CuentaContable::firstOrCreate(['codigo' => $cuenta['codigo'], 'empresa_contable_id' => null], $cuenta);
         }
+
+        // Y cada una a colgar de la suya, ahora que ya están todas.
+        CuentaContable::recolgarPlan(null);
     }
 }

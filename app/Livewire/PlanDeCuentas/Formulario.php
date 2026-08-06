@@ -28,14 +28,16 @@ class Formulario extends Component
     protected function rules()
     {
         return [
+            // De 1 a 3 cifras es un nivel del PGC (grupo, subgrupo o cuenta); 8, una cuenta.
             'codigo'                  => [
-                'required', 'digits:8',
+                'required', 'regex:/^(\d{1,3}|\d{8})$/',
                 Rule::unique('cuenta_contables', 'codigo')
                     ->where(fn ($q) => $q->where('empresa_contable_id', $this->empresa_contable_id))
                     ->ignore($this->itemId),
             ],
             'nombre'                  => ['required', 'string', 'max:150'],
-            'tipo_cuenta_contable_id' => ['required', 'exists:tipo_cuenta_contables,id'],
+            // El grupo no tiene naturaleza propia: del 4 cuelgan activo y pasivo a la vez.
+            'tipo_cuenta_contable_id' => [$this->esAgrupacion() ? 'nullable' : 'required', 'exists:tipo_cuenta_contables,id'],
         ];
     }
 
@@ -44,7 +46,7 @@ class Formulario extends Component
         return [
             'required' => 'Debe rellenar :attribute',
             'max'      => 'Máxima longitud de :attribute = :max',
-            'digits'   => 'El :attribute debe tener exactamente :digits dígitos numéricos',
+            'regex'    => 'El :attribute lleva 8 dígitos, o de 1 a 3 (grupo, subgrupo o cuenta)',
             'unique'   => 'Ya existe una cuenta con ese código',
             'exists'   => 'El :attribute seleccionado no es válido',
         ];
@@ -69,12 +71,22 @@ class Formulario extends Component
         $this->abrir = true;
     }
 
-    /** Con el prefijo tecleado en Código (1-7 dígitos), completa el siguiente código de 8 libre de ese grupo. */
+    /** Nivel del PGC (hasta 3 cifras): no lleva tipo ni se autonumera. */
+    public function esAgrupacion(): bool
+    {
+        return strlen(preg_replace('/\D/', '', (string) $this->codigo)) <= CuentaContable::CIFRAS_AGRUPACION;
+    }
+
+    /**
+     * Con el prefijo tecleado en Código (4-7 dígitos), completa el siguiente código de 8
+     * libre de ese grupo. Con 3 cifras o menos no toca nada: eso no es un prefijo a
+     * medias, es el código de un grupo, un subgrupo o una cuenta del PGC.
+     */
     public function siguienteCodigo(): void
     {
         $prefijo = substr(preg_replace('/\D/', '', $this->codigo), 0, 8);
 
-        if ($prefijo === '' || strlen($prefijo) >= 8) {
+        if (strlen($prefijo) <= CuentaContable::CIFRAS_AGRUPACION || strlen($prefijo) >= 8) {
             return;
         }
 
@@ -92,13 +104,12 @@ class Formulario extends Component
 
         $this->codigo = $siguiente;
 
-        // Sugiere el tipo de la cuenta de grupo (mismos 4 primeros dígitos + 0000), si existe.
+        // Sugiere el tipo de la cuenta de la que va a colgar, si existe.
         if (! $this->tipo_cuenta_contable_id) {
-            $grupo = CuentaContable::where('empresa_contable_id', $this->empresa_contable_id)
-                ->where('codigo', substr($prefijo, 0, 4).'0000')
-                ->first();
-            if ($grupo) {
-                $this->tipo_cuenta_contable_id = $grupo->tipo_cuenta_contable_id;
+            $padre = CuentaContable::padreDe($siguiente, $this->empresa_contable_id);
+
+            if ($padre) {
+                $this->tipo_cuenta_contable_id = $padre->tipo_cuenta_contable_id;
             }
         }
     }
@@ -123,13 +134,9 @@ class Formulario extends Component
     {
         $data = $this->validate();
 
-        // Cuelga automáticamente de la cuenta de grupo (4 primeros dígitos + 0000) si
-        // existe, para que esa cuenta de grupo deje de ser "hoja" en cuanto tiene hijas.
-        // Se recalcula también al editar: si el código cambia de grupo, cambia de padre.
-        $padre = CuentaContable::where('empresa_contable_id', $this->empresa_contable_id)
-            ->where('codigo', substr($data['codigo'], 0, 4).'0000')
-            ->first();
-        $data['cuenta_padre_id'] = $padre && $padre->codigo !== $data['codigo'] ? $padre->id : null;
+        // Cuelga sola del ancestro más cercano que exista. Se recalcula también al editar:
+        // si el código cambia, cambia de sitio en el árbol.
+        $data['cuenta_padre_id'] = CuentaContable::padreDe($data['codigo'], $this->empresa_contable_id)?->id;
 
         if ($this->itemId) {
             $cuenta = CuentaContable::findOrFail($this->itemId);
@@ -142,6 +149,9 @@ class Formulario extends Component
             ]);
             $this->dispatch('toast-success', ['title' => __('Cuenta creada')]);
         }
+
+        // Una cuenta intermedia recién creada se lleva a los nietos que colgaban del abuelo.
+        CuentaContable::recolgarPlan($this->empresa_contable_id);
 
         $this->dispatch('cuenta-contable-guardada', cuenta: ['id' => $cuenta->id, 'codigo' => $cuenta->codigo, 'nombre' => $cuenta->nombre]);
         $this->cerrar();
