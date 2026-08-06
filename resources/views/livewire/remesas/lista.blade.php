@@ -101,6 +101,34 @@
                                         title="{{ __('Descargar el fichero para el banco') }}">
                                         <i class="fa-solid fa-download"> </i>
                                     </a>
+                                    {{-- Mientras quede algo en vuelo sin cobrar: dar por
+                                         cobrado lo que el banco no devolvió, y marcar las
+                                         devoluciones que van llegando por tandas. --}}
+                                    @if ($item->lineas_pendientes_count)
+                                        <x-button type="button" class="bg-green-600 hover:bg-green-700 text-white ml-1"
+                                            wire:click="abrirCobro({{ $item->id }})"
+                                            title="{{ __('Dar por cobrada') }}">
+                                            <i class="fa-solid fa-hand-holding-dollar"> </i>
+                                        </x-button>
+                                    @endif
+                                    {{-- Devoluciones solo de lo ya cobrado: el banco no puede
+                                         devolver un cargo que todavía no se ha dado por hecho. --}}
+                                    @if ($item->lineas_devolvibles_count)
+                                        <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white ml-1"
+                                            wire:click="abrirDevolucion({{ $item->id }})"
+                                            title="{{ __('Marcar devoluciones') }}">
+                                            <i class="fa-solid fa-rotate-left"> </i>
+                                        </x-button>
+                                    @endif
+                                    {{-- Solo mientras no haya ningún cobro: la remesa que se
+                                         generó mal y no se llegó a mandar al banco. --}}
+                                    @unless ($item->lineas_cobradas_count)
+                                        <x-button type="button" class="bg-gray-600 hover:bg-gray-700 text-white ml-1"
+                                            wire:click="confirmarDeshacer({{ $item->id }})"
+                                            title="{{ __('Deshacer la remesa') }}">
+                                            <i class="fa-solid fa-trash"> </i>
+                                        </x-button>
+                                    @endunless
                                 </td>
                             </tr>
                         @endforeach
@@ -116,39 +144,208 @@
             @endif
         </x-dosl.tabla>
 
-        {{-- Nueva remesa: se elige qué vencimiento se cobra y cuándo lo carga el banco.
-             Los recibos los reúne GeneradorRemesa; aquí no se eligen uno a uno. --}}
-        <x-dosl.dialog-modal wire:model.live="nuevaAbierta" maxWidth="lg">
+        {{-- Nueva remesa en dos pasos: primero las fechas, y después el repaso de lo que
+             va a entrar, para poder dejar fuera a alguno antes de presentarla. --}}
+        <x-dosl.dialog-modal wire:model.live="nuevaAbierta" :maxWidth="$nuevaPaso === 1 ? 'lg' : '4xl'">
             <x-slot name="title">
-                {{ __('Nueva remesa') }}
+                {{ $nuevaPaso === 1 ? __('Nueva remesa') : __('Recibos que van a entrar') }}
             </x-slot>
 
             <x-slot name="content">
-                <div class="mb-4">
-                    <x-label for="nuevaVencimiento">{{ __('Vencimiento que se cobra') }}:</x-label>
-                    <x-input class="block mt-1 w-full" type="date" id="nuevaVencimiento" wire:model="nuevaVencimiento" />
-                    <x-input-error for="nuevaVencimiento" class="mt-1" />
-                    <p class="mt-1 text-sm text-gray-500">
-                        {{ __('Entran los recibos domiciliados de esa fecha que sigan pendientes y no estén ya presentados.') }}
-                    </p>
-                </div>
+                @if ($nuevaPaso === 1)
+                    <div class="mb-4">
+                        <x-label for="nuevaVencimiento">{{ __('Vencimiento que se cobra') }}:</x-label>
+                        <x-input class="block mt-1 w-full" type="date" id="nuevaVencimiento" wire:model="nuevaVencimiento" />
+                        <x-input-error for="nuevaVencimiento" class="mt-1" />
+                        <p class="mt-1 text-sm text-gray-500">
+                            {{ __('Entran los recibos domiciliados de esa fecha que sigan pendientes y no estén ya presentados.') }}
+                        </p>
+                    </div>
 
-                <div>
-                    <x-label for="nuevaFechaCargo">{{ __('Fecha de cargo') }}:</x-label>
-                    <x-input class="block mt-1 w-full" type="date" id="nuevaFechaCargo" wire:model="nuevaFechaCargo" />
-                    <x-input-error for="nuevaFechaCargo" class="mt-1" />
-                    <p class="mt-1 text-sm text-gray-500">
-                        {{ __('El día en que el banco carga los adeudos en la cuenta de cada propietario.') }}
+                    <div>
+                        <x-label for="nuevaFechaCargo">{{ __('Fecha de cargo') }}:</x-label>
+                        <x-input class="block mt-1 w-full" type="date" id="nuevaFechaCargo" wire:model="nuevaFechaCargo" />
+                        <x-input-error for="nuevaFechaCargo" class="mt-1" />
+                        <p class="mt-1 text-sm text-gray-500">
+                            {{ __('El día en que el banco carga los adeudos en la cuenta de cada propietario.') }}
+                        </p>
+                    </div>
+                @else
+                    <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">
+                        {{ __('Vencimiento :vencimiento, con cargo el :cargo. Desmarca los que no quieras presentar.', [
+                            'vencimiento' => \Carbon\Carbon::parse($nuevaVencimiento)->format('d/m/Y'),
+                            'cargo'       => \Carbon\Carbon::parse($nuevaFechaCargo)->format('d/m/Y'),
+                        ]) }}
                     </p>
-                </div>
+
+                    <div class="max-h-96 overflow-y-auto border rounded-lg">
+                        <table class="table-striped w-full table-auto text-sm text-left">
+                            <thead class="font-medium border-b">
+                                <tr>
+                                    <th class="py-2 px-3 w-px"></th>
+                                    <th class="py-2 px-3">{{ __('Inmueble') }}</th>
+                                    <th class="py-2 px-3">{{ __('Propietario') }}</th>
+                                    <th class="py-2 px-3">{{ __('Cuenta') }}</th>
+                                    <th class="py-2 px-3 text-right">{{ __('Importe') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach ($recibosAremesar as $recibo)
+                                    <tr wire:key="remesar-{{ $recibo->id }}">
+                                        <td class="py-2 px-3">
+                                            <input type="checkbox" wire:model.live="nuevaSeleccion" value="{{ $recibo->id }}" />
+                                        </td>
+                                        <td class="py-2 px-3 whitespace-nowrap">
+                                            {{ $recibo->inmueble?->tipoInmueble?->descripcion }}
+                                            {{ $recibo->inmueble?->planta }} {{ $recibo->inmueble?->puerta }}
+                                        </td>
+                                        <td class="py-2 px-3 mayusculas">{{ $recibo->propietario?->persona?->nombreCompleto }}</td>
+                                        <td class="py-2 px-3">{{ $recibo->cuentaBancaria?->iban }}</td>
+                                        <td class="py-2 px-3 text-right">{{ number_format((float) $recibo->saldo, 2, ',', '.') }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="mt-3 font-medium">
+                        {{ __('Marcados') }}: {{ count($nuevaSeleccion) }} {{ __('de') }} {{ count($recibosAremesar) }}
+                        —
+                        {{ number_format($recibosAremesar->whereIn('id', $nuevaSeleccion)->sum('saldo'), 2, ',', '.') }}
+                    </p>
+                @endif
             </x-slot>
 
             <x-slot name="footer">
-                <x-secondary-button type="button" wire:click="$set('nuevaAbierta', false)">
+                @if ($nuevaPaso === 1)
+                    <x-secondary-button type="button" wire:click="$set('nuevaAbierta', false)">
+                        {{ __('Cancelar') }}
+                    </x-secondary-button>
+                    <x-button type="button" class="ml-2" wire:click="repasarRemesa">
+                        {{ __('Continuar') }}
+                    </x-button>
+                @else
+                    <x-secondary-button type="button" wire:click="volverAFechas">
+                        {{ __('Atrás') }}
+                    </x-secondary-button>
+                    <x-button type="button" class="ml-2" wire:click="generar">
+                        {{ __('Generar remesa') }}
+                    </x-button>
+                @endif
+            </x-slot>
+        </x-dosl.dialog-modal>
+
+        {{-- Dar por cobrada: lo que no volvió devuelto. --}}
+        <x-dosl.dialog-modal wire:model.live="cobroAbierto" maxWidth="lg">
+            <x-slot name="title">
+                {{ __('Dar la remesa por cobrada') }}
+            </x-slot>
+
+            <x-slot name="content">
+                <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                    {{ __('Se dan por cobrados todos los recibos de la remesa que no estén marcados como devueltos. Los que ya estén cobrados se quedan como están.') }}
+                </p>
+
+                <x-label for="cobroFecha">{{ __('Fecha del cobro') }}:</x-label>
+                <x-input class="block mt-1 w-full" type="date" id="cobroFecha" wire:model="cobroFecha" />
+                <x-input-error for="cobroFecha" class="mt-1" />
+                <p class="mt-1 text-sm text-gray-500">
+                    {{ __('Viene puesta la fecha de cargo de la remesa, que es cuando el banco movió el dinero.') }}
+                </p>
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button type="button" wire:click="$set('cobroAbierto', false)">
                     {{ __('Cancelar') }}
                 </x-secondary-button>
-                <x-button type="button" class="ml-2" wire:click="generar">
-                    {{ __('Generar remesa') }}
+                <x-button type="button" class="ml-2" wire:click="cobrarRemesa">
+                    {{ __('Sí, dar por cobrada') }}
+                </x-button>
+            </x-slot>
+        </x-dosl.dialog-modal>
+
+        {{-- Devoluciones: solo lo que sigue en vuelo. Se abre tantas veces como tandas
+             mande el banco. --}}
+        <x-dosl.dialog-modal wire:model.live="devolucionAbierta" maxWidth="4xl">
+            <x-slot name="title">
+                {{ __('Marcar devoluciones') }}
+            </x-slot>
+
+            <x-slot name="content">
+                <div class="flex gap-4 mb-4">
+                    <div class="w-1/3">
+                        <x-label for="devolucionFecha">{{ __('Fecha de la devolución') }}:</x-label>
+                        <x-input class="block mt-1 w-full" type="date" id="devolucionFecha" wire:model="devolucionFecha" />
+                        <x-input-error for="devolucionFecha" class="mt-1" />
+                    </div>
+                    <div class="flex-1">
+                        <x-label for="devolucionMotivo">{{ __('Motivo') }}:</x-label>
+                        <x-input class="block mt-1 w-full" type="text" id="devolucionMotivo"
+                            wire:model="devolucionMotivo" placeholder="{{ __('Sin fondos, cuenta cancelada…') }}" />
+                        <x-input-error for="devolucionMotivo" class="mt-1" />
+                    </div>
+                </div>
+
+                <div class="max-h-96 overflow-y-auto border rounded-lg">
+                    <table class="table-striped w-full table-auto text-sm text-left">
+                        <thead class="font-medium border-b">
+                            <tr>
+                                <th class="py-2 px-3 w-px"></th>
+                                <th class="py-2 px-3">{{ __('Inmueble') }}</th>
+                                <th class="py-2 px-3">{{ __('Propietario') }}</th>
+                                <th class="py-2 px-3">{{ __('Cuenta') }}</th>
+                                <th class="py-2 px-3 text-right">{{ __('Importe') }}</th>
+                                <th class="py-2 px-3">{{ __('Devuelto') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            @foreach ($lineasRemesa as $linea)
+                                <tr wire:key="devolver-{{ $linea->id }}"
+                                    @class(['opacity-60' => $linea->estaDevuelta()])>
+                                    <td class="py-2 px-3">
+                                        {{-- Las ya devueltas se ven, pero sin casilla: no se
+                                             vuelven a marcar. Tampoco las que no llegaron a
+                                             cobrarse, que no tienen nada que devolver. --}}
+                                        @if (! $linea->estaDevuelta() && $linea->cobros_count)
+                                            <input type="checkbox" wire:model.live="devolucionSeleccion" value="{{ $linea->id }}" />
+                                        @endif
+                                    </td>
+                                    <td class="py-2 px-3 whitespace-nowrap">
+                                        {{ $linea->recibo?->inmueble?->tipoInmueble?->descripcion }}
+                                        {{ $linea->recibo?->inmueble?->planta }} {{ $linea->recibo?->inmueble?->puerta }}
+                                    </td>
+                                    <td class="py-2 px-3 mayusculas">{{ $linea->recibo?->propietario?->persona?->nombreCompleto }}</td>
+                                    <td class="py-2 px-3">{{ $linea->iban }}</td>
+                                    <td class="py-2 px-3 text-right">{{ number_format((float) $linea->importe, 2, ',', '.') }}</td>
+                                    <td class="py-2 px-3 whitespace-nowrap">
+                                        @if ($linea->estaDevuelta())
+                                            <span class="text-red-700 dark:text-red-400">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                                {{ $linea->fecha_devolucion->format('d/m/Y') }}
+                                            </span>
+                                            @if ($linea->motivo_devolucion)
+                                                <span class="text-gray-500">— {{ $linea->motivo_devolucion }}</span>
+                                            @endif
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <x-input-error for="devolucionSeleccion" class="mt-2" />
+                <p class="mt-3 font-medium">{{ __('Marcados') }}: {{ count($devolucionSeleccion) }}</p>
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button type="button" wire:click="$set('devolucionAbierta', false)">
+                    {{ __('Cancelar') }}
+                </x-secondary-button>
+                <x-button type="button" class="ml-2 bg-red-600 hover:bg-red-700" wire:click="marcarDevueltos">
+                    {{ __('Marcar como devueltos') }}
                 </x-button>
             </x-slot>
         </x-dosl.dialog-modal>

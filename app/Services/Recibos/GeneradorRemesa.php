@@ -25,7 +25,11 @@ use Illuminate\Support\Facades\DB;
  */
 final class GeneradorRemesa
 {
-    public function generar(Comunidad $comunidad, string $fechaVencimiento, string $fechaCargo): Remesa
+    /**
+     * @param  int[]|null  $reciboIds  si viene, solo entran estos (la pantalla deja quitar
+     *                                 alguno antes de generar); si no, todos los del vencimiento
+     */
+    public function generar(Comunidad $comunidad, string $fechaVencimiento, string $fechaCargo, ?array $reciboIds = null): Remesa
     {
         $cuentaAbono = $comunidad->cuentasBancarias()->first();
 
@@ -41,7 +45,7 @@ final class GeneradorRemesa
             );
         }
 
-        $recibos = $this->recibosRemesables($comunidad, $fechaVencimiento);
+        $recibos = $this->recibosRemesables($comunidad, $fechaVencimiento, $reciboIds);
 
         if ($recibos->isEmpty()) {
             throw new RemesaNoGenerableException(
@@ -71,6 +75,9 @@ final class GeneradorRemesa
                     'iban'      => $mandatos[$recibo->cuenta_bancaria_id]->cuentaBancaria->iban,
                 ]);
 
+                // En el historial del recibo queda en qué remesa salió, que si no habría
+                // que ir buscándolo por las líneas de todas las remesas.
+                $recibo->motivoCambioEstado = __('Remesa :referencia', ['referencia' => $remesa->referencia]);
                 $recibo->update(['estado_id' => TipoEstadoRecibo::ENVIADO]);
             }
 
@@ -79,11 +86,13 @@ final class GeneradorRemesa
     }
 
     /**
-     * Recibos que pueden ir en la remesa de ese vencimiento.
+     * Recibos que pueden ir en la remesa de ese vencimiento. La usa también la pantalla
+     * para enseñar de antemano lo que va a entrar.
      *
+     * @param  int[]|null  $reciboIds  para quedarse solo con los elegidos
      * @return Collection<int, Recibo>
      */
-    public function recibosRemesables(Comunidad $comunidad, string $fechaVencimiento): Collection
+    public function recibosRemesables(Comunidad $comunidad, string $fechaVencimiento, ?array $reciboIds = null): Collection
     {
         return Recibo::query()
             ->whereIn('inmueble_id', Inmueble::where('comunidad_id', $comunidad->id)->select('id'))
@@ -93,7 +102,10 @@ final class GeneradorRemesa
             ->where('saldo', '>', 0)
             // Ya presentado y sin devolver: está en vuelo, no se presenta dos veces.
             ->whereDoesntHave('lineasRemesas', fn ($q) => $q->whereNull('fecha_devolucion'))
-            ->with(['cuentaBancaria.entidadBancaria', 'inmueble'])
+            // Se filtra al final y sobre la misma consulta: así, aunque lleguen ids de una
+            // pantalla abierta hace rato, nunca entra uno que ya no sea remesable.
+            ->when($reciboIds !== null, fn ($q) => $q->whereIn('id', $reciboIds))
+            ->with(['cuentaBancaria.entidadBancaria', 'inmueble.tipoInmueble', 'propietario.persona'])
             ->orderBy('inmueble_id')
             ->get();
     }

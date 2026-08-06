@@ -3,7 +3,9 @@
 namespace App\Services\Recibos;
 
 use App\Models\Cobro;
+use App\Models\FormaDePago;
 use App\Models\Recibo;
+use App\Models\Remesa;
 use App\Models\TipoEstadoRecibo;
 use Illuminate\Support\Facades\DB;
 
@@ -25,9 +27,9 @@ class RegistrarCobro
      * Devuelve null si no había nada que cobrar (ya estaba pagado, o se llamó dos veces
      * sobre el mismo recibo), para que el llamante pueda contar cuántos cobró de verdad.
      */
-    public function registrar(int $reciboId, string $fecha, int $formaDePagoId, ?float $importe = null): ?Cobro
+    public function registrar(int $reciboId, string $fecha, int $formaDePagoId, ?float $importe = null, ?int $lineaRemesaId = null): ?Cobro
     {
-        return DB::transaction(function () use ($reciboId, $fecha, $formaDePagoId, $importe) {
+        return DB::transaction(function () use ($reciboId, $fecha, $formaDePagoId, $importe, $lineaRemesaId) {
             // Bloqueada la fila: dos usuarios cobrando el mismo recibo a la vez leerían
             // el mismo pendiente y lo cobrarían dos veces.
             $recibo = Recibo::whereKey($reciboId)->lockForUpdate()->first();
@@ -46,6 +48,9 @@ class RegistrarCobro
             $cobro = Cobro::create([
                 'recibo_id'        => $recibo->id,
                 'forma_de_pago_id' => $formaDePagoId,
+                // De qué presentación vino, cuando viene de una. Sin esto, una devolución
+                // posterior no sabría qué cobro tiene que deshacer.
+                'linea_remesa_id'  => $lineaRemesaId,
                 'fecha'            => $fecha,
                 'importe'          => $importe,
             ]);
@@ -55,12 +60,53 @@ class RegistrarCobro
             // El estado es el ciclo de vida del recibo, no cuánto se debe: solo pasa a
             // Cobrado cuando no queda nada pendiente. Un cobro parcial lo deja como está.
             if ((float) $recibo->importe_pagado >= (float) $recibo->importe) {
+                if ($lineaRemesaId) {
+                    $recibo->motivoCambioEstado = __('Cobrada la remesa :referencia', [
+                        'referencia' => $recibo->lineasRemesas()->whereKey($lineaRemesaId)->first()?->remesa?->referencia,
+                    ]);
+                }
+
                 $recibo->estado_id = TipoEstadoRecibo::COBRADO;
             }
 
             $recibo->save();
 
             return $cobro;
+        });
+    }
+
+    /**
+     * Da por cobrada una remesa: el banco carga todo lo presentado, así que se cobra lo
+     * que NO ha vuelto devuelto. Se hace a mano y pasado el plazo de devolución, porque
+     * hasta entonces un adeudo presentado todavía puede rebotar.
+     *
+     * Cada cobro queda enganchado a su línea, que es la que devuelve el banco si más
+     * tarde rebota: entonces RegistrarDevolucion sabe qué importe deshacer.
+     *
+     * @return int recibos cobrados de verdad (los ya pagados no cuentan)
+     */
+    public function registrarRemesa(Remesa $remesa, string $fecha): int
+    {
+        return DB::transaction(function () use ($remesa, $fecha) {
+            $cobrados = 0;
+
+            $lineas = $remesa->lineas()->whereNull('fecha_devolucion')->get();
+
+            foreach ($lineas as $linea) {
+                $cobro = $this->registrar(
+                    (int) $linea->recibo_id,
+                    $fecha,
+                    FormaDePago::RECIBO_BANCARIO,
+                    null,
+                    (int) $linea->id,
+                );
+
+                if ($cobro) {
+                    $cobrados++;
+                }
+            }
+
+            return $cobrados;
         });
     }
 

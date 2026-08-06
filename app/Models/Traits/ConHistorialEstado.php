@@ -11,17 +11,26 @@ use App\Models\HistorialEstado;
  */
 trait ConHistorialEstado
 {
+    /**
+     * Por qué cambia el estado esta vez, para que quede en el historial: «Remesa
+     * REM1-20260809-1», «Devuelto por el banco»… Se pone justo antes de guardar y se
+     * consume al registrarlo, así que no se arrastra al cambio siguiente.
+     */
+    public ?string $motivoCambioEstado = null;
+
     public static function bootConHistorialEstado()
     {
         static::created(function ($model) {
             if (! is_null($model->getAttributes()['estado_id'] ?? null)) {
-                $model->registrarCambioEstado(null, $model->estado_id);
+                $model->registrarCambioEstado(null, $model->estado_id, $model->motivoCambioEstado);
+                $model->motivoCambioEstado = null;
             }
         });
 
         static::updated(function ($model) {
             if ($model->wasChanged('estado_id')) {
-                $model->registrarCambioEstado($model->getOriginal('estado_id'), $model->estado_id);
+                $model->registrarCambioEstado($model->getOriginal('estado_id'), $model->estado_id, $model->motivoCambioEstado);
+                $model->motivoCambioEstado = null;
             }
         });
     }
