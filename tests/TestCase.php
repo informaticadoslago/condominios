@@ -21,7 +21,9 @@ abstract class TestCase extends BaseTestCase
     {
         $base = (string) env('DB_DATABASE');
 
-        if (! str_ends_with($base, '_test')) {
+        // SQLite en memoria no es una base que se pueda estropear: se crea y se tira
+        // con cada test, así que pasa el filtro sin más.
+        if ($base !== ':memory:' && ! str_ends_with($base, '_test')) {
             throw new RuntimeException(
                 "Los tests apuntan a la base «{$base}», que no es una base de pruebas. "
                 .'Revisa DB_DATABASE en phpunit.xml antes de seguir: ejecutarlos así vaciaría los datos reales.'

@@ -1,6 +1,7 @@
 # API de contabilidad
 
-Manual de entrada de asientos al módulo contable.
+Manual de entrada al módulo contable: alta de empresas, apertura de ejercicios y registro
+de asientos.
 
 La contabilidad es independiente de quien le mete asientos: no conoce comunidades, ni
 inmuebles, ni recibos, ni remesas. Solo sabe de empresas contables, ejercicios, cuentas,
@@ -14,6 +15,10 @@ las mismas reglas.
 |---|---|
 | [Las dos puertas](#las-dos-puertas) | Cuándo usar HTTP y cuándo el servicio interno |
 | [Autenticación](#autenticación) | Token Sanctum |
+| [Dar de alta una empresa](#dar-de-alta-una-empresa) | Nombre y CIF, devuelve el id |
+| [Abrir un ejercicio](#abrir-un-ejercicio) | Segundo paso, obligatorio antes del primer asiento |
+| [Dar de alta un tercero](#dar-de-alta-un-tercero) | NIF y devuelve su subcuenta, sin registrar ningún asiento |
+| [La cuenta de un presupuesto o una derrama](#la-cuenta-de-un-presupuesto-o-una-derrama) | Contra qué cuenta de ingresos se cobra |
 | [Registrar un asiento](#registrar-un-asiento) | El endpoint, campos y respuestas |
 | [Las líneas](#las-líneas) | Cuenta directa o tercero |
 | [Importes en céntimos](#importes-en-céntimos) | Nunca euros, nunca decimales |
@@ -27,12 +32,20 @@ las mismas reglas.
 
 ## Las dos puertas
 
-Hay **una sola lógica** —`RegistrarAsientoService`— con dos formas de llegar a ella:
+Cada operación tiene **una sola lógica**, en un servicio, con dos formas de llegar a ella:
 
 | Puerta | Quién la usa | Qué gana | Qué pierde |
 |---|---|---|---|
 | `POST /api/contabilidad/asientos` | Sistemas externos, importadores, otros lenguajes | Funciona desde cualquier sitio | No comparte transacción |
 | `RegistrarAsientoService::ejecutar()` | Código de esta misma aplicación | Transacción compartida: o entra todo o no entra nada | Solo desde dentro |
+| `POST /api/contabilidad/empresas` | Igual, para dar de alta la empresa | | |
+| `ResolverEmpresaContableService::ejecutar()` | Igual, desde dentro | | |
+| `POST /api/contabilidad/ejercicios` | Igual, para abrir un ejercicio | | |
+| `AbrirEjercicioContableService::ejecutar()` | Igual, desde dentro | | |
+| `POST /api/contabilidad/terceros` | Igual, para dar de alta a quien paga | | |
+| `ResolvedorCuentasService::resolver()` | Igual, desde dentro | | |
+| `POST /api/contabilidad/cuentas-ingreso` | Igual, para el concepto por el que se cobra | | |
+| `ResolverCuentaIngresoService::ejecutar()` | Igual, desde dentro | | |
 
 Las reglas contables están en el servicio, no en el controlador ni en el `FormRequest`.
 Quien entra por HTTP y quien llama al servicio pasan exactamente por las mismas
@@ -54,6 +67,180 @@ Content-Type: application/json
 ```
 
 Sin token válido, `401`.
+
+---
+
+## Dar de alta una empresa
+
+Antes de mandar ningún asiento hace falta la empresa contable a la que van. Se pide por
+**nombre y CIF**, y la contabilidad devuelve su id:
+
+```
+POST /api/contabilidad/empresas
+```
+
+```json
+{
+  "cif": "H12345678",
+  "razon_social": "Comunidad de Propietarios Los Lagos"
+}
+```
+
+### Respuesta
+
+`201 Created` si se ha creado ahora, `200 OK` si ese CIF ya tenía empresa.
+
+```json
+{
+  "id": 3,
+  "cif": "H12345678",
+  "razon_social": "Comunidad de Propietarios Los Lagos"
+}
+```
+
+El `id` que devuelve es el que se manda luego como `empresa_contable_id` en cada asiento.
+
+### El CIF es la clave
+
+Repetir la llamada **no crea una segunda empresa**: el CIF identifica a la empresa
+contable, y dos peticiones con el mismo CIF devuelven siempre la misma. Se normaliza antes
+de comparar —mayúsculas, sin espacios ni guiones—, así que `h-12 345 678` y `H12345678` son
+el mismo.
+
+Si la empresa ya existe, la `razon_social` que se manda **se ignora**: quien lleva los
+libros decide cómo se llama, no quien pregunta por ella. Para cambiarla hay que editarla
+en la contabilidad.
+
+> **Lo que esto NO deja hecho.** La empresa nace con su plan de cuentas copiado del plan
+> global, pero **sin ejercicio contable abierto**, y sin ejercicio ningún asiento entra
+> (`422`, ejercicio desconocido). El ejercicio se abre en una segunda llamada, la de
+> aquí debajo.
+
+---
+
+## Abrir un ejercicio
+
+Segundo paso, y obligatorio antes del primer asiento. Va aparte del alta de la empresa a
+propósito: **la contabilidad no inventa las fechas de nadie.** Un año natural, un
+ejercicio partido o varios seguidos al migrar datos viejos son decisiones de quien lleva
+los libros, no del alta.
+
+```
+POST /api/contabilidad/ejercicios
+```
+
+```json
+{
+  "empresa_contable_id": 3,
+  "nombre": "2026",
+  "fecha_inicio": "2026-01-01",
+  "fecha_fin": "2026-12-31"
+}
+```
+
+| Campo | Obligatorio | Tipo | Notas |
+|---|---|---|---|
+| `empresa_contable_id` | sí | entero | El que devolvió el alta de la empresa |
+| `nombre` | sí | texto (50) | Con esto se pedirán luego los asientos. Ej. `"2026"` |
+| `fecha_inicio` | sí | `AAAA-MM-DD` | |
+| `fecha_fin` | sí | `AAAA-MM-DD` | No puede ser anterior a la de inicio |
+
+### Respuesta
+
+`201 Created` si se ha abierto ahora, `200 OK` si esa empresa ya tenía un ejercicio con
+ese nombre.
+
+```json
+{
+  "id": 7,
+  "empresa_contable_id": 3,
+  "nombre": "2026",
+  "fecha_inicio": "2026-01-01",
+  "fecha_fin": "2026-12-31",
+  "cerrado": false
+}
+```
+
+El `nombre` es único dentro de la empresa y es la referencia que se manda en cada asiento
+(`"ejercicio": "2026"`), nunca el `id`.
+
+Repetir la llamada **no abre un segundo ejercicio ni toca el que hay**: no reabre uno
+cerrado ni le mueve las fechas. Para eso hay que editarlo en la contabilidad.
+
+---
+
+## Dar de alta un tercero
+
+Quien paga, antes de que exista ningún asiento: un propietario se da de alta como
+`cliente` y la contabilidad devuelve su subcuenta.
+
+```
+POST /api/contabilidad/terceros
+```
+
+```json
+{
+  "empresa_contable_id": 3,
+  "clase": "cliente",
+  "nif": "12345678Z",
+  "razon_social": "García Pérez, Antonio",
+  "sujeto": { "tipo": "propietario", "id": "17" }
+}
+```
+
+### Respuesta
+
+```json
+{ "cuenta": "43000001", "nombre": "García Pérez, Antonio" }
+```
+
+`201` si se ha dado de alta ahora, `200` si ese `sujeto` ya tenía subcuenta. **Repetir la
+llamada no crea una segunda**: devuelve la que ya existía, así que puede reintentarse sin
+miedo.
+
+Esa cuenta es el identificador con el que luego se le nombra en los asientos, y la que
+guarda tu sistema. `sujeto` es tu etiqueta opaca: la contabilidad la guarda y la compara,
+pero no la interpreta. Las clases disponibles y cómo se numera están en
+[Terceros y subcuentas](#terceros-y-subcuentas).
+
+---
+
+## La cuenta de un presupuesto o una derrama
+
+El otro lado del asiento: el concepto por el que se cobra. El presupuesto anual va al
+grupo de cuotas y **cada derrama tiene la suya**, para poder verlas por separado en el
+mayor.
+
+```
+POST /api/contabilidad/cuentas-ingreso
+```
+
+```json
+{
+  "empresa_contable_id": 3,
+  "clase": "derramas",
+  "nombre": "Derrama grietas",
+  "sujeto": { "tipo": "presupuesto", "id": "12" }
+}
+```
+
+### Respuesta
+
+```json
+{ "cuenta": "75010001", "nombre": "Derrama grietas" }
+```
+
+| `clase` | Grupo | Denominación |
+|---|---|---|
+| `cuotas` | `7500` | Ingresos por cuotas de comunidad |
+| `derramas` | `7501` | Ingresos por derramas |
+
+Se numera igual que las subcuentas de tercero (4 de grupo + 4 de correlativo), aunque no
+es un tercero: nadie debe nada aquí. `201` la primera vez y `200` las siguientes; el mismo
+`sujeto` devuelve siempre la misma cuenta.
+
+Con las dos altas hechas, el recibo ya se puede mandar: al debe la cuenta del propietario,
+al haber la del presupuesto.
 
 ---
 
@@ -230,6 +417,9 @@ el `id` del tercero**, y no hay que suponerla. Al agotar las 9.999 subcuentas de
 la petición falla con `409`; no se salta al grupo siguiente, para que un grupo siga siendo
 un prefijo único en informes y exportaciones.
 
+Cómo se eligen los códigos de cuenta y qué dice el PGC al respecto está en
+[docs/plan-de-cuentas.md](plan-de-cuentas.md).
+
 ---
 
 ## Errores
@@ -238,7 +428,7 @@ un prefijo único en informes y exportaciones.
 |---|---|
 | `401` | Falta el token o no es válido |
 | `409` | El ejercicio está cerrado, o se han agotado las 9.999 subcuentas del grupo |
-| `422` | El asiento no cuadra, una línea está mal formada, la fecha cae fuera del ejercicio, la cuenta no existe, el ejercicio no existe, o el tercero no existe y no se autorizó crearlo |
+| `422` | El asiento no cuadra, una línea está mal formada, la fecha cae fuera del ejercicio, la cuenta no existe, el ejercicio no existe, o el tercero no existe y no se autorizó crearlo. En el alta de empresa, falta el CIF o el nombre. En la apertura de ejercicio, falta el nombre o las fechas están del revés |
 
 Los `422` y `409` del servicio devuelven el motivo en texto:
 
@@ -295,6 +485,8 @@ Las excepciones que puede lanzar el servicio, todas en `App\Exceptions`:
 | `CuentaContableDesconocidaException` | Un código de cuenta no existe en esa empresa |
 | `TerceroContableDesconocidoException` | Tercero sin subcuenta y sin autorización para crearla |
 | `SubcuentasAgotadasException` | Las 9.999 del grupo están usadas |
+| `EmpresaContableInvalidaException` | Alta de empresa sin CIF o sin nombre |
+| `EjercicioContableInvalidoException` | Ejercicio sin nombre, con fecha fin anterior a la de inicio, o de una empresa que no existe |
 
 ---
 

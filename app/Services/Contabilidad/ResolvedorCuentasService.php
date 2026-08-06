@@ -2,8 +2,6 @@
 
 namespace App\Services\Contabilidad;
 
-use App\Exceptions\CuentaContableDesconocidaException;
-use App\Exceptions\SubcuentasAgotadasException;
 use App\Exceptions\TerceroContableDesconocidoException;
 use App\Models\CuentaContable;
 use App\Models\TerceroContable;
@@ -12,12 +10,16 @@ use App\Models\TipoTerceroContable;
 /**
  * Traduce un tercero a su subcuenta.
  *
- * Es el único sitio de todo el sistema que sabe cómo se construye un código de subcuenta
- * (4 dígitos de grupo + 4 de correlativo). Ni la gestión, ni el registro de asientos, ni
- * quien entre por la API conocen esa regla.
+ * Cómo se construye el código lo sabe CrearSubcuentaService, que es el mismo que numera
+ * las cuentas de ingreso. Ni la gestión, ni el registro de asientos, ni quien entre por
+ * la API conocen esa regla.
  */
 final class ResolvedorCuentasService
 {
+    public function __construct(private readonly CrearSubcuentaService $subcuentas)
+    {
+    }
+
     /**
      * Debe ejecutarse dentro de una transacción cuando $puedeCrear es true: el bloqueo
      * de la cuenta de grupo solo sirve mientras dure.
@@ -57,28 +59,14 @@ final class ResolvedorCuentasService
             throw new TerceroContableDesconocidoException("No existe la clase de tercero «{$tercero->clase}».");
         }
 
-        // Se bloquea la cuenta de grupo, no la del tercero: la del tercero todavía no
-        // existe y no hay nada que bloquear. El grupo sí existe siempre, y es lo que
-        // serializa a dos altas simultáneas que competirían por el mismo correlativo.
-        $grupo = CuentaContable::where('empresa_contable_id', $empresaContableId)
-            ->where('codigo', $tipo->codigoCuentaGrupo())
-            ->lockForUpdate()
-            ->first();
-
-        if (! $grupo) {
-            throw new CuentaContableDesconocidaException(
-                "La empresa contable no tiene la cuenta de grupo {$tipo->codigoCuentaGrupo()} ({$tipo->descripcion})."
-            );
-        }
-
-        $cuenta = CuentaContable::create([
-            'empresa_contable_id'     => $empresaContableId,
-            'tipo_cuenta_contable_id' => $grupo->tipo_cuenta_contable_id,
-            'cuenta_padre_id'         => $grupo->id,
-            'codigo'                  => $this->siguienteCodigo($empresaContableId, $tipo),
-            'nombre'                  => $tercero->razonSocial ?? "{$tercero->tipo} {$tercero->id}",
-            'estado_id'               => CuentaContable::ESTADO_ACTIVO,
-        ]);
+        // La subcuenta del tercero no lleva la etiqueta opaca: de eso ya se encarga el
+        // propio tercero, y tenerla en dos sitios sería tener dos verdades.
+        $cuenta = $this->subcuentas->crear(
+            empresaContableId: $empresaContableId,
+            prefijo: $tipo->prefijo_cuenta,
+            nombreGrupo: $tipo->descripcion,
+            nombre: $tercero->razonSocial ?? "{$tercero->tipo} {$tercero->id}",
+        );
 
         return TerceroContable::create([
             'empresa_contable_id'      => $empresaContableId,
@@ -90,25 +78,5 @@ final class ResolvedorCuentasService
             'cuenta_contable_id'       => $cuenta->id,
             'estado_id'                => TerceroContable::ESTADO_ACTIVO,
         ]);
-    }
-
-    private function siguienteCodigo(int $empresaContableId, TipoTerceroContable $tipo): string
-    {
-        $ultimo = CuentaContable::where('empresa_contable_id', $empresaContableId)
-            ->where('codigo', 'like', $tipo->prefijo_cuenta.'%')
-            ->where('codigo', '!=', $tipo->codigoCuentaGrupo())
-            ->max('codigo');
-
-        $siguiente = $ultimo === null ? 1 : ((int) substr((string) $ultimo, 4)) + 1;
-
-        // Decisión tomada: al agotar el grupo se para y se avisa, no se salta al grupo
-        // siguiente. Así un grupo sigue siendo un prefijo único en informes y exportaciones.
-        if ($siguiente > 9999) {
-            throw new SubcuentasAgotadasException(
-                "Agotadas las 9.999 subcuentas del grupo {$tipo->prefijo_cuenta} ({$tipo->descripcion})."
-            );
-        }
-
-        return $tipo->prefijo_cuenta.str_pad((string) $siguiente, 4, '0', STR_PAD_LEFT);
     }
 }
