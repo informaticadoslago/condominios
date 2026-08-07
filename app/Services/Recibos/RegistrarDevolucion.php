@@ -21,9 +21,14 @@ use Illuminate\Support\Facades\DB;
  */
 class RegistrarDevolucion
 {
-    public function registrar(int $lineaRemesaId, string $fecha, ?string $motivo = null): bool
+    /**
+     * $gastos es la comisión que el banco cobró por esta devolución, que se le repercute
+     * al propietario: no la asume la comunidad, que solo la adelanta. Se suma a lo que
+     * debe, así que al volver a presentarle el recibo se le cobrará con ella dentro.
+     */
+    public function registrar(int $lineaRemesaId, string $fecha, ?string $motivo = null, float $gastos = 0): bool
     {
-        return DB::transaction(function () use ($lineaRemesaId, $fecha, $motivo) {
+        return DB::transaction(function () use ($lineaRemesaId, $fecha, $motivo, $gastos) {
             $linea = LineaRemesa::whereKey($lineaRemesaId)->lockForUpdate()->first();
 
             if (! $linea || $linea->fecha_devolucion) {
@@ -45,6 +50,7 @@ class RegistrarDevolucion
             $linea->update([
                 'fecha_devolucion'  => $fecha,
                 'motivo_devolucion' => $motivo,
+                'gastos_devolucion' => $gastos,
             ]);
 
             // Se deshace con el movimiento contrario, no borrando el cobro: la fila
@@ -60,6 +66,10 @@ class RegistrarDevolucion
 
             $recibo->importe_pagado = (float) $recibo->importe_pagado - $cobrado;
 
+            // La comisión se acumula: un recibo puede irse devuelto más de una vez, y cada
+            // vez el banco cobra la suya.
+            $recibo->gastos_devolucion = (float) $recibo->gastos_devolucion + $gastos;
+
             $recibo->motivoCambioEstado = $motivo
                 ? __('Devuelto (:motivo)', ['motivo' => $motivo])
                 : __('Devuelto por el banco');
@@ -74,16 +84,20 @@ class RegistrarDevolucion
     /**
      * Varias de golpe: las devoluciones del banco llegan en tanda.
      *
+     * La comisión es la de cada devolución, no la de la tanda: si el banco carga las
+     * comisiones juntas en un solo apunte, se teclea el importe unitario y la suma de
+     * todas cuadra con ese cargo.
+     *
      * @param  int[]  $lineaRemesaIds
      * @return int cuántas se marcaron de verdad
      */
-    public function registrarVarias(array $lineaRemesaIds, string $fecha, ?string $motivo = null): int
+    public function registrarVarias(array $lineaRemesaIds, string $fecha, ?string $motivo = null, float $gastos = 0): int
     {
-        return DB::transaction(function () use ($lineaRemesaIds, $fecha, $motivo) {
+        return DB::transaction(function () use ($lineaRemesaIds, $fecha, $motivo, $gastos) {
             $marcadas = 0;
 
             foreach ($lineaRemesaIds as $id) {
-                if ($this->registrar((int) $id, $fecha, $motivo)) {
+                if ($this->registrar((int) $id, $fecha, $motivo, $gastos)) {
                     $marcadas++;
                 }
             }

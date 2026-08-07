@@ -22,11 +22,13 @@ class LineaRemesa extends Model
         'iban',
         'fecha_devolucion',
         'motivo_devolucion',
+        'gastos_devolucion',
     ];
 
     protected $casts = [
-        'importe'          => 'decimal:2',
-        'fecha_devolucion' => 'date',
+        'importe'           => 'decimal:2',
+        'fecha_devolucion'  => 'date',
+        'gastos_devolucion' => 'decimal:2',
     ];
 
     public function remesa()

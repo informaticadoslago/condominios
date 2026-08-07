@@ -19,6 +19,7 @@ las mismas reglas.
 | [Abrir un ejercicio](#abrir-un-ejercicio) | Segundo paso, obligatorio antes del primer asiento |
 | [Dar de alta un tercero](#dar-de-alta-un-tercero) | NIF y devuelve su subcuenta, sin registrar ningún asiento |
 | [La cuenta de un presupuesto o una derrama](#la-cuenta-de-un-presupuesto-o-una-derrama) | Contra qué cuenta de ingresos se cobra |
+| [La cuenta de un banco](#la-cuenta-de-un-banco) | Dónde entra el dinero cobrado. Solo por servicio |
 | [Registrar un asiento](#registrar-un-asiento) | El endpoint, campos y respuestas |
 | [Las líneas](#las-líneas) | Cuenta directa o tercero |
 | [Importes en céntimos](#importes-en-céntimos) | Nunca euros, nunca decimales |
@@ -241,6 +242,45 @@ es un tercero: nadie debe nada aquí. `201` la primera vez y `200` las siguiente
 
 Con las dos altas hechas, el recibo ya se puede mandar: al debe la cuenta del propietario,
 al haber la del presupuesto.
+
+---
+
+## La cuenta de un banco
+
+Emitir el recibo es una cosa y cobrarlo otra: al cobrar, el dinero entra en una cuenta
+corriente, y esa cuenta también necesita la suya en el plan (grupo `5720`, *Bancos*).
+
+**No tiene endpoint HTTP**: solo se pide desde dentro, con el servicio.
+
+```php
+use App\Services\Contabilidad\ResolverCuentaTesoreriaService;
+
+$cuenta = $tesoreria->banco(
+    empresaContableId: 3,
+    nombre: 'BANCO X C/C COMUNIDAD',
+    sujetoTipo: 'cuenta_bancaria',
+    sujetoId: '7',
+);   // → 57200001
+```
+
+El `nombre` es cosa de quien llama: aquí lo escribe el administrador en los datos
+financieros de la comunidad, porque es él quien decide cómo quiere leerlo en el mayor. Se
+numera y se comporta igual que las cuentas de ingreso —mismo `sujeto` devuelve siempre la
+misma cuenta, nunca una segunda—, y como ellas no es un tercero: nadie debe nada aquí, es
+dónde está el dinero.
+
+### Cambiar la denominación
+
+```php
+$renombrar->ejecutar(empresaContableId: 3, codigo: '57200001', nombre: 'BANCO Y C/C');
+```
+
+El nombre de una cuenta no forma parte de ningún asiento: el mayor se vuelve a sacar con
+el de hoy y no altera ni un importe, así que cambiarlo es legítimo. El **código** no se
+toca nunca una vez tiene movimientos. Devuelve `false` si esa empresa no tiene esa cuenta.
+
+Quien llama desde fuera debe haber preguntado antes: en el plan manda quien lleva los
+libros, y puede haber corregido allí la denominación a propósito.
 
 ---
 

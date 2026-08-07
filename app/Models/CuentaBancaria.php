@@ -15,6 +15,8 @@ class CuentaBancaria extends Model
         'iban',
         'entidad_bancaria_id',
         'alias',
+        'nombre_contable',
+        'cuenta_contable',
         'persona_comunidad_id',
     ];
 

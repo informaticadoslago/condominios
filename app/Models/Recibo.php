@@ -31,6 +31,8 @@ class Recibo extends Model
         'fecha_vencimiento',
         'importe',
         'importe_pagado',
+        // Comisiones de devolución que se le repercuten; el saldo las suma al importe.
+        'gastos_devolucion',
         'forma_de_pago_id',
         'cuenta_bancaria_id',
         'estado_id',
@@ -42,6 +44,7 @@ class Recibo extends Model
         'fecha_vencimiento' => 'date',
         'importe'           => 'decimal:2',
         'importe_pagado'    => 'decimal:2',
+        'gastos_devolucion' => 'decimal:2',
         'saldo'             => 'decimal:2',
     ];
 

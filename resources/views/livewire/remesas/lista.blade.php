@@ -6,14 +6,6 @@
         {{ __('Envíos de adeudos al banco') }}
     </x-slot>
     <x-slot name="botonera">
-        {{-- Solo si está puesta ENVIAR_EMAIL_TRANSFERENCIAS. Aquí y no en cada remesa:
-             los que pagan por transferencia no salen en ninguna remesa. --}}
-        @if ($avisoTransferenciaActivo)
-            <x-secondary-button type="button" wire:click="abrirAvisoTransferencia" class="mr-1"
-                title="{{ __('Avisar a los que pagan por transferencia') }}">
-                <i class="fa-solid fa-envelope mr-1"></i>{{ __('Avisar transferencias') }}
-            </x-secondary-button>
-        @endif
         <x-button type="button" class="btn btn-nuevo" wire:click="abrirNueva" title="{{ __('Nueva') }}">
             <i class="fa-solid fa-plus"> </i>{{ __('Nueva') }}
         </x-button>
@@ -27,6 +19,26 @@
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>{{ __('Borrar filtro') }}
                 </x-secondary-button>
                 @include('livewire.parciales.selector-columnas')
+                <span class="ml-1 inline-block align-middle">
+                    <x-dropdown align="right" width="60">
+                        <x-slot name="trigger">
+                            <button type="button" title="{{ __('Acciones') }}"
+                                class="p-2 rounded-lg text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-800/5 dark:hover:bg-white/10">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        </x-slot>
+                        <x-slot name="content">
+                            {{-- Solo si está puesta ENVIAR_EMAIL_TRANSFERENCIAS. Aquí y no en
+                                 cada remesa: los que pagan por transferencia no salen en
+                                 ninguna remesa. --}}
+                            @if ($avisoTransferenciaActivo)
+                                <x-dropdown-link href="#" wire:click="abrirAvisoTransferencia">
+                                    <i class="fa-solid fa-envelope mr-1"></i>{{ __('Avisar transferencias') }}
+                                </x-dropdown-link>
+                            @endif
+                        </x-slot>
+                    </x-dropdown>
+                </span>
             </x-slot>
 
             <div class="py-3 px-6 flex items-center">
@@ -306,7 +318,45 @@
                             wire:model="devolucionMotivo" placeholder="{{ __('Sin fondos, cuenta cancelada…') }}" />
                         <x-input-error for="devolucionMotivo" class="mt-1" />
                     </div>
+                    <div class="w-1/5">
+                        <x-label for="devolucionGastos">{{ __('Comisión por devolución') }}:</x-label>
+                        <x-input class="block mt-1 w-full text-right" type="number" step="0.01" min="0"
+                            id="devolucionGastos" wire:model="devolucionGastos" placeholder="0,00" />
+                        <x-input-error for="devolucionGastos" class="mt-1" />
+                    </div>
                 </div>
+
+                {{-- El fichero del banco solo marca las casillas; aplicar sigue siendo un
+                     acto aparte, porque puede traer líneas de otra remesa. --}}
+                <div class="flex items-end gap-3 mb-4 p-3 border rounded-lg bg-gray-50 dark:bg-zinc-800">
+                    <div class="flex-1">
+                        <x-label for="devolucionFichero">{{ __('Fichero de devoluciones del banco') }} (pain.002):</x-label>
+                        <input class="block mt-1 w-full text-sm" type="file" id="devolucionFichero"
+                            accept=".xml,text/xml,application/xml" wire:model="devolucionFichero" />
+                        <x-input-error for="devolucionFichero" class="mt-1" />
+                    </div>
+                    <x-secondary-button type="button" wire:click="cargarFicheroDevoluciones"
+                        wire:loading.attr="disabled" wire:target="devolucionFichero,cargarFicheroDevoluciones">
+                        {{ __('Marcar las del fichero') }}
+                    </x-secondary-button>
+                </div>
+
+                @if ($devolucionSinCasar)
+                    <div class="mb-4 p-3 border border-amber-400 rounded-lg text-sm">
+                        <p class="font-medium text-amber-700 dark:text-amber-400">
+                            {{ __('Del fichero se han quedado fuera :count, por no ser de esta remesa o constar ya devueltas:', ['count' => count($devolucionSinCasar)]) }}
+                        </p>
+                        <ul class="mt-1 list-disc list-inside">
+                            @foreach ($devolucionSinCasar as $suelta)
+                                <li>
+                                    <span class="mayusculas">{{ $suelta['deudor'] }}</span>
+                                    — {{ number_format((float) $suelta['importe'], 2, ',', '.') }} €
+                                    <span class="text-gray-500">({{ $suelta['referencia'] }})</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 <div class="max-h-96 overflow-y-auto border rounded-lg">
                     <table class="table-striped w-full table-auto text-sm text-left">
@@ -347,6 +397,11 @@
                                             </span>
                                             @if ($linea->motivo_devolucion)
                                                 <span class="text-gray-500">— {{ $linea->motivo_devolucion }}</span>
+                                            @endif
+                                            @if ((float) $linea->gastos_devolucion > 0)
+                                                <span class="text-gray-500">
+                                                    (+{{ number_format((float) $linea->gastos_devolucion, 2, ',', '.') }} €)
+                                                </span>
                                             @endif
                                         @else
                                             —

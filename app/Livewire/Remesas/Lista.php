@@ -15,8 +15,10 @@ use App\Models\Recibo;
 use App\Models\Remesa;
 use App\Services\Recibos\EnviarAvisosRecibos;
 use App\Services\Recibos\GeneradorRemesa;
+use App\Services\Recibos\LeerDevolucionesSepa;
 use App\Services\Recibos\RegistrarCobro;
 use App\Services\Recibos\RegistrarDevolucion;
+use Livewire\WithFileUploads;
 
 /**
  * Remesas enviadas al banco. No se editan ni se borran: una remesa es constancia de un
@@ -28,6 +30,8 @@ use App\Services\Recibos\RegistrarDevolucion;
  */
 class Lista extends ListaComponent
 {
+    use WithFileUploads;
+
     public bool $nuevaAbierta = false;
 
     /** 1 = fechas, 2 = repaso de los recibos que van a entrar. */
@@ -48,8 +52,21 @@ class Lista extends ListaComponent
 
     public ?string $devolucionMotivo = null;
 
+    /**
+     * Comisión que cobra el banco por CADA devolución, que se repercute al propietario.
+     * Si el banco las carga juntas en un solo apunte, aquí va el importe unitario: la
+     * suma de todas cuadra con ese cargo.
+     */
+    public ?string $devolucionGastos = null;
+
     /** Líneas marcadas como devueltas en el modal. */
     public array $devolucionSeleccion = [];
+
+    /** Fichero de devoluciones del banco (pain.002) que marca la tanda de golpe. */
+    public $devolucionFichero = null;
+
+    /** Lo que trae el fichero y no se ha podido casar con esta remesa. */
+    public array $devolucionSinCasar = [];
 
     public bool $cobroAbierto = false;
 
@@ -251,7 +268,66 @@ class Lista extends ListaComponent
         $this->devolucionFecha     = now()->toDateString();
         $this->devolucionMotivo    = null;
         $this->devolucionSeleccion = [];
-        $this->devolucionAbierta   = true;
+        $this->devolucionFichero   = null;
+        $this->devolucionSinCasar  = [];
+        // Lo que cobró el banco la última vez, que es lo que va a cobrar esta: la tarifa
+        // no cambia de una tanda a otra. Se puede corregir antes de aplicar.
+        $this->devolucionGastos = $this->ultimaComisionDevolucion($remesa->comunidad_id);
+        $this->devolucionAbierta = true;
+    }
+
+    /** Última comisión de devolución que se registró en la comunidad, como sugerencia. */
+    private function ultimaComisionDevolucion(int $comunidadId): ?string
+    {
+        $ultima = LineaRemesa::whereHas('remesa', fn ($q) => $q->where('comunidad_id', $comunidadId))
+            ->whereNotNull('fecha_devolucion')
+            ->where('gastos_devolucion', '>', 0)
+            ->latest('fecha_devolucion')
+            ->value('gastos_devolucion');
+
+        return $ultima ? (string) $ultima : null;
+    }
+
+    /**
+     * Marca de golpe lo que el banco dice que ha devuelto. No aplica nada: deja las
+     * casillas puestas para repasarlas, porque el fichero puede traer líneas de otra
+     * remesa o de adeudos que aquí ya constan devueltos.
+     */
+    public function cargarFicheroDevoluciones(LeerDevolucionesSepa $lector): void
+    {
+        $this->validate(
+            ['devolucionFichero' => ['required', 'file', 'max:2048']],
+            attributes: ['devolucionFichero' => __('fichero de devoluciones')]
+        );
+
+        $devoluciones = $lector->leer(
+            $this->devolucionFichero->get(),
+            $this->devolucionRemesaId,
+        );
+
+        $enVuelo = $this->lineasEnVuelo($this->devolucionRemesaId)->keyBy('id');
+
+        [$casadas, $sinCasar] = $devoluciones->partition(
+            fn (array $d) => $d['linea'] && $enVuelo->has($d['linea']->id)
+        );
+
+        $this->devolucionSeleccion = $casadas->pluck('linea.id')->map('strval')->all();
+        $this->devolucionSinCasar  = $sinCasar->map(fn (array $d) => [
+            'referencia' => $d['referencia'],
+            'deudor'     => $d['deudor'],
+            'importe'    => $d['importe'],
+        ])->values()->all();
+
+        // El motivo es de la tanda entera, así que solo se rellena solo cuando todas
+        // vienen por lo mismo; si vienen mezcladas, lo escribe el usuario.
+        $motivos = $casadas->pluck('motivo')->unique();
+        $this->devolucionMotivo = $motivos->count() === 1 ? substr($motivos->first(), 0, 100) : null;
+
+        $this->dispatch($casadas->count() ? 'toast-success' : 'toast-error', [
+            'title' => $casadas->count()
+                ? __(':count devoluciones marcadas del fichero', ['count' => $casadas->count()])
+                : __('El fichero no trae ninguna devolución de esta remesa'),
+        ]);
     }
 
     public function marcarDevueltos(RegistrarDevolucion $servicio): void
@@ -260,9 +336,11 @@ class Lista extends ListaComponent
             'devolucionFecha'     => ['required', 'date'],
             'devolucionSeleccion' => ['required', 'array', 'min:1'],
             'devolucionMotivo'    => ['nullable', 'string', 'max:100'],
+            'devolucionGastos'    => ['nullable', 'numeric', 'min:0'],
         ], attributes: [
             'devolucionFecha'     => __('Fecha de la devolución'),
             'devolucionSeleccion' => __('recibos devueltos'),
+            'devolucionGastos'    => __('Comisión por devolución'),
         ]);
 
         // Solo las de esta remesa y que sigan en vuelo: entre abrir el modal y confirmar,
@@ -272,10 +350,17 @@ class Lista extends ListaComponent
             ->pluck('id')
             ->all();
 
-        $marcadas = $servicio->registrarVarias($ids, $this->devolucionFecha, $this->devolucionMotivo);
+        $marcadas = $servicio->registrarVarias(
+            $ids,
+            $this->devolucionFecha,
+            $this->devolucionMotivo,
+            (float) ($this->devolucionGastos ?? 0),
+        );
 
         $this->devolucionAbierta   = false;
         $this->devolucionSeleccion = [];
+        $this->devolucionFichero   = null;
+        $this->devolucionSinCasar  = [];
 
         $this->dispatch($marcadas ? 'toast-success' : 'toast-error', [
             'title' => $marcadas

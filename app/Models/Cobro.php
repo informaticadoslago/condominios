@@ -25,6 +25,8 @@ class Cobro extends Model
         'linea_remesa_id',
         'fecha',
         'importe',
+        // Asiento en el que entró; lo pone EnlazarCobrosContabilidad.
+        'asiento_contable',
     ];
 
     protected $casts = [

@@ -9,6 +9,7 @@ use App\Models\TipoDocumentoIdentificativo;
 use App\Models\TipoGenero;
 use App\Rules\IsCifComunidadRule;
 use App\Rules\IsIBANRule;
+use App\Services\Comunidades\EnlaceContableComunidad;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -33,6 +34,16 @@ class ComunidadForm extends Form
     public ?string $iban = null;
     public ?int $entidad_bancaria_id = null;
     public ?string $entidad_bancaria_texto = null;
+    // Nombre de la cuenta en el plan contable; solo lo usa la comunidad que lleva
+    // contabilidad, y es el que estrena su subcuenta de tesorería.
+    public ?string $nombre_contable = null;
+
+    /**
+     * Cuenta bancaria a la que le han cambiado el nombre contable teniendo ya subcuenta.
+     * El Form no pregunta nada: solo lo deja anotado para que el componente lance la
+     * confirmación, porque en el plan de cuentas manda el contable.
+     */
+    public ?int $renombrar_cuenta_bancaria_id = null;
     public ?string $sufijo = '000';
     public ?string $identificador_acreedor_sepa = null;
 
@@ -47,6 +58,7 @@ class ComunidadForm extends Form
             ],
             'iban'                        => ['nullable', 'string', new IsIBANRule()],
             'entidad_bancaria_id'         => ['nullable', 'exists:entidades_bancarias,id', 'required_with:iban'],
+            'nombre_contable'             => ['nullable', 'string', 'max:150'],
             'sufijo'                      => ['required', 'digits:3'],
             'identificador_acreedor_sepa' => ['nullable', 'string', 'max:35'],
         ];
@@ -92,6 +104,7 @@ class ComunidadForm extends Form
 
         $cuenta = $this->comunidad->cuentasBancarias->first();
         $this->iban                   = $cuenta?->iban;
+        $this->nombre_contable        = $cuenta?->nombre_contable;
         $this->entidad_bancaria_id    = $cuenta?->entidad_bancaria_id;
         $this->entidad_bancaria_texto = $cuenta?->entidadBancaria
             ? $cuenta->entidadBancaria->codigo.' - '.$cuenta->entidadBancaria->descripcion
@@ -136,6 +149,8 @@ class ComunidadForm extends Form
 
     private function guardarCuentaBancaria(): void
     {
+        $this->renombrar_cuenta_bancaria_id = null;
+
         if (! $this->iban) {
             return;
         }
@@ -143,11 +158,28 @@ class ComunidadForm extends Form
         $datosCuenta = [
             'iban'                => $this->iban,
             'entidad_bancaria_id' => $this->entidad_bancaria_id,
+            'nombre_contable'     => $this->nombre_contable,
         ];
 
         $cuenta = $this->comunidad->cuentasBancarias->first();
 
-        $cuenta ? $cuenta->update($datosCuenta) : $this->comunidad->cuentasBancarias()->create($datosCuenta);
+        if ($cuenta) {
+            // Se compara antes de guardar: después ya no se sabría con qué nombre nació
+            // la subcuenta.
+            if ($cuenta->cuenta_contable && $this->nombre_contable && $cuenta->nombre_contable !== $this->nombre_contable) {
+                $this->renombrar_cuenta_bancaria_id = $cuenta->id;
+            }
+
+            $cuenta->update($datosCuenta);
+        } else {
+            $cuenta = $this->comunidad->cuentasBancarias()->create($datosCuenta);
+        }
+
+        // Si la comunidad lleva contabilidad, la cuenta estrena aquí su subcuenta de
+        // bancos: es la contrapartida de los recibos que se cobren. Si no la lleva, o
+        // todavía no tiene nombre contable, esto no hace nada.
+        $cuenta->setRelation('titular', $this->comunidad);
+        app(EnlaceContableComunidad::class)->asignarCuentaBancaria($cuenta);
     }
 
     public function resetForm()
@@ -161,8 +193,11 @@ class ComunidadForm extends Form
         $this->iban                        = null;
         $this->entidad_bancaria_id         = null;
         $this->entidad_bancaria_texto      = null;
+        $this->nombre_contable             = null;
         $this->sufijo                      = '000';
         $this->identificador_acreedor_sepa = null;
+
+        $this->renombrar_cuenta_bancaria_id = null;
 
         $this->resetValidation();
     }

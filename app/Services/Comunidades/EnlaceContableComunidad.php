@@ -2,18 +2,22 @@
 
 namespace App\Services\Comunidades;
 
+use App\Models\Comunidad;
+use App\Models\CuentaBancaria;
 use App\Models\Presupuesto;
 use App\Models\Propietario;
 use App\Services\Contabilidad\DatosTercero;
 use App\Services\Contabilidad\ResolvedorCuentasService;
 use App\Services\Contabilidad\ResolverCuentaIngresoService;
+use App\Services\Contabilidad\ResolverCuentaTesoreriaService;
+use App\Services\Contabilidad\RenombrarCuentaContableService;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Lo que la gestión le pide a la contabilidad cuando la comunidad está enlazada con una
- * empresa contable: la subcuenta de cliente de cada propietario y la de ingresos de cada
- * presupuesto. Si la comunidad no está enlazada no se hace nada, que es el caso de las
- * comunidades que solo se administran.
+ * empresa contable: la subcuenta de cliente de cada propietario, la de ingresos de cada
+ * presupuesto y la de bancos de cada cuenta corriente. Si la comunidad no está enlazada
+ * no se hace nada, que es el caso de las comunidades que solo se administran.
  *
  * La llamada es directa al servicio, no por HTTP: la API es la puerta de los sistemas
  * que viven fuera de esta aplicación. Desde dentro se llama al servicio para poder
@@ -27,6 +31,8 @@ final class EnlaceContableComunidad
     public function __construct(
         private readonly ResolvedorCuentasService $terceros,
         private readonly ResolverCuentaIngresoService $ingresos,
+        private readonly ResolverCuentaTesoreriaService $tesoreria,
+        private readonly RenombrarCuentaContableService $renombrar,
     ) {
     }
 
@@ -121,5 +127,58 @@ final class EnlaceContableComunidad
         $presupuesto->update(['cuenta_contable' => $cuenta->codigo]);
 
         return $cuenta->codigo;
+    }
+
+    /**
+     * Da de alta la cuenta corriente de la comunidad como subcuenta de bancos (57200001)
+     * y se la guarda: es donde entra el dinero de los recibos cobrados.
+     *
+     * Hace falta el nombre contable, que es el que se lee en el mayor y lo escribe quien
+     * lleva la comunidad. Sin él no se estrena nada: una cuenta llamada «cuenta_bancaria
+     * 7» no le dice nada a nadie. Devuelve null también si la cuenta no es de una
+     * comunidad —la de un propietario o un proveedor no es tesorería nuestra— o si esa
+     * comunidad no lleva contabilidad.
+     */
+    public function asignarCuentaBancaria(CuentaBancaria $cuenta): ?string
+    {
+        if ($cuenta->cuenta_contable) {
+            return $cuenta->cuenta_contable;
+        }
+
+        $comunidad = $cuenta->titular instanceof Comunidad ? $cuenta->titular : null;
+        $empresaId = $comunidad?->empresa_contable_id;
+
+        if (! $empresaId || ! $cuenta->nombre_contable) {
+            return null;
+        }
+
+        $cuentaContable = DB::transaction(fn () => $this->tesoreria->banco(
+            empresaContableId: $empresaId,
+            nombre: $cuenta->nombre_contable,
+            sujetoTipo: 'cuenta_bancaria',
+            sujetoId: (string) $cuenta->id,
+        ));
+
+        $cuenta->update(['cuenta_contable' => $cuentaContable->codigo]);
+
+        return $cuentaContable->codigo;
+    }
+
+    /**
+     * Pone en la contabilidad el nombre contable que tiene ahora la cuenta bancaria.
+     *
+     * Solo se llama cuando el usuario ha dicho que sí: en el plan manda el contable, y
+     * puede haber corregido allí la denominación a propósito.
+     */
+    public function renombrarCuentaBancaria(CuentaBancaria $cuenta): bool
+    {
+        $comunidad = $cuenta->titular instanceof Comunidad ? $cuenta->titular : null;
+        $empresaId = $comunidad?->empresa_contable_id;
+
+        if (! $empresaId || ! $cuenta->cuenta_contable || ! $cuenta->nombre_contable) {
+            return false;
+        }
+
+        return $this->renombrar->ejecutar($empresaId, $cuenta->cuenta_contable, $cuenta->nombre_contable);
     }
 }

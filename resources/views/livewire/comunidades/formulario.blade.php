@@ -59,6 +59,14 @@
                     </div>
                 </div>
 
+                <div class="mt-3">
+                    <x-label for="com-nombre-contable" :value="__('Nombre contable de la cuenta')" />
+                    <x-input id="com-nombre-contable" class="block mt-1 w-full mayusculas" type="text"
+                        wire:model="formulario.nombre_contable" forzar-may />
+                    <x-input-error for="formulario.nombre_contable" class="mt-2" />
+                    <p class="text-xs text-gray-500 mt-1">{{ __('Con el que sale en el mayor. Solo hace falta si la comunidad lleva contabilidad.') }}</p>
+                </div>
+
                 <div class="mt-3 flex w-full gap-4">
                     <div class="w-1/5">
                         <x-label for="com-sufijo" :value="__('Sufijo')" />

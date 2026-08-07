@@ -10,6 +10,7 @@ use App\Models\Comunidad;
 use App\Models\FormaDePago;
 use App\Models\Recibo;
 use App\Models\TipoEstadoRecibo;
+use App\Services\Recibos\EnlazarCobrosContabilidad;
 use App\Services\Recibos\EnlazarRecibosContabilidad;
 use App\Services\Recibos\EnviarAvisosRecibos;
 use App\Services\Recibos\RegistrarCobro;
@@ -281,26 +282,37 @@ class Lista extends ListaComponent
     }
 
     /**
-     * Manda a la contabilidad los recibos que aún no han entrado en ningún asiento. Se
-     * hace a mano, y no al aprobar el presupuesto, porque una comunidad puede enlazarse
-     * con la contabilidad después de tener recibos emitidos.
+     * Manda a la contabilidad lo que aún no ha entrado en ningún asiento: primero la
+     * emisión de los recibos y después el dinero que ya han cobrado. Se hace a mano, y no
+     * al aprobar el presupuesto, porque una comunidad puede enlazarse con la contabilidad
+     * cuando ya tiene recibos emitidos y cobrados.
+     *
+     * El orden importa: un cobro cancela la deuda que dejó la emisión, así que los cobros
+     * de un recibo que no esté emitido en contabilidad se quedan fuera. Enlazando la
+     * emisión primero, en la misma pasada ya entran también sus cobros.
      */
-    public function enlazarContabilidad(EnlazarRecibosContabilidad $enlazador): void
-    {
-        $resultado = $enlazador->ejecutar($this->idsParaAccion());
+    public function enlazarContabilidad(
+        EnlazarRecibosContabilidad $enlazador,
+        EnlazarCobrosContabilidad $enlazadorCobros,
+    ): void {
+        $ids = $this->idsParaAccion();
+
+        $recibos = $enlazador->ejecutar($ids);
+        $cobros  = $enlazadorCobros->ejecutar($ids);
 
         $this->limpiarSeleccion();
 
-        if ($resultado['enlazados'] === 0) {
-            $this->dispatch('toast-error', ['title' => __('No se ha enlazado ningún recibo')]);
+        if ($recibos['enlazados'] === 0 && $cobros['enlazados'] === 0) {
+            $this->dispatch('toast-error', ['title' => __('No se ha enlazado nada')]);
 
             return;
         }
 
         $this->dispatch('toast-success', [
-            'title' => $resultado['omitidos']
-                ? __(':enlazados recibos enlazados; :omitidos sin enlazar', $resultado)
-                : __(':enlazados recibos enlazados', $resultado),
+            'title' => __(':recibos recibos y :cobros cobros enlazados', [
+                'recibos' => $recibos['enlazados'],
+                'cobros'  => $cobros['enlazados'],
+            ]),
         ]);
     }
 

@@ -38,7 +38,9 @@ class RegistrarCobro
                 return null;
             }
 
-            $pendiente = (float) $recibo->importe - (float) $recibo->importe_pagado;
+            // Lo que se debe, no lo que se emitió: si le devolvieron el recibo, la comisión
+            // que el banco cobró se le repercutió y se cobra con él.
+            $pendiente = $this->deuda($recibo) - (float) $recibo->importe_pagado;
             $importe   = $importe ?? $pendiente;
 
             if ($importe <= 0) {
@@ -59,7 +61,7 @@ class RegistrarCobro
 
             // El estado es el ciclo de vida del recibo, no cuánto se debe: solo pasa a
             // Cobrado cuando no queda nada pendiente. Un cobro parcial lo deja como está.
-            if ((float) $recibo->importe_pagado >= (float) $recibo->importe) {
+            if ((float) $recibo->importe_pagado >= $this->deuda($recibo)) {
                 if ($lineaRemesaId) {
                     $recibo->motivoCambioEstado = __('Cobrada la remesa :referencia', [
                         'referencia' => $recibo->lineasRemesas()->whereKey($lineaRemesaId)->first()?->remesa?->referencia,
@@ -108,6 +110,16 @@ class RegistrarCobro
 
             return $cobrados;
         });
+    }
+
+    /**
+     * Lo que hay que cobrarle al propietario: su cuota más las comisiones de las veces
+     * que le devolvieron el recibo, que se le repercuten. Es lo mismo que suma la columna
+     * `saldo`, pero calculado aquí porque el recibo puede venir ya modificado en memoria.
+     */
+    private function deuda(Recibo $recibo): float
+    {
+        return (float) $recibo->importe + (float) $recibo->gastos_devolucion;
     }
 
     /**

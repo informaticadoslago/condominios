@@ -107,7 +107,7 @@ final class EnlazarRecibosContabilidad
 
         $asiento = DB::transaction(fn () => $this->asientos->ejecutar(new DatosAsiento(
             empresaContableId: $empresaId,
-            ejercicio: $this->ejercicioDe($empresaId, $fecha),
+            ejercicio: EjercicioContable::nombrePara($empresaId, $fecha),
             fecha: $fecha,
             concepto: sprintf('%s · vencimiento %s', $presupuesto->nombre, $primero->fecha_vencimiento->format('d/m/Y')),
             lineas: $lineas,
@@ -122,20 +122,5 @@ final class EnlazarRecibosContabilidad
         Recibo::whereIn('id', $grupo->pluck('id'))->update(['asiento_contable' => $asiento->id]);
 
         return $grupo->count();
-    }
-
-    /**
-     * El ejercicio se busca por la fecha, no por el año: quien lleva los libros decide
-     * cómo se llama y cuándo empieza. Si no hay ninguno que la contenga se manda el año,
-     * para que sea la contabilidad quien dé el error con su propio mensaje.
-     */
-    private function ejercicioDe(int $empresaContableId, string $fecha): string
-    {
-        $ejercicio = EjercicioContable::where('empresa_contable_id', $empresaContableId)
-            ->where('fecha_inicio', '<=', $fecha)
-            ->where('fecha_fin', '>=', $fecha)
-            ->first();
-
-        return $ejercicio?->nombre ?? substr($fecha, 0, 4);
     }
 }
