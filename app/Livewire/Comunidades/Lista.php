@@ -6,6 +6,8 @@ use App\Exceptions\EjercicioContableInvalidoException;
 use App\Exceptions\EmpresaContableInvalidaException;
 use App\Livewire\ListaComponent;
 use App\Livewire\Traits\ConBajaPorEstado;
+use App\Livewire\Traits\ConFichaInicio;
+use App\Models\AccesoDirecto;
 use App\Models\Comunidad;
 use App\Services\Contabilidad\AbrirEjercicioContableService;
 use App\Services\Contabilidad\ResolverEmpresaContableService;
@@ -15,10 +17,31 @@ use Livewire\Attributes\On;
 class Lista extends ListaComponent
 {
     use ConBajaPorEstado;
+    use ConFichaInicio;
 
     protected function modeloBaja(): string
     {
         return Comunidad::class;
+    }
+
+    /**
+     * Solo son fijables las comunidades en las que este usuario puede entrar: la
+     * ficha del inicio es un atajo del menú lateral, no una puerta nueva.
+     */
+    protected function fichaInicioPara($id): ?array
+    {
+        $comunidad = auth()->user()->comunidadesAccesibles()->firstWhere('id', (int) $id);
+
+        if (! $comunidad) {
+            return null;
+        }
+
+        return [
+            'tipo'   => AccesoDirecto::TIPO_COMUNIDAD,
+            'nombre' => $comunidad->nombre,
+            'url'    => route('comunidad.entrar', $comunidad, false),
+            'icono'  => 'fa-solid fa-city',
+        ];
     }
 
     public function mount()
@@ -87,6 +110,10 @@ class Lista extends ListaComponent
             ? __('Empresa contable creada y enlazada')
             : __('Enlazada con la empresa contable de ese CIF'),
         ]);
+
+        // La empresa nueva tiene que salir en el menú lateral para poder entrar en ella,
+        // y ese menú se arma en el layout: sin repintar la página se queda como estaba.
+        $this->dispatch('empresa-contable-guardada');
     }
 
     public function render()
@@ -102,6 +129,9 @@ class Lista extends ListaComponent
             ->orderBy($this->sort, $this->direction)
             ->paginate($this->lineasXPagina);
 
-        return view('livewire.comunidades.lista', compact('items'));
+        return view('livewire.comunidades.lista', [
+            'items'          => $items,
+            'idsAccesibles'  => auth()->user()->comunidadesAccesibles()->pluck('id')->all(),
+        ]);
     }
 }

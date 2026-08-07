@@ -57,6 +57,7 @@ trait ConAccesoDirecto
 
         AccesoDirecto::create([
             'user_id' => $userId,
+            'tipo'    => AccesoDirecto::TIPO_MENU,
             'nombre'  => $entrada['nombre'],
             'url'     => $entrada['url'],
             'icono'   => $entrada['icono'],

@@ -55,6 +55,12 @@
                                         title="{{ __('Modificar') }}">
                                         <i class="fa-solid fa-pen"> </i>
                                     </x-button>
+                                    @if (in_array($item->id, $idsAccesibles))
+                                        @include('livewire.parciales.boton-ficha-inicio', [
+                                            'id'  => $item->id,
+                                            'url' => route('empresa-contable.entrar', $item, false),
+                                        ])
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

@@ -16,7 +16,7 @@ class ComunidadContextoController extends Controller
 
         session(['comunidad_actual_id' => $comunidad->id]);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('dashboard-comunidad');
     }
 
     public function salir(): RedirectResponse

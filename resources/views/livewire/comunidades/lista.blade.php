@@ -61,6 +61,12 @@
                                             title="{{ $item->empresa_contable_id ? __('Ya enlazada con la contabilidad') : __('Enlace contabilidad') }}">
                                             <i class="fa-solid fa-link"> </i>
                                         </x-button>
+                                        @if (in_array($item->id, $idsAccesibles))
+                                            @include('livewire.parciales.boton-ficha-inicio', [
+                                                'id'  => $item->id,
+                                                'url' => route('comunidad.entrar', $item, false),
+                                            ])
+                                        @endif
                                         <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white ml-1"
                                             wire:click="confirmarBaja({{ $item->id }})" title="{{ __('Dar de baja') }}">
                                             <i class="fa-solid fa-trash"> </i>

@@ -23,6 +23,6 @@ class EmpresaContableContextoController extends Controller
     {
         session()->forget('empresa_contable_actual_id');
 
-        return redirect()->route('empresas-contables.index');
+        return redirect()->route('dashboard');
     }
 }

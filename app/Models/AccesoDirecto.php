@@ -8,7 +8,27 @@ class AccesoDirecto extends Model
 {
     protected $table = 'accesos_directos';
 
-    protected $fillable = ['user_id', 'nombre', 'url', 'icono', 'orden'];
+    protected $fillable = ['user_id', 'tipo', 'nombre', 'url', 'icono', 'orden'];
+
+    /** Una entrada del menú: el acceso directo de toda la vida. */
+    public const TIPO_MENU = 'menu';
+
+    /** Ficha de entrada a una comunidad. */
+    public const TIPO_COMUNIDAD = 'comunidad';
+
+    /** Ficha de entrada a una empresa contable. */
+    public const TIPO_EMPRESA_CONTABLE = 'empresa_contable';
+
+    /** Fichas de entrada (comunidad o empresa contable), las que van con color propio. */
+    public function scopeFichas($query)
+    {
+        return $query->whereIn('tipo', [self::TIPO_COMUNIDAD, self::TIPO_EMPRESA_CONTABLE]);
+    }
+
+    public function scopeDeMenu($query)
+    {
+        return $query->where('tipo', self::TIPO_MENU);
+    }
 
     public function user()
     {

@@ -13,6 +13,16 @@ class AccesosDirectos extends Component
     public function accesos()
     {
         return AccesoDirecto::where('user_id', auth()->id())
+            ->deMenu()
+            ->orderBy('orden')->orderBy('id')->get();
+    }
+
+    /** Entradas a una comunidad o a una empresa contable: van arriba y con su color. */
+    #[Computed]
+    public function fichas()
+    {
+        return AccesoDirecto::where('user_id', auth()->id())
+            ->fichas()
             ->orderBy('orden')->orderBy('id')->get();
     }
 
@@ -42,13 +52,13 @@ class AccesosDirectos extends Component
             AccesoDirecto::where('id', $id)->where('user_id', $userId)->update(['orden' => $i + 1]);
         }
 
-        unset($this->accesos);
+        unset($this->accesos, $this->fichas);
     }
 
     public function eliminar($id)
     {
         AccesoDirecto::where('id', $id)->where('user_id', auth()->id())->delete();
-        unset($this->accesos);
+        unset($this->accesos, $this->fichas);
     }
 
     public function render()
