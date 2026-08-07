@@ -21,6 +21,9 @@ use App\Rules\Includes\ValidadorDocumentoId;
 class AltaProveedorDesdeFactura
 {
     /**
+     * @param  array  $metadatosFichero  vacío para una factura sin soporte: la tecleada a
+     *                                   mano o leída del QR, que no trae PDF que adjuntar.
+     *
      * @return array{proveedor: Proveedor, creado: bool}
      */
     public function ejecutar(
@@ -31,11 +34,16 @@ class AltaProveedorDesdeFactura
         ?string $numeroFactura,
         ?string $fecha,
         ?string $importe = null,
-        bool $sobrescribir = false
+        bool $sobrescribir = false,
+        ?int $documentoPaisId = null,
+        ?int $tipoDocumentoId = null
     ): array {
-        $documento       = $this->normalizarDocumento($documento);
-        $tipoDocumentoId = $this->detectarTipoDocumento($documento);
-        $fecha           = $this->normalizarFecha($fecha);
+        $documento = $this->normalizarDocumento($documento);
+        // De un PDF no se sabe el país ni el tipo, se deducen de la letra (y solo puede
+        // ser español). Cuando se teclean a mano, mandan los elegidos.
+        $documentoPaisId ??= Pais::ESPAÑA;
+        $tipoDocumentoId ??= $this->detectarTipoDocumento($documento);
+        $fecha = $this->normalizarFecha($fecha);
 
         $persona = PersonaComunidad::where('comunidad_id', $comunidadId)
             ->where('documento_identificativo', $documento)
@@ -51,7 +59,7 @@ class AltaProveedorDesdeFactura
                 'comunidad_id'             => $comunidadId,
                 'nombre'                   => '', // personas_comunidad.nombre es NOT NULL
                 'razon_social'             => $razonSocial,
-                'documento_pais_id'        => Pais::ESPAÑA,
+                'documento_pais_id'        => $documentoPaisId,
                 'tipo_documento_id'        => $tipoDocumentoId,
                 'documento_identificativo' => $documento,
                 'fecha_nacimiento'         => '1801-01-01', // marcador técnico, sin significado
@@ -64,36 +72,44 @@ class AltaProveedorDesdeFactura
 
         $proveedor->setRelation('persona', $persona);
 
-        // Misma factura ya adjuntada a este proveedor (mismo nº y fecha).
-        $duplicada = ($numeroFactura && $fecha)
+        // Un proveedor no numera dos facturas igual: el número manda por sí solo, sin
+        // mirar la fecha (si repite número con otra fecha, una de las dos está mal).
+        $duplicada = $numeroFactura
             ? FacturaProveedor::where('proveedor_id', $proveedor->id)
                 ->where('numero_factura', $numeroFactura)
-                ->where('fecha_factura', $fecha)
                 ->first()
             : null;
 
         if ($duplicada) {
             if (! $sobrescribir) {
                 throw new FacturaDuplicadaException(
-                    __('Ya existe una factura nº :numero de :fecha para este proveedor.', ['numero' => $numeroFactura, 'fecha' => $fecha])
+                    __('Ya existe una factura nº :numero de este proveedor (de fecha :fecha).', [
+                        'numero' => $numeroFactura,
+                        'fecha'  => $duplicada->fecha_factura,
+                    ])
                 );
             }
 
-            $duplicada->documento->delete(); // en cascada borra también la fila de facturas_proveedores
+            // Con papel, borrar el documento se lleva por delante la fila en cascada; sin
+            // papel no hay documento del que tirar, así que se borra la factura.
+            $duplicada->documento ? $duplicada->documento->delete() : $duplicada->delete();
         }
 
         // documentos.descripcion es varchar(30): no cabe "Factura + nº + fecha", solo el nº.
         $descripcion = mb_substr(trim($numeroFactura ? "Factura {$numeroFactura}" : 'Factura'), 0, 30);
 
-        $documentoCreado = $proveedor->documentos()->create(
-            Documento::consolidarFichero($metadatosFichero) + [
-                'tipo_documento_id' => TipoDocumento::FACTURA,
-                'descripcion'       => $descripcion,
-            ]
-        );
+        // Sin fichero, la factura queda sin soporte: no se inventa un documento vacío.
+        $documentoCreado = $metadatosFichero
+            ? $proveedor->documentos()->create(
+                Documento::consolidarFichero($metadatosFichero) + [
+                    'tipo_documento_id' => TipoDocumento::FACTURA,
+                    'descripcion'       => $descripcion,
+                ]
+            )
+            : null;
 
         FacturaProveedor::create([
-            'documento_id'   => $documentoCreado->id,
+            'documento_id'   => $documentoCreado?->id,
             'proveedor_id'   => $proveedor->id,
             'numero_factura' => $numeroFactura,
             'fecha_factura'  => $fecha,
@@ -175,18 +191,17 @@ class AltaProveedorDesdeFactura
     }
 
     /**
-     * Mismo criterio de duplicado que ejecutar() (proveedor + nº + fecha), pero sin
+     * Mismo criterio de duplicado que ejecutar() (proveedor + nº de factura), pero sin
      * intentar el alta: para poder avisar en un listado antes de que el usuario pulse
      * "Importar", en vez de descubrirlo al vuelo con la excepción.
      */
-    public function existeDuplicada(int $comunidadId, string $documento, ?string $numeroFactura, ?string $fecha): bool
+    public function existeDuplicada(int $comunidadId, string $documento, ?string $numeroFactura, ?string $fecha = null): bool
     {
-        if (! $numeroFactura || ! $fecha) {
+        if (! $numeroFactura) {
             return false;
         }
 
         $documento = $this->normalizarDocumento($documento);
-        $fecha     = $this->normalizarFecha($fecha);
 
         $persona = PersonaComunidad::where('comunidad_id', $comunidadId)
             ->where('documento_identificativo', $documento)
@@ -200,7 +215,6 @@ class AltaProveedorDesdeFactura
 
         return FacturaProveedor::where('proveedor_id', $proveedor->id)
             ->where('numero_factura', $numeroFactura)
-            ->where('fecha_factura', $fecha)
             ->exists();
     }
 

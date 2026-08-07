@@ -6,6 +6,10 @@
         {{ __('Facturas de proveedores de la comunidad') }}
     </x-slot>
     <x-slot name="botonera">
+        <a href="{{ route('facturas.crear') }}" class="btn btn-nuevo inline-flex items-center"
+            id="btn-nueva-factura" title="{{ __('Nuevo') }}">
+            <i class="fa-solid fa-plus"> </i>{{ __('Nuevo') }}
+        </a>
         <x-button type="button" class="btn" id="btn-importar-facturas"
             wire:click="$dispatch('abrir-importar-facturas')" title="{{ __('Importar') }}">
             <i class="fa-solid fa-folder-open"> </i>{{ __('Importar') }}
@@ -46,6 +50,7 @@
                             @if ($this->verColumna('importe'))
                                 <th class="py-3 px-6">{{ __('Importe') }}</th>
                             @endif
+                            <th class="py-3 px-6">{{ __('Soporte') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
@@ -88,6 +93,15 @@
                                         </button>
                                     </td>
                                 @endif
+                                {{-- Sin documento no hay papel detrás: la factura se tecleó
+                                     (o se leyó su QR) y el PDF puede llegar después. --}}
+                                <td class="px-6 py-4">
+                                    @if (! $item->documento_id)
+                                        <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                                            {{ __('Sin soporte') }}
+                                        </span>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

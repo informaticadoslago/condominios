@@ -26,6 +26,7 @@ use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
 use App\Livewire\EjerciciosContables\Lista as EjerciciosContablesLista;
 use App\Livewire\EmpresasContables\Lista as EmpresasContablesLista;
+use App\Livewire\Facturas\Crear as FacturasCrear;
 use App\Livewire\Facturas\Lista as FacturasLista;
 use App\Livewire\PlanDeCuentas\Lista as PlanDeCuentasLista;
 use App\Livewire\Inmuebles\Formulario as InmueblesFormulario;
@@ -124,6 +125,8 @@ Route::middleware([
         Route::get('/propietarios/{propietario}/editar', PropietariosFormulario::class)->name('propietarios.editar');
         Route::get('/proveedores', ProveedoresLista::class)->name('proveedores.index');
         Route::get('/facturas', FacturasLista::class)->name('facturas.index');
+        // Alta de facturas en serie, sin papel (la importación de PDFs sigue en la lista).
+        Route::get('/facturas/nueva', FacturasCrear::class)->name('facturas.crear');
         Route::get('/documentos/{documento}/descargar', DocumentoDescargaController::class)->name('documentos.download');
         Route::get('/documentos/{documento}/ver', DocumentoVistaController::class)->name('documentos.ver');
         // Plantilla en blanco del mandato SEPA, para imprimir o mandar al propietario.

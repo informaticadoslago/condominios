@@ -37,6 +37,23 @@ class Formulario extends Component
         $this->abrir = true;
     }
 
+    /**
+     * Alta con el documento ya sabido: viene de la captura de facturas, donde se acaba de
+     * comprobar que es correcto y de nadie. Se salta el paso 1 y se abre directamente en
+     * la razón social (o el nombre, si el documento es de persona física).
+     */
+    #[On('abrir-crear-proveedor-con-documento')]
+    public function crearConDocumento($documento, $paisId, $tipoId)
+    {
+        $this->crear();
+
+        $this->formulario->documento_identificativo = $documento;
+        $this->formulario->documento_pais_id        = $paisId;
+        $this->formulario->tipo_documento_id        = $tipoId;
+
+        $this->formulario->comprobarDocumento();
+    }
+
     #[On('proveedor-editar')]
     public function editar($id)
     {
@@ -78,7 +95,7 @@ class Formulario extends Component
         }
 
         $this->dispatch('proveedor-guardado');
-        $this->cerrar();
+        $this->cerrar(avisar: false);
     }
 
     public function borrarDocumento($facturaProveedorId)
@@ -92,9 +109,17 @@ class Formulario extends Component
         $this->dispatch('toast-success', ['title' => __('Documento borrado')]);
     }
 
-    public function cerrar()
+    /**
+     * @param  bool  $avisar  al cerrar SIN guardar se avisa, porque quien abrió el modal
+     *                        puede estar esperando el alta (la captura de facturas).
+     */
+    public function cerrar(bool $avisar = true)
     {
         $this->abrir = false;
+
+        if ($avisar) {
+            $this->dispatch('alta-proveedor-cancelada');
+        }
     }
 
     public function render()
