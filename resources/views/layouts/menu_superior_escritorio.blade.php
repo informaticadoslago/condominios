@@ -54,6 +54,13 @@
                     <flux:navmenu.item href="{{ route('profile.show') }}" icon="user" class="text-zinc-800 dark:text-white">Account
                     </flux:navmenu.item>
 
+                    {{-- Solo a quien tiene alguna empresa contable: sin ninguna no hay token que crear. --}}
+                    @if (auth()->user()->empresasContablesAccesibles()->isNotEmpty())
+                        <flux:navmenu.item href="{{ route('tokens-api.index') }}" icon="key"
+                            class="text-zinc-800 dark:text-white">{{ __('Tokens de API') }}
+                        </flux:navmenu.item>
+                    @endif
+
                     @canImpersonate
                         {{-- x-data hace falta aunque esté vacío: Alpine solo procesa directivas dentro
                              de un árbol con x-data, y el menú de Flux no lo lleva. --}}

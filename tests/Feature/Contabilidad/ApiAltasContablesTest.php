@@ -5,6 +5,7 @@ namespace Tests\Feature\Contabilidad;
 use App\Models\CuentaContable;
 use App\Models\EmpresaContable;
 use App\Models\User;
+use App\Support\HabilidadToken;
 use Database\Seeders\PlanCuentasComunidadesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -32,7 +33,10 @@ class ApiAltasContablesTest extends TestCase
         ]);
     }
 
-    private function autenticar(bool $conAcceso = true): User
+    /**
+     * @param  string|null  $habilidad  la del token; por defecto, la de esta empresa.
+     */
+    private function autenticar(bool $conAcceso = true, ?string $habilidad = null, bool $escribe = true): User
     {
         // Sin UserFactory: la de serie inserta una columna «name» que esta tabla users
         // no tiene. Solo login, email y password son obligatorios sin valor por defecto.
@@ -46,7 +50,13 @@ class ApiAltasContablesTest extends TestCase
             $user->assignRole($this->empresa->nombreRol());
         }
 
-        Sanctum::actingAs($user);
+        $habilidades = [$habilidad ?? $this->empresa->habilidadToken()];
+
+        if ($escribe) {
+            $habilidades[] = HabilidadToken::ESCRIBIR;
+        }
+
+        Sanctum::actingAs($user, $habilidades);
 
         return $user;
     }
@@ -150,6 +160,24 @@ class ApiAltasContablesTest extends TestCase
     public function test_sin_acceso_a_esa_empresa_contable_no_se_puede_dar_de_alta_ni_leer(): void
     {
         $this->autenticar(conAcceso: false);
+
+        $this->postJson('/api/contabilidad/terceros', $this->cuerpoTercero())->assertStatus(403);
+        $this->postJson('/api/contabilidad/cuentas-ingreso', $this->cuerpoIngreso())->assertStatus(403);
+    }
+
+    public function test_un_token_de_otra_empresa_no_vale_aunque_el_usuario_tenga_acceso(): void
+    {
+        // Tiene el rol de esta empresa, pero llama con el token que hizo para otra:
+        // el token es de una empresa y de una sola.
+        $this->autenticar(habilidad: EmpresaContable::habilidadTokenPara($this->empresa->id + 1));
+
+        $this->postJson('/api/contabilidad/terceros', $this->cuerpoTercero())->assertStatus(403);
+        $this->postJson('/api/contabilidad/cuentas-ingreso', $this->cuerpoIngreso())->assertStatus(403);
+    }
+
+    public function test_un_token_de_solo_lectura_no_da_de_alta(): void
+    {
+        $this->autenticar(escribe: false);
 
         $this->postJson('/api/contabilidad/terceros', $this->cuerpoTercero())->assertStatus(403);
         $this->postJson('/api/contabilidad/cuentas-ingreso', $this->cuerpoIngreso())->assertStatus(403);

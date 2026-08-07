@@ -14,8 +14,9 @@ class AltaCuentaIngresoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->empresasContablesAccesibles()
-            ->contains('id', (int) $this->input('empresa_contable_id')) ?? false;
+        return $this->user()?->puedeEscribirEnEmpresaContable(
+            (int) $this->input('empresa_contable_id')
+        ) ?? false;
     }
 
     protected function prepareForValidation(): void

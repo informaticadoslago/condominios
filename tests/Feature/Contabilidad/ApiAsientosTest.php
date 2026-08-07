@@ -7,6 +7,7 @@ use App\Models\CuentaContable;
 use App\Models\EjercicioContable;
 use App\Models\EmpresaContable;
 use App\Models\User;
+use App\Support\HabilidadToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -44,15 +45,31 @@ class ApiAsientosTest extends TestCase
         }
     }
 
-    private function autenticar(): void
+    /**
+     * @param  bool  $conAcceso  si tiene el rol de la empresa (quién es el usuario)
+     * @param  string|null  $habilidad  la del token; por defecto, la de esta empresa
+     */
+    private function autenticar(bool $conAcceso = true, ?string $habilidad = null, bool $escribe = true): void
     {
         // Sin UserFactory: la de serie inserta una columna «name» que esta tabla users
         // no tiene. Solo login, email y password son obligatorios sin valor por defecto.
-        Sanctum::actingAs(User::forceCreate([
+        $user = User::forceCreate([
             'login'    => 'tester',
             'email'    => 'tester@example.test',
             'password' => bcrypt('secreto'),
-        ]));
+        ]);
+
+        if ($conAcceso) {
+            $user->assignRole($this->empresa->nombreRol());
+        }
+
+        $habilidades = [$habilidad ?? $this->empresa->habilidadToken()];
+
+        if ($escribe) {
+            $habilidades[] = HabilidadToken::ESCRIBIR;
+        }
+
+        Sanctum::actingAs($user, $habilidades);
     }
 
     private function cuerpo(array $extra = []): array
@@ -73,6 +90,27 @@ class ApiAsientosTest extends TestCase
     public function test_sin_token_devuelve_401(): void
     {
         $this->postJson('/api/contabilidad/asientos', $this->cuerpo())->assertStatus(401);
+    }
+
+    public function test_sin_acceso_a_esa_empresa_contable_no_se_puede_escribir(): void
+    {
+        $this->autenticar(conAcceso: false);
+
+        $this->postJson('/api/contabilidad/asientos', $this->cuerpo())->assertStatus(403);
+    }
+
+    public function test_un_token_de_otra_empresa_no_vale_aunque_el_usuario_tenga_acceso(): void
+    {
+        $this->autenticar(habilidad: EmpresaContable::habilidadTokenPara($this->empresa->id + 1));
+
+        $this->postJson('/api/contabilidad/asientos', $this->cuerpo())->assertStatus(403);
+    }
+
+    public function test_un_token_de_solo_lectura_no_escribe(): void
+    {
+        $this->autenticar(escribe: false);
+
+        $this->postJson('/api/contabilidad/asientos', $this->cuerpo())->assertStatus(403);
     }
 
     public function test_un_asiento_valido_devuelve_201(): void

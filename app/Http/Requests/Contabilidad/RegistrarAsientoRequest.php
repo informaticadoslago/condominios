@@ -14,9 +14,15 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class RegistrarAsientoRequest extends FormRequest
 {
+    /**
+     * La empresa contable viaja en el cuerpo, así que sin esto cualquier token válido
+     * escribiría en la contabilidad de cualquiera cambiando un número del JSON.
+     */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->puedeEscribirEnEmpresaContable(
+            (int) $this->input('empresa_contable_id')
+        ) ?? false;
     }
 
     /** El id de la referencia externa puede llegar como número; para la contabilidad siempre es texto. */

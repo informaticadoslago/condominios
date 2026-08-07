@@ -23,6 +23,12 @@
                     <flux:navmenu.item href="{{ route('profile.show') }}" icon="user" class="text-zinc-800 dark:text-white">Account
                     </flux:navmenu.item>
 
+                    @if (auth()->user()->empresasContablesAccesibles()->isNotEmpty())
+                        <flux:navmenu.item href="{{ route('tokens-api.index') }}" icon="key"
+                            class="text-zinc-800 dark:text-white">{{ __('Tokens de API') }}
+                        </flux:navmenu.item>
+                    @endif
+
                     <flux:navmenu.separator />
 
                     <x-dosl.logout-button label="Salir" />

@@ -12,6 +12,7 @@ use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\Traits\ConHistorialEstado;
+use App\Support\HabilidadToken;
 
 class User extends Authenticatable
 {
@@ -190,6 +191,33 @@ class User extends Authenticatable
             ->map(fn ($nombre) => (int) str_replace('empresa-contable-', '', $nombre));
 
         return EmpresaContable::whereIn('id', $ids)->get();
+    }
+
+    /**
+     * Si puede operar por la API en esa empresa contable. Son dos cosas distintas y
+     * hacen falta las dos: el ROL, que es quién es hoy este usuario y se le puede
+     * quitar, y la HABILIDAD del token con el que llama, que es la empresa que eligió
+     * al crearlo. Solo con la habilidad, quitarle el acceso no caducaría sus tokens
+     * viejos; solo con el rol, un token filtrado abriría todas sus empresas.
+     */
+    public function puedeOperarEnEmpresaContable(int $empresaContableId): bool
+    {
+        if (! $this->empresasContablesAccesibles()->contains('id', $empresaContableId)) {
+            return false;
+        }
+
+        return $this->tokenCan(EmpresaContable::habilidadTokenPara($empresaContableId));
+    }
+
+    /**
+     * Lo anterior y además que el token pueda escribir. Todo lo que no es un GET pasa
+     * por aquí: un token de solo lectura consulta la contabilidad de su empresa, pero
+     * no le mete un asiento ni da de alta nada.
+     */
+    public function puedeEscribirEnEmpresaContable(int $empresaContableId): bool
+    {
+        return $this->puedeOperarEnEmpresaContable($empresaContableId)
+            && $this->tokenCan(HabilidadToken::ESCRIBIR);
     }
 
 }

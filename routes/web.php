@@ -16,6 +16,7 @@ use App\Livewire\AdministracionSistema\Permisos\Lista as PermisosLista;
 use App\Livewire\AdministracionSistema\Personas\Editar as PersonasEditar;
 use App\Livewire\AdministracionSistema\Personas\Lista as PersonasLista;
 use App\Livewire\AdministracionSistema\Roles\Lista as RolesLista;
+use App\Livewire\AdministracionSistema\TokensApi\Lista as AdminTokensApiLista;
 use App\Livewire\AdministracionSistema\Usuarios\Lista as UsuariosLista;
 use App\Livewire\AsientosContables\Formulario as AsientosContablesFormulario;
 use App\Livewire\AsientosContables\Lista as AsientosContablesLista;
@@ -43,6 +44,7 @@ use App\Livewire\Presupuestos\Conceptos as PresupuestosConceptos;
 use App\Livewire\Presupuestos\Lista as PresupuestosLista;
 use App\Livewire\Presupuestos\Reparto as PresupuestosReparto;
 use App\Livewire\Recibos\Lista as RecibosLista;
+use App\Livewire\TokensApi\Lista as TokensApiLista;
 use Illuminate\Support\Facades\Route;
 use Lab404\Impersonate\Controllers\ImpersonateController;
 
@@ -73,6 +75,10 @@ Route::middleware([
         return view('dashboard');
     })->name('dashboard');
 
+    // Los tokens de API de cada uno: cuelga del menú de la cuenta, no de una comunidad
+    // ni de una empresa contable activa.
+    Route::get('/tokens-api', TokensApiLista::class)->name('tokens-api.index');
+
     // Cambio de contexto: entrar/salir de una comunidad
     Route::get('/comunidad/{comunidad}/entrar', [ComunidadContextoController::class, 'entrar'])->name('comunidad.entrar');
     Route::get('/comunidad/salir', [ComunidadContextoController::class, 'salir'])->name('comunidad.salir');
@@ -95,6 +101,9 @@ Route::middleware([
         Route::get('/permisos', PermisosLista::class)
             ->can('permiso-list')
             ->name('permisos.index');
+        Route::get('/tokens-api', AdminTokensApiLista::class)
+            ->can('configuracion-token')
+            ->name('tokens-api.index');
         Route::get('/backups', BackupsLista::class)->name('backups.index');
         Route::get('/backups/{fichero}/descargar', BackupDescargaController::class)
             ->where('fichero', '.*')

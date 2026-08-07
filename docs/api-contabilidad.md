@@ -69,12 +69,59 @@ Content-Type: application/json
 
 Sin token válido, `401`.
 
+### Un token, una empresa
+
+Cada token vale para **una sola empresa contable**, la que se elige al crearlo. Se crean
+desde la aplicación, en el menú de la cuenta → **Tokens de API**, y solo se puede elegir
+entre las empresas que abre el rol de quien entra. Un usuario que trabaje con tres
+empresas se hace tres tokens.
+
+Un usuario no puede tener dos tokens iguales —misma empresa y mismo alcance—: el segundo
+no aportaría nada y sería otra puerta más. Para cambiarlo, se revoca el que hay y se hace
+otro. Sí puede tener uno de solo lectura y otro de escritura para la misma empresa.
+
+Al llamar se comprueban dos cosas distintas, y hacen falta las dos:
+
+- el **rol** del usuario dueño del token, que es a qué empresas puede entrar hoy y se le
+  puede quitar;
+- la **habilidad** del token (`empresa-contable:{id}`), que es la empresa que eligió al
+  crearlo.
+
+Solo con el rol, un token filtrado abriría todas sus empresas; solo con la habilidad,
+quitarle el acceso a alguien no caducaría sus tokens viejos. Si el
+`empresa_contable_id` del cuerpo no es el del token, la respuesta es `403` aunque el
+usuario tenga acceso a esa empresa: cambiar ese número en el JSON no sirve para escribir
+en la contabilidad de otro.
+
+### Leer y escribir
+
+Todo lo que no es un `GET` exige además la habilidad `contabilidad-escribir`, que se
+elige al crear el token (**Puede: leer y escribir** / **solo leer**). Un token de solo
+lectura consulta la contabilidad de su empresa, pero no mete un asiento ni da de alta
+nada: `403`.
+
+Dentro de la API no se miran los permisos de la aplicación. El token entra como su
+dueño, pero lo que puede hacer lo deciden sus habilidades, no sus roles.
+
+El token se enseña **una sola vez**, al crearlo; en la base solo queda su hash. Si se
+pierde, se revoca y se hace otro.
+
+**Caducidad.** Los tokens nacen con la fecha de caducidad que fije el administrador en
+*Administración del sistema → Tokens de API* (30 días, 1 año… o ninguna). Es la de ese
+momento: cambiar el ajuste después no alarga ni acorta los que ya existen. Un token
+caducado da `401`, igual que uno inventado. Desde esa misma pantalla se revocan los de
+cualquier usuario.
+
 ---
 
 ## Dar de alta una empresa
 
 Antes de mandar ningún asiento hace falta la empresa contable a la que van. Se pide por
-**nombre y CIF**, y la contabilidad devuelve su id:
+**nombre y CIF**, y la contabilidad devuelve su id.
+
+Es el único endpoint sin la comprobación de empresa de arriba: aquí la empresa todavía no
+existe, así que no hay habilidad que exigir. De momento le vale cualquier token válido
+(ver `docs/pendientes.md`).
 
 ```
 POST /api/contabilidad/empresas
@@ -467,6 +514,7 @@ Cómo se eligen los códigos de cuenta y qué dice el PGC al respecto está en
 | Estado | Cuándo |
 |---|---|
 | `401` | Falta el token o no es válido |
+| `403` | El token no es de esa empresa contable, o su dueño ya no tiene acceso a ella |
 | `409` | El ejercicio está cerrado, o se han agotado las 9.999 subcuentas del grupo |
 | `422` | El asiento no cuadra, una línea está mal formada, la fecha cae fuera del ejercicio, la cuenta no existe, el ejercicio no existe, o el tercero no existe y no se autorizó crearlo. En el alta de empresa, falta el CIF o el nombre. En la apertura de ejercicio, falta el nombre o las fechas están del revés |
 

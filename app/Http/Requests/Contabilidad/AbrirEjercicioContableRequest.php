@@ -11,9 +11,12 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class AbrirEjercicioContableRequest extends FormRequest
 {
+    /** Mismo control que el resto: la empresa llega en el cuerpo, hay que comprobarla. */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->puedeEscribirEnEmpresaContable(
+            (int) $this->input('empresa_contable_id')
+        ) ?? false;
     }
 
     public function rules(): array

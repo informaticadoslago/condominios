@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\HabilidadToken;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Permission\Models\Role;
 
@@ -15,6 +16,23 @@ class EmpresaContable extends Model
     public function nombreRol(): string
     {
         return 'empresa-contable-'.$this->id;
+    }
+
+    /**
+     * Habilidad que un token de API tiene que llevar para operar en esta empresa.
+     *
+     * El rol dice a qué empresas puede entrar el usuario; la habilidad, cuál de ellas
+     * eligió al crear el token. Ningún token vale para dos empresas, ni siquiera los de
+     * un usuario con rol global: si se filtra uno, solo se lleva esa.
+     */
+    public function habilidadToken(): string
+    {
+        return static::habilidadTokenPara($this->id);
+    }
+
+    public static function habilidadTokenPara(int $empresaContableId): string
+    {
+        return HabilidadToken::empresa($empresaContableId);
     }
 
     protected static function booted(): void
