@@ -33,7 +33,7 @@
         @if ($hayTexto)
             <x-button type="button" wire:click="aplicarFiltro" title="{{ __('Aplicar') }}"
                 :disabled="$verSoloSeleccionados ?? false" class="disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fa-solid fa-filter"></i>{{ __('Aplicar') }}
+                <i class="fa-solid fa-filter"></i>
             </x-button>
         @endif
     </div>

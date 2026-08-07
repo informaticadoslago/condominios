@@ -10,16 +10,16 @@
             id="btn-nueva-factura" title="{{ __('Nuevo') }}">
             <i class="fa-solid fa-plus"> </i>{{ __('Nuevo') }}
         </a>
-        <x-button type="button" class="btn" id="btn-importar-facturas"
-            wire:click="$dispatch('abrir-importar-facturas')" title="{{ __('Importar') }}">
-            <i class="fa-solid fa-folder-open"> </i>{{ __('Importar') }}
-        </x-button>
         @include('livewire.parciales.boton-acceso-directo')
     </x-slot>
 
     <x-slot name="content">
         <x-dosl.tabla>
             <x-slot name="botonera">
+                <x-secondary-button type="button" id="btn-importar-facturas"
+                    wire:click="$dispatch('abrir-importar-facturas')" title="{{ __('Importar') }}">
+                    <i class="fa-solid fa-folder-open mr-1"></i>{{ __('Importar') }}
+                </x-secondary-button>
                 @include('livewire.parciales.selector-columnas')
                 <x-secondary-button type="button" wire:click="borrarFiltro" title="{{ __('Borrar filtro') }}">
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>{{ __('Borrar filtro') }}
