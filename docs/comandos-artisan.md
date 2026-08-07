@@ -17,6 +17,8 @@ php artisan <comando>
 | [`condominios:fakeseed`](#condominiosfakeseed) | Genera datos ficticios de demo | Solo en modo debug |
 | [`condominios:comunidad-exportar`](#condominioscomunidad-exportar) | Exporta una comunidad completa a `.zip` | Ninguno (solo lectura) |
 | [`condominios:comunidad-borrar`](#condominioscomunidad-borrar) | Borra una comunidad y todos sus datos | **Irreversible** |
+| [`condominios:contabilidad-exportar`](#condominioscontabilidad-exportar) | Exporta una empresa contable completa a `.zip` | Ninguno (solo lectura) |
+| [`condominios:contabilidad-borrar`](#condominioscontabilidad-borrar) | Borra una empresa contable y sus libros | **Irreversible** |
 
 ---
 
@@ -113,10 +115,11 @@ Exporta **todos** los datos de una comunidad (la que tenga ese `id`; el `id` se 
 en la columna "ID" del listado de Comunidades) a un `.zip` en `storage/app/coms`:
 
 - `datos.xml`: todas las filas de BD que cuelgan de la comunidad (inmuebles,
-  personas, propietarios, proveedores, cuentas bancarias, presupuestos,
-  contabilidad, documentos...), una tabla por elemento, una fila por `<fila>`.
-- `ficheros.json`: el contenido binario (en base64) de los documentos/facturas
-  adjuntos a los proveedores de la comunidad, enlazado por `documento_id`.
+  personas, propietarios, proveedores, cuentas bancarias, mandatos SEPA,
+  presupuestos, recibos, remesas, cobros, avisos, documentos...), una tabla por
+  elemento, una fila por `<fila>`.
+- `ficheros.json`: el contenido binario (en base64) de los documentos adjuntos a los
+  proveedores de la comunidad y a sus mandatos SEPA, enlazado por `documento_id`.
 - `indice.md`: explica el contenido del zip y el orden para reconstruirlo en otro
   sistema.
 
@@ -125,6 +128,15 @@ en `storage/app/coms` solo queda el `.zip` final.
 
 Comando de solo lectura: no modifica nada en la base de datos ni en los discos de
 documentos.
+
+**No incluye la contabilidad**: es un módulo independiente, sin claves ajenas hacia
+comunidades, y se exporta aparte con
+[`condominios:contabilidad-exportar`](#condominioscontabilidad-exportar). Para llevarse
+una comunidad entera con sus libros hacen falta los dos `.zip`.
+
+> Cada vez que aparezca una tabla nueva colgando de la comunidad hay que añadirla a
+> `ComunidadExportador` **y** a `tests/Feature/Comunidades/ComunidadExportarTest.php`:
+> si se olvida, el `.zip` sale incompleto sin dar ningún error.
 
 ---
 
@@ -135,9 +147,10 @@ php artisan condominios:comunidad-borrar {id}
 ```
 
 Borra una comunidad y **todos** sus datos relacionados: inmuebles, personas,
-propietarios, proveedores, cuentas bancarias, presupuestos, contabilidad, documentos
+propietarios, proveedores, cuentas bancarias, presupuestos, documentos
 y facturas adjuntas, el histórico de estados, el rol `comunidad-{id}` y, si nadie
-más la usa, su propia `Persona` (CIF/razón social).
+más la usa, su propia `Persona` (CIF/razón social). La contabilidad no se toca: va
+por su lado, con [`condominios:contabilidad-borrar`](#condominioscontabilidad-borrar).
 
 Pide confirmación antes de ejecutar, mostrando primero lo que se va a borrar.
 
@@ -146,3 +159,59 @@ Solo queda constancia (cifrada) en `sine_nomines` de los documentos, contactos y
 direcciones borrados — el resto de tablas no deja rastro. Antes de borrar una
 comunidad con datos reales, considera exportarla primero con
 `condominios:comunidad-exportar`.
+
+⚠️ **Pendiente**: este comando aún no borra `recibos`, `remesas`, `lineas_remesas`,
+`cobros`, `avisos_recibos` ni `mandatos_sepa`. Todas tienen clave ajena `RESTRICT`
+hacia presupuestos, inmuebles, propietarios, cuentas bancarias y la propia comunidad,
+así que en una comunidad que ya haya emitido recibos falla a mitad del borrado. La
+exportación sí está al día.
+
+---
+
+## `condominios:contabilidad-exportar`
+
+```bash
+php artisan condominios:contabilidad-exportar {id}
+```
+
+El equivalente de `comunidad-exportar` para el otro módulo: exporta una **empresa
+contable** entera a un `.zip` en `storage/app/coms`:
+
+- `datos.xml`: la fila de `empresas_contables` y todo lo suyo — plan de cuentas
+  (`cuenta_contables`, ordenadas por código para poder reconstruir la jerarquía de
+  arriba abajo), `tercero_contables`, `ejercicio_contables`, `asiento_contables` y
+  `apunte_contables`, con los importes en céntimos tal cual se guardan.
+- `indice.md`: el contenido, los ejercicios, un aviso si algún asiento no cuadra y el
+  orden para reconstruirlo en otro sistema.
+
+No hay `ficheros.json`: la contabilidad no guarda adjuntos.
+
+Lo que **no** viaja: los catálogos globales (`tipo_cuenta_contables`,
+`tipo_tercero_contables`, `tipo_ingreso_contables`, `estados`), el plan de cuentas
+maestro (las filas de `cuenta_contables` con `empresa_contable_id` nulo) y el rol y los
+tokens de API de la empresa, que son credenciales.
+
+Las columnas `sujeto_tipo`/`sujeto_id` y `referencia_tipo`/`referencia_id` salen tal
+cual: para la contabilidad son texto opaco y no se traducen.
+
+Comando de solo lectura.
+
+---
+
+## `condominios:contabilidad-borrar`
+
+```bash
+php artisan condominios:contabilidad-borrar {id}
+```
+
+Borra una empresa contable y **todos** sus libros: apuntes, asientos, terceros, plan de
+cuentas (de las hojas hacia la raíz, por la jerarquía de `cuenta_padre_id`), ejercicios,
+el rol `empresa-contable-{id}` y los tokens de API que solo valían para esa empresa.
+Todo dentro de una transacción: o cae entero o no cae nada.
+
+Antes de pedir confirmación avisa de qué comunidades llevaban sus libros ahí. Si se
+confirma, a esas comunidades se les deja `empresa_contable_id` a nulo — sus datos de
+gestión (presupuestos, recibos, facturas) no se tocan, solo pierden el enlace contable.
+
+⚠️ **Irreversible.** Antes de borrar una empresa con datos reales, expórtala con
+`condominios:contabilidad-exportar`.

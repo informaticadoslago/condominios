@@ -2,6 +2,8 @@
 
 namespace App\Services\Comunidades;
 
+use App\Models\AvisoRecibo;
+use App\Models\Cobro;
 use App\Models\ComunidadDirectivo;
 use App\Models\ConceptoPresupuesto;
 use App\Models\Contacto;
@@ -14,29 +16,29 @@ use App\Models\FormaPagoInmueble;
 use App\Models\GrupoDeReparto;
 use App\Models\HistorialEstado;
 use App\Models\Inmueble;
+use App\Models\LineaRemesa;
+use App\Models\MandatoSepa;
 use App\Models\Presupuesto;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
 use App\Models\Proveedor;
+use App\Models\Recibo;
+use App\Models\Remesa;
 use App\Models\Titularidad;
-use DOMDocument;
-use DOMElement;
+use App\Services\Exportacion\ExportadorZip;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use RuntimeException;
-use ZipArchive;
 
 /**
  * Exporta una comunidad completa (todas sus filas de BD + los documentos/facturas
- * adjuntos a sus proveedores) a un único .zip en el disco 'coms'. Pensado para poder
- * llevarse una comunidad a otro sistema o guardarla fuera de la BD: los datos van en
- * un XML (una fila = un elemento, con sus columnas crudas), los binarios en un JSON
- * aparte (base64, referenciados por el id de 'documentos'), y un indice.md explica
- * cómo encajan las dos cosas para quien reciba el .zip.
+ * adjuntos) a un único .zip en el disco 'coms'. Pensado para poder llevarse una
+ * comunidad a otro sistema o guardarla fuera de la BD: los datos van en un XML (una
+ * fila = un elemento, con sus columnas crudas), los binarios en un JSON aparte (base64,
+ * referenciados por el id de 'documentos'), y un indice.md explica cómo encajan las dos
+ * cosas para quien reciba el .zip.
  */
-class ComunidadExportador
+class ComunidadExportador extends ExportadorZip
 {
     /** Devuelve el nombre del .zip generado dentro del disco 'coms'. */
     public function exportar(Comunidad $comunidad): string
@@ -44,23 +46,15 @@ class ComunidadExportador
         $comunidad->loadMissing('persona');
         $datos = $this->recopilar($comunidad);
 
-        $carpetaTemporal = 'tmp/' . Str::random(20);
-        Storage::disk('coms')->makeDirectory($carpetaTemporal);
-
-        try {
-            Storage::disk('coms')->put("{$carpetaTemporal}/datos.xml", $this->generarXml($comunidad, $datos));
-            Storage::disk('coms')->put("{$carpetaTemporal}/ficheros.json", $this->generarFicherosJson($datos['documentos']));
-            Storage::disk('coms')->put("{$carpetaTemporal}/indice.md", $this->generarIndice($comunidad, $datos));
-
-            $nombreZip = $this->nombreZip($comunidad);
-            $this->comprimir($carpetaTemporal, $nombreZip);
-
-            return $nombreZip;
-        } finally {
-            // Los .xml/.json/.md sueltos solo son un paso intermedio: al final del
-            // proceso lo único que debe quedar en storage/app/coms es el .zip.
-            Storage::disk('coms')->deleteDirectory($carpetaTemporal);
-        }
+        return $this->empaquetar($this->nombreZip($comunidad), [
+            'datos.xml'     => $this->generarXml('comunidad_export', [
+                'version'      => '1',
+                'comunidad_id' => (string) $comunidad->id,
+                'exportado_en' => now()->toIso8601String(),
+            ], $datos),
+            'ficheros.json' => $this->generarFicherosJson($datos['documentos']),
+            'indice.md'     => $this->generarIndice($comunidad, $datos),
+        ]);
     }
 
     private function nombreZip(Comunidad $comunidad): string
@@ -95,9 +89,23 @@ class ComunidadExportador
         $presupuestos   = Presupuesto::where('comunidad_id', $comunidad->id)->get();
         $presupuestoIds = $presupuestos->pluck('id');
 
-        $documentos = Documento::where('documentable_type', Proveedor::class)
-            ->whereIn('documentable_id', $proveedorIds)
-            ->get();
+        $mandatos    = MandatoSepa::where('comunidad_id', $comunidad->id)->get();
+        $mandatoIds  = $mandatos->pluck('id');
+
+        // Los recibos cuelgan del presupuesto que los generó; de ahí para abajo van las
+        // remesas en que se cobraron, sus cobros y los avisos que se enviaron.
+        $recibos   = Recibo::whereIn('presupuesto_id', $presupuestoIds)->get();
+        $reciboIds = $recibos->pluck('id');
+
+        $remesas   = Remesa::where('comunidad_id', $comunidad->id)->get();
+        $remesaIds = $remesas->pluck('id');
+
+        $lineasRemesas = LineaRemesa::whereIn('remesa_id', $remesaIds)->get();
+
+        $documentos = Documento::where(function ($q) use ($proveedorIds, $mandatoIds) {
+            $q->where(fn ($q2) => $q2->where('documentable_type', Proveedor::class)->whereIn('documentable_id', $proveedorIds))
+                ->orWhere(fn ($q2) => $q2->where('documentable_type', MandatoSepa::class)->whereIn('documentable_id', $mandatoIds));
+        })->get();
 
         return [
             'comunidad'                => collect([$comunidad]),
@@ -116,6 +124,7 @@ class ComunidadExportador
                     ->orWhere(fn ($q2) => $q2->where('titular_type', Proveedor::class)->whereIn('titular_id', $proveedorIds))
                     ->orWhereIn('persona_comunidad_id', $personaComunidadIds);
             })->get(),
+            'mandatos_sepa'            => $mandatos,
             'inmuebles'                => $inmuebles,
             'titularidades'            => Titularidad::whereIn('inmueble_id', $inmuebleIds)->get(),
             'formas_pago_inmuebles'    => FormaPagoInmueble::whereIn('inmueble_id', $inmuebleIds)->get(),
@@ -123,6 +132,11 @@ class ComunidadExportador
             'inmueble_grupo_de_reparto' => collect(DB::table('inmueble_grupo_de_reparto')->whereIn('inmueble_id', $inmuebleIds)->get()),
             'presupuestos'             => $presupuestos,
             'conceptos_presupuestos'   => ConceptoPresupuesto::whereIn('presupuesto_id', $presupuestoIds)->get(),
+            'recibos'                  => $recibos,
+            'remesas'                  => $remesas,
+            'lineas_remesas'           => $lineasRemesas,
+            'cobros'                   => Cobro::whereIn('recibo_id', $reciboIds)->get(),
+            'avisos_recibos'           => AvisoRecibo::whereIn('recibo_id', $reciboIds)->get(),
             'documentos'               => $documentos,
             'facturas_proveedores'     => FacturaProveedor::whereIn('proveedor_id', $proveedorIds)->get(),
             'historial_estados'        => HistorialEstado::where(function ($q) use ($presupuestoIds, $propietarioIds, $proveedorIds) {
@@ -133,61 +147,7 @@ class ComunidadExportador
         ];
     }
 
-    /** @param array<string, Collection> $datos */
-    private function generarXml(Comunidad $comunidad, array $datos): string
-    {
-        $dom = new DOMDocument('1.0', 'UTF-8');
-        $dom->formatOutput = true;
-
-        $raiz = $dom->createElement('comunidad_export');
-        $raiz->setAttribute('version', '1');
-        $raiz->setAttribute('comunidad_id', (string) $comunidad->id);
-        $raiz->setAttribute('exportado_en', now()->toIso8601String());
-        $dom->appendChild($raiz);
-
-        foreach ($datos as $tabla => $filas) {
-            $this->anadirTabla($dom, $raiz, $tabla, $filas);
-        }
-
-        return $dom->saveXML();
-    }
-
-    private function anadirTabla(DOMDocument $dom, DOMElement $raiz, string $tabla, Collection $filas): void
-    {
-        $contenedor = $dom->createElement($tabla);
-
-        foreach ($filas as $fila) {
-            $atributos = $fila instanceof \Illuminate\Database\Eloquent\Model
-                ? $fila->getAttributes()
-                : (array) $fila;
-
-            $elemento = $dom->createElement('fila');
-
-            foreach ($atributos as $columna => $valor) {
-                $campo = $dom->createElement($this->nombreValido($columna));
-
-                if ($valor === null) {
-                    $campo->setAttribute('nulo', 'true');
-                } else {
-                    $campo->appendChild($dom->createTextNode((string) $valor));
-                }
-
-                $elemento->appendChild($campo);
-            }
-
-            $contenedor->appendChild($elemento);
-        }
-
-        $raiz->appendChild($contenedor);
-    }
-
-    /** Un nombre de columna es casi siempre un nombre de elemento XML válido, pero por si acaso. */
-    private function nombreValido(string $columna): string
-    {
-        return preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $columna) ? $columna : 'col_' . preg_replace('/[^A-Za-z0-9_]/', '_', $columna);
-    }
-
-    /** Contenido de cada 'documento' de proveedor, en base64, indexado por su id de la tabla 'documentos'. */
+    /** Contenido de cada documento adjunto, en base64, indexado por su id de la tabla 'documentos'. */
     private function generarFicherosJson(Collection $documentos): string
     {
         $disco = Documento::disco();
@@ -234,11 +194,11 @@ class ComunidadExportador
         - `datos.xml`: todas las filas de base de datos que cuelgan de esta comunidad, una tabla por
           elemento raíz y una fila por `<fila>`, con sus columnas tal cual están en la base de datos
           (sin campos calculados). Los valores nulos se representan como `<columna nulo="true"/>`.
-        - `ficheros.json`: el contenido binario (en base64) de los documentos/facturas adjuntos a los
-          proveedores de la comunidad. Es un array de objetos `{documento_id, nombre_original,
-          extension, contenido_base64}`; `documento_id` enlaza con el `id` de la fila correspondiente
-          dentro de `<documentos>` en `datos.xml` (que ya trae el resto de metadatos: tipo, tamaño,
-          fecha de alta...).
+        - `ficheros.json`: el contenido binario (en base64) de los documentos adjuntos a los
+          proveedores de la comunidad y a sus mandatos SEPA. Es un array de objetos `{documento_id,
+          nombre_original, extension, contenido_base64}`; `documento_id` enlaza con el `id` de la fila
+          correspondiente dentro de `<documentos>` en `datos.xml` (que ya trae el resto de metadatos:
+          tipo, tamaño, fecha de alta...).
         - `indice.md`: este fichero.
 
         ## Tablas incluidas en datos.xml
@@ -254,17 +214,23 @@ class ComunidadExportador
         2. `comunidad` (la fila de `comunidades`)
         3. `personas_comunidad`, `direcciones`, `contactos`
         4. `comunidad_directivos`, `propietarios`, `proveedores`
-        5. `cuentas_bancarias`
+        5. `cuentas_bancarias`, `mandatos_sepa`
         6. `inmuebles`, `titularidades`, `formas_pago_inmuebles`
         7. `grupos_de_reparto`, `inmueble_grupo_de_reparto`
         8. `presupuestos`, `conceptos_presupuestos`
-        9. `documentos` (creando primero el fichero físico con el contenido de `ficheros.json`,
+        9. `recibos`, `remesas`, `lineas_remesas`, `cobros`, `avisos_recibos`
+        10. `documentos` (creando primero el fichero físico con el contenido de `ficheros.json`,
             luego la fila), `facturas_proveedores`
-        10. `historial_estados`
+        11. `historial_estados`
 
-        La contabilidad (`empresas_contables`, `cuenta_contables`, `ejercicio_contables`,
-        `asiento_contables`, `apunte_contables`) es un módulo independiente sin FK a
-        comunidades, así que no cuelga de esta comunidad y no se incluye en la exportación.
+        La contabilidad (`empresas_contables`, `cuenta_contables`, `tercero_contables`,
+        `ejercicio_contables`, `asiento_contables`, `apunte_contables`) es un módulo independiente
+        sin FK a comunidades, así que no cuelga de esta comunidad y no se incluye aquí: se exporta
+        por separado con `condominios:contabilidad-exportar`. Las columnas de esta exportación que
+        apuntan a ella (`comunidades.empresa_contable_id`, `presupuestos.cuenta_contable_id`,
+        `propietarios.cuenta_contable_id`, `cuentas_bancarias.cuenta_contable_id`,
+        `recibos.asiento_contable_id`, `cobros.asiento_contable_id`) llevan ids de esa otra
+        exportación y solo valen si se reconstruyen las dos a la vez.
 
         ## Catálogos NO incluidos (deben existir ya en el sistema destino)
 
@@ -273,28 +239,13 @@ class ComunidadExportador
         `estados`, `paises`, `provincias`, `municipios`, `poblaciones`, `vias`,
         `tipo_documento_identificativos`, `tipo_generos`, `tipo_direcciones`, `tipo_contactos`,
         `tipo_ocupaciones`, `tipo_inmuebles`, `formas_de_pago`, `entidades_bancarias`,
-        `tipo_estado_presupuestos`, `tipo_periodicidad_pagos`, `tipo_documentos`.
+        `tipo_estado_presupuestos`, `tipo_presupuestos`, `tipo_periodicidad_pagos`,
+        `tipo_estado_recibos`, `tipo_documentos`.
 
         Si el sistema destino no usa los mismos ids para estos catálogos, hay que traducirlos a
         mano al reconstruir (`estado_id`, `tipo_documento_id`, `forma_de_pago_id`,
         `entidad_bancaria_id`, `documento_pais_id`, `nacionalidad_id`,
         `genero_id`, `ocupacion_id`, `tipo_inmueble_id`, `periodicidad_id`, etc.).
         MD;
-    }
-
-    private function comprimir(string $carpetaTemporal, string $nombreZip): void
-    {
-        $rutaZip = Storage::disk('coms')->path($nombreZip);
-
-        $zip = new ZipArchive();
-        if ($zip->open($rutaZip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            throw new RuntimeException("No se pudo crear el fichero zip '{$nombreZip}'.");
-        }
-
-        foreach (['datos.xml', 'ficheros.json', 'indice.md'] as $fichero) {
-            $zip->addFile(Storage::disk('coms')->path("{$carpetaTemporal}/{$fichero}"), $fichero);
-        }
-
-        $zip->close();
     }
 }

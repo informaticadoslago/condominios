@@ -10,7 +10,7 @@ class ComunidadBorrar extends Command
 {
     protected $signature = 'condominios:comunidad-borrar {comunidad : ID de la comunidad}';
 
-    protected $description = 'Borra una comunidad y TODOS sus datos relacionados (inmuebles, propietarios, proveedores, contabilidad, documentos...). Irreversible.';
+    protected $description = 'Borra una comunidad y TODOS sus datos relacionados (inmuebles, propietarios, proveedores, presupuestos, documentos...). Irreversible.';
 
     public function handle(ComunidadEliminador $eliminador)
     {
@@ -25,7 +25,8 @@ class ComunidadBorrar extends Command
         $nombre = $comunidad->persona->razon_social ?? $comunidad->persona->nombre_comercial ?? "#{$comunidad->id}";
 
         $this->warn("Se va a BORRAR PERMANENTEMENTE la comunidad '{$nombre}' (#{$comunidad->id}) y todos sus datos:");
-        $this->warn('inmuebles, propietarios, proveedores, cuentas bancarias, presupuestos, contabilidad y documentos/facturas adjuntas.');
+        $this->warn('inmuebles, propietarios, proveedores, cuentas bancarias, presupuestos y documentos/facturas adjuntas.');
+        $this->warn('La contabilidad va por su lado: se borra con condominios:contabilidad-borrar.');
         $this->warn('No hay papelera ni vuelta atrás (no se usan soft deletes en este proyecto).');
 
         if (! $this->confirm('¿Continuar?', false)) {

@@ -39,7 +39,7 @@ sobrescribe al terminar.
 | Variable | Disco | Uso |
 |---|---|---|
 | `DOCUMENTOS_ROOT` | `documentos` | Carpeta (relativa a `storage/`) donde se guardan los documentos/facturas adjuntos a proveedores. En L9 era `app/documentos`. |
-| `COMS_ROOT` | `coms` | Carpeta donde `condominios:comunidad-exportar` deja los `.zip` de exportación de comunidad. |
+| `COMS_ROOT` | `coms` | Carpeta donde `condominios:comunidad-exportar` y `condominios:contabilidad-exportar` dejan sus `.zip` de exportación. |
 | `BACKUPS_ROOT` *(no está en `.env.example`, pero existe en `config/filesystems.php`)* | `backups` | Copias de seguridad completas (spatie/laravel-backup). |
 | `BOLETINES_ROOT` *(ídem)* | `boletines` | Legado de L9, sin relación con Comunidades. |
 
