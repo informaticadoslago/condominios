@@ -30,6 +30,9 @@ use App\Livewire\PlanDeCuentas\Lista as PlanDeCuentasLista;
 use App\Livewire\Inmuebles\Formulario as InmueblesFormulario;
 use App\Livewire\Inmuebles\Lista as InmueblesLista;
 use App\Livewire\Maestros\EntidadesBancarias\Lista as EntidadesBancariasLista;
+use App\Livewire\MayorContable\Lista as MayorContableLista;
+use App\Livewire\MovimientosContables\Lista as MovimientosContablesLista;
+use App\Livewire\SumasYSaldos\Lista as SumasYSaldosLista;
 use App\Livewire\Propietarios\Formulario as PropietariosFormulario;
 use App\Livewire\Propietarios\Lista as PropietariosLista;
 use App\Livewire\Proveedores\Lista as ProveedoresLista;
@@ -147,6 +150,9 @@ Route::middleware([
         Route::get('/ejercicios-contables', EjerciciosContablesLista::class)->name('ejercicios-contables.index');
         Route::get('/asientos-contables', AsientosContablesLista::class)->name('asientos-contables.index');
         Route::get('/asientos-contables/{ejercicioContable}/nuevo', AsientosContablesFormulario::class)->name('asientos-contables.crear');
+        Route::get('/mayor-contable', MayorContableLista::class)->name('mayor-contable.index');
+        Route::get('/sumas-y-saldos', SumasYSaldosLista::class)->name('sumas-y-saldos.index');
+        Route::get('/movimientos-contables', MovimientosContablesLista::class)->name('movimientos-contables.index');
     });
 
     // Maestros

@@ -41,4 +41,26 @@ class ApunteContable extends Model
     {
         return $this->belongsTo(CuentaContable::class);
     }
+
+    /**
+     * Contra qué se movió este apunte: las cuentas del lado CONTRARIO del asiento.
+     *
+     * No son «las demás cuentas del asiento». La emisión de un presupuesto lleva un
+     * apunte al debe por cada propietario y uno solo al haber con la cuenta de ingresos:
+     * la contrapartida de cada propietario es esa cuenta de ingresos, no los otros
+     * doce propietarios que iban en el mismo asiento.
+     *
+     * No hace consultas si asientoContable.apuntesContables.cuentaContable ya viene
+     * cargado, igual que cuentasDebe() y cuentasHaber() en AsientoContable.
+     */
+    public function contrapartidas()
+    {
+        $apuntes = $this->asientoContable?->apuntesContables ?? collect();
+
+        return $apuntes
+            ->where($this->debe > 0 ? 'haber' : 'debe', '>', 0)
+            ->pluck('cuentaContable')
+            ->filter()
+            ->unique('id');
+    }
 }

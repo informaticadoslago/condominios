@@ -10,4 +10,7 @@ return [
     'Roles' => '[gl] Roles',
     'Permisos' => '[gl] Permisos',
     'settings' => '[gl] Configuración',
+    'Libro mayor' => '[gl] Libro maior',
+    'Sumas y saldos' => '[gl] Sumas e saldos',
+    'Movimientos' => '[gl] Movementos',
 ];
