@@ -92,6 +92,36 @@
             @endif
         </x-dosl.tabla>
 
+        {{-- Lo que falta para poder enlazar: el nombre con el que cada cuenta del banco
+             se leerá en el mayor. Sin él la cuenta no llega a la contabilidad. --}}
+        <x-dosl.dialog-modal wire:model.live="abrirNombresContables" maxWidth="lg">
+            <x-slot name="title">
+                {{ __('Falta el nombre contable') }}
+            </x-slot>
+
+            <x-slot name="content">
+                <p class="text-sm text-gray-600 dark:text-gray-300">
+                    {{ __('Antes de enlazar con la contabilidad hay que decir cómo se leerá cada cuenta del banco en el mayor. Por ejemplo: «Banco Santander c/c».') }}
+                </p>
+
+                @foreach ($cuentasPendientes as $cuenta)
+                    <div class="mt-4" wire:key="cuenta-{{ $cuenta['id'] }}">
+                        <x-label for="nc-{{ $cuenta['id'] }}"
+                            :value="formatIbanSegments($cuenta['iban']) . ($cuenta['alias'] ? ' · ' . $cuenta['alias'] : '')" />
+                        <x-input id="nc-{{ $cuenta['id'] }}" class="block mt-1 w-full" type="text"
+                            wire:model="nombresContables.{{ $cuenta['id'] }}" />
+                        <x-input-error for="nombresContables.{{ $cuenta['id'] }}" class="mt-2" />
+                    </div>
+                @endforeach
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-dosl.boton-cerrar accion="cerrarNombresContables" />
+                <button type="button" class="btn btn-guardar px-2" wire:click="guardarNombresYEnlazar"
+                    title="{{ __('Guardar y enlazar') }}">{{ __('Guardar y enlazar') }}</button>
+            </x-slot>
+        </x-dosl.dialog-modal>
+
         {{-- El formulario de comunidad se monta globalmente en layouts.app (también
              accesible desde el badge de la barra superior), no aquí. --}}
     </x-slot>

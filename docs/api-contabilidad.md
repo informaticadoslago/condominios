@@ -116,12 +116,14 @@ cualquier usuario.
 
 ## Dar de alta una empresa
 
+> **Cerrado por fuera.** `POST /api/contabilidad/empresas` responde `403` a todo el
+> mundo. Aquí la empresa todavía no existe, así que ninguna habilidad puede acotar quién
+> entra, y una empresa contable de más no se borra con un botón. Las empresas se dan de
+> alta desde dentro: al enlazar una comunidad con la contabilidad. Lo de abajo describe
+> el endpoint tal como está construido, por si algún día se vuelve a abrir.
+
 Antes de mandar ningún asiento hace falta la empresa contable a la que van. Se pide por
 **nombre y CIF**, y la contabilidad devuelve su id.
-
-Es el único endpoint sin la comprobación de empresa de arriba: aquí la empresa todavía no
-existe, así que no hay habilidad que exigir. De momento le vale cualquier token válido
-(ver `docs/pendientes.md`).
 
 ```
 POST /api/contabilidad/empresas

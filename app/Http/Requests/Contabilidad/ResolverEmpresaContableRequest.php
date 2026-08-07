@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Contabilidad;
 
-use App\Support\HabilidadToken;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -13,13 +12,16 @@ use Illuminate\Foundation\Http\FormRequest;
 class ResolverEmpresaContableRequest extends FormRequest
 {
     /**
-     * Aquí no hay empresa que comprobar —se está creando—, así que lo único que se exige
-     * es que el token pueda escribir. Quién puede crear empresas contables sigue sin
-     * decidirse (ver docs/pendientes.md).
+     * Cerrado: por la API no se crean empresas contables. Aquí no hay empresa que
+     * comprobar —se está creando—, así que ninguna habilidad puede acotar quién entra,
+     * y una empresa contable de más no se borra con un botón.
+     *
+     * Se dan de alta desde dentro: enlazar la comunidad con la contabilidad
+     * (`Comunidades\Lista::enlazarContabilidad()`) llama al servicio directamente.
      */
     public function authorize(): bool
     {
-        return $this->user()?->tokenCan(HabilidadToken::ESCRIBIR) ?? false;
+        return false;
     }
 
     public function rules(): array

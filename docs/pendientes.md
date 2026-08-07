@@ -9,22 +9,7 @@ documentos de `docs/` ya no hace falta repetirlo.
 
 ---
 
-## 1. Datos imprescindibles al enlazar una comunidad
-
-Acordado el 2026-08-07 y sin empezar: al enlazar la comunidad con la contabilidad debería
-salir un modal que obligue a rellenar lo que falte, y solo entonces enlazar.
-
-- **Bloquea:** el nombre contable de cada cuenta bancaria de la comunidad, que es lo único
-  imprescindible para el primer asiento.
-- **No bloquea:** la caja y la cuenta de comisiones. Esa comunidad puede no cobrar nunca en
-  efectivo ni tener una devolución; se piden cuando aparezca el primer caso.
-- **Avisa, sin bloquear:** que la empresa contable tenga un ejercicio abierto que cubra las
-  fechas. Es el fallo que más desconcierta después, porque todo parece bien hasta que el
-  asiento se rechaza.
-
-Sitio: `Comunidades\Lista::enlazarContabilidad()`.
-
-## 2. Leer y modificar terceros por la API
+## 1. Leer y modificar terceros por la API
 
 Del alta solo está hecho el alta. Falta el resto de lo hablado:
 
@@ -37,18 +22,10 @@ Del alta solo está hecho el alta. Falta el resto de lo hablado:
 Punto de partida: `App\Http\Controllers\Api\Contabilidad\TerceroContableController` y
 `App\Http\Requests\Contabilidad\AltaTerceroRequest`.
 
-## 3. Quién puede crear empresas contables por la API
+## 2. Enlazar los recibos al aprobar el presupuesto
 
-`asientos`, `ejercicios`, `terceros` y `cuentas-ingreso` ya comprueban rol + habilidad del
-token (`User::puedeOperarEnEmpresaContable()`). El que queda fuera es
-`POST /api/contabilidad/empresas`: crea la empresa a partir del CIF, así que **todavía no
-existe** la empresa cuya habilidad exigir, y `ResolverEmpresaContableRequest::authorize()`
-sigue devolviendo `true` —cualquier token válido puede crear empresas contables.
-
-Sin decidir: si el alta la reserva el rol `global`, si hace falta una habilidad aparte del
-tipo `empresas:crear` que se conceda al crear el token, o si se deja abierta.
-
-## 4. Enlazar los recibos al aprobar el presupuesto
+**Pausado el 2026-08-07.** Es un paso importante: significa que todo sale del presupuesto
+aprobado en la junta, y eso se decide con calma.
 
 Ahora los recibos se enlazan **solo a mano**, con la opción del menú de tres puntos de la
 lista de recibos (`EnlazarRecibosContabilidad`, que de paso enlaza también los cobros). Esa
@@ -59,12 +36,13 @@ salieran ya enlazados.
 Sitio: `Presupuesto::booted()`, donde ya se pide la cuenta de ingresos y se vuelcan los
 recibos, todo en la misma transacción.
 
-## 5. Traducir `menu.Recibos` y `menu.Remesas`
+## 3. Traducir las claves nuevas del menú
 
-Las dos entradas de menú usan `trans_key('menu.Recibos')` y `trans_key('menu.Remesas')`, y
-ninguna de las dos claves está traducida todavía.
+`menu.Recibos`, `menu.Remesas` y `menu.Tokens de API` se usan con `trans_key()` en
+`config/sidebar.php` y ninguna está traducida todavía. Sin prisa: hay un módulo que
+traduce todo lo traducible de una vez, esto se hace cuando le toque.
 
-## 6. Rehacer la plantilla PDF del mandato SEPA
+## 4. Rehacer la plantilla PDF del mandato SEPA
 
 El contenido y los campos son los correctos; lo que no sirve es cómo queda el PDF que sale de
 dompdf. Al retomarlo, partir del `Formulario3.pdf` de referencia y cuidar la maquetación.

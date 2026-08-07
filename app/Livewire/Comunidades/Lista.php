@@ -9,6 +9,7 @@ use App\Livewire\Traits\ConBajaPorEstado;
 use App\Livewire\Traits\ConFichaInicio;
 use App\Models\AccesoDirecto;
 use App\Models\Comunidad;
+use App\Services\Comunidades\EnlaceContableComunidad;
 use App\Services\Contabilidad\AbrirEjercicioContableService;
 use App\Services\Contabilidad\ResolverEmpresaContableService;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,17 @@ class Lista extends ListaComponent
 {
     use ConBajaPorEstado;
     use ConFichaInicio;
+
+    /** Modal que pide los nombres contables que faltan antes de enlazar. */
+    public bool $abrirNombresContables = false;
+
+    public ?int $comunidadAEnlazar = null;
+
+    /** id de la cuenta bancaria => nombre contable que se está escribiendo. */
+    public array $nombresContables = [];
+
+    /** Lo que se pinta de cada cuenta pendiente: id, iban y alias. */
+    public array $cuentasPendientes = [];
 
     protected function modeloBaja(): string
     {
@@ -86,6 +98,74 @@ class Lista extends ListaComponent
             return;
         }
 
+        // Sin nombre contable, la cuenta del banco no llega a la contabilidad y se queda
+        // callada (EnlaceContableComunidad::asignarCuentaBancaria devuelve null). Es el
+        // dato del primer asiento, así que se pide ANTES de enlazar, no después.
+        $sinNombre = $comunidad->cuentasBancarias()
+            ->where(fn ($q) => $q->whereNull('nombre_contable')->orWhere('nombre_contable', ''))
+            ->get();
+
+        if ($sinNombre->isNotEmpty()) {
+            $this->comunidadAEnlazar = $comunidad->id;
+            $this->nombresContables  = $sinNombre->pluck('nombre_contable', 'id')
+                ->map(fn ($nombre) => (string) $nombre)->all();
+            $this->cuentasPendientes = $sinNombre->map(fn ($cuenta) => [
+                'id'    => $cuenta->id,
+                'iban'  => $cuenta->iban,
+                'alias' => $cuenta->alias,
+            ])->all();
+
+            $this->resetValidation();
+            $this->abrirNombresContables = true;
+
+            return;
+        }
+
+        $this->ejecutarEnlace($comunidad);
+    }
+
+    /**
+     * Guarda los nombres que faltaban y sigue con el enlace. Se validan todos: a medias
+     * no sirve, porque la cuenta sin nombre se quedaría fuera de la contabilidad igual.
+     */
+    public function guardarNombresYEnlazar()
+    {
+        $this->validate(
+            ['nombresContables.*' => ['required', 'string', 'max:150']],
+            ['nombresContables.*.required' => __('Escriba el nombre con el que se leerá en el mayor'),
+                'nombresContables.*.max'   => __('Máxima longitud 150')]
+        );
+
+        $comunidad = Comunidad::find($this->comunidadAEnlazar);
+
+        if (! $comunidad) {
+            $this->cerrarNombresContables();
+
+            return;
+        }
+
+        foreach ($this->nombresContables as $cuentaId => $nombre) {
+            $comunidad->cuentasBancarias()
+                ->whereKey($cuentaId)
+                ->update(['nombre_contable' => trim($nombre)]);
+        }
+
+        $this->cerrarNombresContables();
+
+        $this->ejecutarEnlace($comunidad->fresh());
+    }
+
+    public function cerrarNombresContables()
+    {
+        $this->abrirNombresContables = false;
+        $this->comunidadAEnlazar     = null;
+        $this->nombresContables      = [];
+        $this->cuentasPendientes     = [];
+        $this->resetValidation();
+    }
+
+    private function ejecutarEnlace(Comunidad $comunidad)
+    {
         $anho = (int) now()->year;
 
         try {
@@ -104,6 +184,13 @@ class Lista extends ListaComponent
             $this->dispatch('toast-error', ['title' => $e->getMessage()]);
 
             return;
+        }
+
+        // Ya hay empresa: cada cuenta de la comunidad estrena su subcuenta de bancos.
+        // Es idempotente, la que ya la tenga se queda como está.
+        foreach ($comunidad->cuentasBancarias as $cuenta) {
+            $cuenta->setRelation('titular', $comunidad);
+            app(EnlaceContableComunidad::class)->asignarCuentaBancaria($cuenta);
         }
 
         $this->dispatch('toast-success', ['title' => $empresa->wasRecentlyCreated

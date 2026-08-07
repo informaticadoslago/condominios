@@ -100,6 +100,22 @@
         this.posX = Math.max(8, Math.min(this.posX, window.innerWidth - el.offsetWidth - 8));
         this.posY = Math.max(8, Math.min(this.posY, window.innerHeight - el.offsetHeight - 8));
     },
+    /**
+     * El cursor, dentro del formulario. Hace falta a mano: el modal ya está en el DOM
+     * (escondido con x-show), así que el autofocus del navegador no llega a dispararse
+     * nunca, y x-trap enfoca el primer elemento tabulable, que es la ✕ de la cabecera.
+     *
+     * Manda el campo marcado con autofocus; si no hay ninguno, el primero que se pueda
+     * escribir. Va con retraso a propósito: x-trap coloca el foco al activarse y sin
+     * esperar a que termine se lo volvería a llevar él.
+     */
+    enfocarPrimerCampo() {
+        const cuerpo = this.$refs.body;
+        if (!cuerpo) return;
+        const campo = cuerpo.querySelector('[autofocus]')
+            || cuerpo.querySelector('input:not([type=hidden]):not([disabled]):not([readonly]), textarea:not([disabled]), select:not([disabled])');
+        if (campo) setTimeout(() => campo.focus(), 100);
+    },
     init() {
         if (this.draggable && this.$refs.dialog) {
             new ResizeObserver(() => { if (this.show && !this.dragging) this.clampToViewport() })
@@ -114,7 +130,7 @@
     @if (!$destroyOnClose)
         x-show="show" style="display:none;"
     @endif
-    x-effect="if(show){$nextTick(()=>centerDialog())} else { dragging=false }"
+    x-effect="if(show){$nextTick(()=>{centerDialog(); enfocarPrimerCampo()})} else { dragging=false }"
     id="{{ $id }}"
     class="jetstream-modal fixed inset-0 z-50 {{ $fullscreen ? 'overflow-hidden' : 'overflow-y-auto px-4 py-20 sm:px-0' }}"
     aria-modal="true"
@@ -148,7 +164,10 @@
             {{ $title ?? '' }}
 
             @if ($showCloseButton)
-                <button type="button" @click="show = false"
+                {{-- Fuera del orden de tabulación, como el Cerrar del pie: si no, x-trap
+                     le da el foco a la ✕ al abrir y el cursor no aparece en el
+                     formulario. Se cierra con Escape, con la ✕ o pinchando fuera. --}}
+                <button type="button" @click="show = false" tabindex="-1"
                     class="absolute right-3 top-3 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none"
                     title="{{ $closeButtonLabel }}">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
