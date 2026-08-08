@@ -15,6 +15,7 @@ use App\Actions\Fortify\UpdateUserPassword;
 use Illuminate\Support\Facades\RateLimiter;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
+use Illuminate\Validation\ValidationException;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -44,9 +45,21 @@ class FortifyServiceProvider extends ServiceProvider
                     $query->where('email', $email)
                         ->orWhere('login', $email);
                 })->first();
-            if ($user && Hash::check($request->password, $user->password)) {
-                return $user;
+
+            if (! $user || ! Hash::check($request->password, $user->password)) {
+                return null;
             }
+
+            // Activo no basta: mientras no pinche el enlace del correo de alta
+            // (email_verified_at) no puede entrar. Aviso específico, distinto del
+            // genérico de credenciales incorrectas.
+            if (! $user->email_verified_at) {
+                throw ValidationException::withMessages([
+                    Fortify::username() => __('Antes de entrar por favor confirma tu correo electrónico. Habrás recibido un correo-e. Si no lo encuentras no te olvides de buscar en la carpeta de correo no deseado.'),
+                ]);
+            }
+
+            return $user;
         });
 
         RateLimiter::for('login', function (Request $request) {
