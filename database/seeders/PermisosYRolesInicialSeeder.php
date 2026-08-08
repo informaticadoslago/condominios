@@ -144,11 +144,6 @@ class PermisosYRolesInicialSeeder extends Seeder
         // permisos propios (esos los dan los demás roles).
         $this->crearRol('global');
 
-        $this->crearRol('comunidad-1');
-        $this->crearRol('comunidad-2');
-        $this->crearRol('empresa-contable-1');
-        $this->crearRol('empresa-contable-2');
-
         $permisos_usuario = [
             'usuario-perfil',
         ];

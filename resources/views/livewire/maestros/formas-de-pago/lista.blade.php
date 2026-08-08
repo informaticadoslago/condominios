@@ -3,7 +3,6 @@
         {{ __('Formas de pago') }}
     </x-slot>
     <x-slot name="subtitulo">
-        {{ __('Formas de pago de socios y alumnos') }}
     </x-slot>
     <x-slot name="botonera">
         <x-button type="button" class="btn btn-nuevo" id="btn-nuevo-forma-de-pago"
