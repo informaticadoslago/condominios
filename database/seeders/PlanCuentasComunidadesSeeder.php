@@ -30,6 +30,7 @@ class PlanCuentasComunidadesSeeder extends Seeder
             ['codigo' => '12', 'nombre' => 'Resultados pendientes de aplicación'],
             ['codigo' => '4',  'nombre' => 'Acreedores y deudores por operaciones comerciales'],
             ['codigo' => '40', 'nombre' => 'Proveedores'],
+            ['codigo' => '41', 'nombre' => 'Acreedores varios'],
             ['codigo' => '43', 'nombre' => 'Clientes'],
             ['codigo' => '5',  'nombre' => 'Cuentas financieras'],
             ['codigo' => '57', 'nombre' => 'Tesorería'],
@@ -50,12 +51,18 @@ class PlanCuentasComunidadesSeeder extends Seeder
             // Donde aterriza al cierre la diferencia entre las 75xx y las 62xx.
             ['codigo' => '12900000', 'nombre' => 'Resultado del ejercicio', 'tipo_cuenta_contable_id' => TipoCuentaContable::PATRIMONIO_NETO],
             ['codigo' => '40000000', 'nombre' => 'Proveedores', 'tipo_cuenta_contable_id' => TipoCuentaContable::PASIVO],
+            // Cuenta de grupo de la clase de tercero «acreedor»: quien factura servicios a
+            // la comunidad, que es casi todo lo que le entra. La 400 queda para compras.
+            ['codigo' => '41000000', 'nombre' => 'Acreedores por prestaciones de servicios', 'tipo_cuenta_contable_id' => TipoCuentaContable::PASIVO],
             // Cuenta de grupo de la clase de tercero «cliente»: de ella cuelgan las
             // subcuentas 43000001, 43000002… una por propietario. No se desglosa por
             // concepto; para eso están las cuentas de ingreso 7500 y 7501.
             ['codigo' => '43000000', 'nombre' => 'Propietarios', 'tipo_cuenta_contable_id' => TipoCuentaContable::ACTIVO],
             ['codigo' => '57200000', 'nombre' => 'Bancos', 'tipo_cuenta_contable_id' => TipoCuentaContable::ACTIVO],
             ['codigo' => '62200000', 'nombre' => 'Reparación y conservación', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
+            // Los honorarios del administrador de fincas, y cualquier otro profesional
+            // que facture a la comunidad (abogado, arquitecto…).
+            ['codigo' => '62300000', 'nombre' => 'Servicios de profesionales independientes', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             ['codigo' => '62800000', 'nombre' => 'Suministros', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             ['codigo' => '62900000', 'nombre' => 'Servicios de limpieza', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             // Subgrupo 75 «Otros ingresos de gestión»: el PGC llega hasta 3 dígitos y deja

@@ -84,9 +84,11 @@ nueva.
 | `12100000` | Resultados negativos de ejercicios anteriores | Patrimonio neto |
 | `12900000` | Resultado del ejercicio | Patrimonio neto |
 | `40000000` | Proveedores | Pasivo |
+| `41000000` | Acreedores por prestaciones de servicios | Pasivo |
 | `43000000` | Propietarios | Activo |
 | `57200000` | Bancos | Activo |
 | `62200000` | Reparación y conservación | Gasto |
+| `62300000` | Servicios de profesionales independientes | Gasto |
 | `62800000` | Suministros | Gasto |
 | `62900000` | Servicios de limpieza | Gasto |
 | `75000000` | Ingresos por cuotas de comunidad | Ingreso |
