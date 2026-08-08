@@ -22,6 +22,7 @@
                             <th class="py-3 px-3">{{ __('Número factura') }}</th>
                             <th class="py-3 px-3">{{ __('Fecha') }}</th>
                             <th class="py-3 px-3 text-right">{{ __('Importe') }}</th>
+                            <th class="py-3 px-3">{{ __('Adjunto') }}</th>
                             <th class="py-3 px-3"></th>
                         </tr>
                     </thead>
@@ -36,6 +37,12 @@
                                 <td class="px-3 py-2">{{ $fila['numero'] }}</td>
                                 <td class="px-3 py-2">{{ \Carbon\Carbon::parse($fila['fecha'])->format('d/m/Y') }}</td>
                                 <td class="px-3 py-2 text-right">{{ number_format($fila['importe'], 2, ',', '.') }} €</td>
+                                <td class="px-3 py-2">
+                                    @if ($fila['adjunto'])
+                                        <i class="fa-solid fa-paperclip text-green-600"
+                                            title="{{ $fila['adjunto'] }}"></i>
+                                    @endif
+                                </td>
                                 <td class="px-3 py-2 text-green-600"><i class="fa-solid fa-check"></i></td>
                             </tr>
                         @endforeach
@@ -97,6 +104,20 @@
                                     step="0.01" wire:model="importe" :disabled="! $documentoValido"
                                     wire:keydown.enter="anadir" />
                                 <x-input-error for="importe" class="mt-1" />
+                            </td>
+                            {{-- El papel de esta factura, si está a mano: el clip abre el selector y se
+                                 pone verde cuando ya hay fichero. Cambiar de clave en cada vuelta es
+                                 lo que deja el input vacío para la línea siguiente. --}}
+                            <td class="px-3 py-2">
+                                <input type="file" id="cap-fichero" wire:key="cap-fichero-{{ $vuelta }}"
+                                    wire:model="fichero" accept=".pdf,.jpg,.jpeg,.png" class="hidden" />
+                                <x-button type="button" class="btn h-10 {{ $fichero ? 'btn-guardar' : '' }}"
+                                    onclick="document.getElementById('cap-fichero').click()"
+                                    :disabled="! $documentoValido"
+                                    title="{{ $fichero ? $fichero->getClientOriginalName() : __('Adjuntar fichero') }}">
+                                    <i class="fa-solid fa-paperclip"></i>
+                                </x-button>
+                                <x-input-error for="fichero" class="mt-1" />
                             </td>
                             <td class="px-3 py-2">
                                 <x-button type="button" class="btn btn-guardar h-10" id="cap-anadir" wire:click="anadir"

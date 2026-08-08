@@ -3,6 +3,7 @@
 namespace App\Livewire\Facturas;
 
 use App\Exceptions\FacturaDuplicadaException;
+use App\Models\Documento;
 use App\Models\Pais;
 use App\Models\PersonaComunidad;
 use App\Models\Proveedor;
@@ -14,6 +15,7 @@ use App\Services\Facturas\AltaProveedorDesdeFactura;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /**
  * Alta de facturas en serie, sin papel: las que llegan de una en una ya tienen la
@@ -23,9 +25,14 @@ use Livewire\Component;
  * se ofrece darlo de alta en el modal de proveedores de siempre; si se acepta, la vuelta
  * sigue, y si no, el cursor vuelve al documento. Con el proveedor resuelto se teclean
  * número, fecha e importe, y al añadir la factura queda guardada y empieza otra fila.
+ *
+ * Cada línea admite además su propio fichero, por si el papel de esa factura sí está a
+ * mano: si se adjunta, la factura nace con soporte, y si no, queda «sin soporte».
  */
 class Crear extends Component
 {
+    use WithFileUploads;
+
     public ?int $documento_pais_id = null;
 
     public ?int $tipo_documento_id = null;
@@ -44,6 +51,12 @@ class Crear extends Component
 
     public string $importe = '';
 
+    /** El papel de la factura de esta línea, si lo hay; opcional, como en el resto del alta. */
+    public $fichero = null;
+
+    /** Sube con cada línea guardada: le cambia la clave al input de fichero para que nazca vacío. */
+    public int $vuelta = 0;
+
     /** Lo metido en esta sesión de trabajo, lo último arriba. */
     public array $metidas = [];
 
@@ -56,10 +69,12 @@ class Crear extends Component
     protected function messages()
     {
         return [
-            'required' => 'Debe rellenar :attribute',
-            'max'      => 'Máxima longitud de :attribute = :max',
-            'numeric'  => 'El importe tiene que ser un número',
-            'date'     => 'La fecha no es válida',
+            'required'      => 'Debe rellenar :attribute',
+            'max'           => 'Máxima longitud de :attribute = :max',
+            'numeric'       => 'El importe tiene que ser un número',
+            'date'          => 'La fecha no es válida',
+            'fichero.mimes' => 'El fichero tiene que ser un PDF o una imagen',
+            'fichero.max'   => 'El fichero no puede pasar de 10 MB',
         ];
     }
 
@@ -70,6 +85,7 @@ class Crear extends Component
             'numero_factura' => __('el número de factura'),
             'fecha'          => __('la fecha'),
             'importe'        => __('el importe'),
+            'fichero'        => __('el fichero'),
         ];
     }
 
@@ -212,14 +228,21 @@ class Crear extends Component
             'numero_factura' => ['required', 'string', 'max:60'],
             'fecha'          => ['required', 'date'],
             'importe'        => ['required', 'numeric', 'min:0'],
+            'fichero'        => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ]);
+
+        // El papel de esta línea, si se adjuntó: va a borradores y el alta lo consolida.
+        // Sin fichero se manda vacío y la factura queda «sin soporte», como siempre.
+        $metadatosFichero = $this->fichero
+            ? Documento::subirFichero($this->fichero, enBorrador: true)
+            : [];
 
         try {
             $alta->ejecutar(
                 comunidadId: (int) session('comunidad_actual_id'),
                 documento: $this->documentoNormalizado(),
                 razonSocial: $this->proveedorNombre,
-                metadatosFichero: [], // sin papel: la factura queda «sin soporte»
+                metadatosFichero: $metadatosFichero,
                 numeroFactura: trim($this->numero_factura),
                 fecha: $this->fecha,
                 importe: $this->importe,
@@ -227,6 +250,8 @@ class Crear extends Component
                 tipoDocumentoId: $this->tipo_documento_id,
             );
         } catch (FacturaDuplicadaException $e) {
+            // La línea no se graba, así que su papel tampoco se queda en el disco.
+            $this->borrarBorrador($metadatosFichero);
             $this->addError('numero_factura', $e->getMessage());
 
             return;
@@ -241,13 +266,27 @@ class Crear extends Component
             'numero'    => trim($this->numero_factura),
             'fecha'     => $this->fecha,
             'importe'   => (float) $this->importe,
+            'adjunto'   => $metadatosFichero['nombrelocal'] ?? null,
         ];
 
         $this->reset(['documento', 'documentoValido', 'proveedorNombre', 'proveedorId',
-            'numero_factura', 'fecha', 'importe']);
+            'numero_factura', 'fecha', 'importe', 'fichero']);
         $this->resetValidation();
+        $this->vuelta++; // el input de fichero se queda con el nombre puesto si no cambia de clave
 
         $this->dispatch('foco-documento');
+    }
+
+    /** Retira del disco el papel que se subió para una línea que al final no se grabó. */
+    private function borrarBorrador(array $metadatos): void
+    {
+        if (! $metadatos) {
+            return;
+        }
+
+        Documento::disco()->delete(
+            ltrim(trim((string) $metadatos['camino'], '/') . '/' . $metadatos['nombrefichero'], '/')
+        );
     }
 
     public function cerrar()
