@@ -14,11 +14,25 @@
     </x-slot>
 
     <x-slot name="content">
+        {{-- Los asientos entran por otras pantallas y por la API, así que la lista se
+             refresca sola. Sin .visible a propósito: este div no ocupa nada y un elemento
+             de 0 px nunca llega a estar «visible» para el observador, así que con ese
+             modificador el poll no se dispararía jamás. Livewire ya reduce el ritmo por su
+             cuenta cuando la pestaña está de fondo. --}}
+        <div wire:poll.15s></div>
+
         <x-dosl.tabla>
             <x-slot name="botonera">
                 <x-secondary-button type="button" wire:click="borrarFiltro" title="{{ __('Borrar filtro') }}">
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>{{ __('Borrar filtro') }}
                 </x-secondary-button>
+                {{-- El informe en A4 apaisado, en otra pestaña: sin rango no hay nada que imprimir. --}}
+                @if ($rango)
+                    <x-secondary-button type="button" title="{{ __('Imprimir') }}"
+                        onclick="window.open('{{ route('movimientos-contables.pdf', ['desde' => $filtros['desde'], 'hasta' => $filtros['hasta']]) }}', '_blank')">
+                        <i class="fa-solid fa-print mr-1"></i>{{ __('Imprimir') }}
+                    </x-secondary-button>
+                @endif
             </x-slot>
 
             @include('livewire.parciales.filtros')
@@ -38,9 +52,9 @@
                             <thead class="font-medium border-b">
                                 <tr>
                                     <th class="py-2 pr-4">{{ $seccion['titulo'] }}</th>
-                                    <th class="py-2 px-3 text-right">{{ __('Total') }}</th>
+                                    <th class="py-2 px-2 text-right">{{ __('Total') }}</th>
                                     @foreach ($meses as $etiqueta)
-                                        <th class="py-2 px-3 text-right whitespace-nowrap">{{ $etiqueta }}</th>
+                                        <th class="py-2 px-2 text-right text-xs whitespace-nowrap">{{ $etiqueta }}</th>
                                     @endforeach
                                 </tr>
                             </thead>
@@ -48,9 +62,11 @@
                                 @forelse ($seccion['bloque']['filas'] as $fila)
                                     <tr>
                                         <td class="py-2 pr-4 whitespace-nowrap">{{ $fila['codigo'] }} - {{ $fila['nombre'] }}</td>
-                                        <td class="py-2 px-3 text-right">{{ $euros($fila['total']) }}</td>
+                                        <td class="py-2 px-2 text-right tabular-nums">{{ $euros($fila['total']) }}</td>
                                         @foreach ($meses as $mes => $etiqueta)
-                                            <td class="py-2 px-3 text-right">{{ $euros($fila['meses'][$mes]) }}</td>
+                                            {{-- Doce columnas de importes: apretadas y en cifras de ancho
+                                                 fijo, para que quepa el año entero sin rodar la tabla. --}}
+                                            <td class="py-2 px-2 text-right text-xs tabular-nums whitespace-nowrap">{{ $euros($fila['meses'][$mes]) }}</td>
                                         @endforeach
                                     </tr>
                                 @empty
@@ -64,9 +80,9 @@
                             <tfoot class="font-medium border-t">
                                 <tr>
                                     <td class="py-2 pr-4">{{ $seccion['total'] }}</td>
-                                    <td class="py-2 px-3 text-right">{{ $euros($seccion['bloque']['total']) }}</td>
+                                    <td class="py-2 px-2 text-right tabular-nums">{{ $euros($seccion['bloque']['total']) }}</td>
                                     @foreach ($meses as $mes => $etiqueta)
-                                        <td class="py-2 px-3 text-right">{{ $euros($seccion['bloque']['totales'][$mes]) }}</td>
+                                        <td class="py-2 px-2 text-right text-xs tabular-nums whitespace-nowrap">{{ $euros($seccion['bloque']['totales'][$mes]) }}</td>
                                     @endforeach
                                 </tr>
                             </tfoot>

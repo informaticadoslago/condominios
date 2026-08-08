@@ -7,6 +7,7 @@ use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
 use App\Http\Controllers\MandatoSepaPlantillaController;
+use App\Http\Controllers\MovimientosContablesPdfController;
 use App\Http\Controllers\RemesaFicheroController;
 use App\Livewire\Remesas\Lista as RemesasLista;
 use App\Http\Controllers\EmpresaContableContextoController;
@@ -165,6 +166,8 @@ Route::middleware([
         Route::get('/mayor-contable', MayorContableLista::class)->name('mayor-contable.index');
         Route::get('/sumas-y-saldos', SumasYSaldosLista::class)->name('sumas-y-saldos.index');
         Route::get('/movimientos-contables', MovimientosContablesLista::class)->name('movimientos-contables.index');
+        // El mismo informe en A4 apaisado, con el rango que se le haya puesto en pantalla.
+        Route::get('/movimientos-contables/pdf', MovimientosContablesPdfController::class)->name('movimientos-contables.pdf');
     });
 
     // Maestros

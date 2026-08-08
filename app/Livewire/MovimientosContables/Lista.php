@@ -5,11 +5,7 @@ namespace App\Livewire\MovimientosContables;
 use App\Livewire\ListaComponent;
 use App\Livewire\Traits\ConEmpresaContableActiva;
 use App\Livewire\Traits\ConRangoContable;
-use App\Models\TipoCuentaContable;
-use App\Services\Contabilidad\SaldosContablesService;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
+use App\Services\Contabilidad\InformeMovimientos;
 
 /**
  * Informe de movimientos entre dos fechas: los ingresos y los gastos mes a mes, el
@@ -23,9 +19,8 @@ use Illuminate\Support\Str;
  * gastos arriba, activo y pasivo abajo justificando el saldo. Por eso el informe vale
  * igual para un plan de cuentas que no sea el de comunidades.
  *
- * El cuadre es el de la partida doble: saldo anterior + ingresos − gastos = saldo final,
- * y el saldo final es la suma de la justificación. Si algún día se registran asientos de
- * cierre habrá que sacarlos de aquí, porque llevan los ingresos y los gastos a cero.
+ * Los números los saca InformeMovimientos, que es el mismo que arma el PDF: la pantalla
+ * y el papel tienen que contar lo mismo.
  */
 class Lista extends ListaComponent
 {
@@ -61,91 +56,18 @@ class Lista extends ListaComponent
         ];
     }
 
-    /** Las columnas del informe: un mes por columna, del primero del rango al último. */
-    private function meses(string $desde, string $hasta): array
+    public function render(InformeMovimientos $informe)
     {
-        $mes    = Carbon::parse($desde)->startOfMonth();
-        $ultimo = Carbon::parse($hasta)->startOfMonth();
-        $meses  = [];
-
-        while ($mes <= $ultimo) {
-            $meses[$mes->format('Y-m')] = Str::upper($mes->translatedFormat('M/Y'));
-            $mes->addMonth();
-        }
-
-        return $meses;
-    }
-
-    /**
-     * Pasa las filas de «una cuenta y un mes» a «una cuenta con todos sus meses», que es
-     * como se lee el informe. El signo se endereza aquí: un ingreso es haber − debe y un
-     * gasto debe − haber, para que los dos bloques se lean en positivo.
-     *
-     * @return array{filas: array<int, array<string, mixed>>, totales: array<string, int>, total: int}
-     */
-    private function pivotar(Collection $movimientos, array $meses, bool $deudora): array
-    {
-        $filas   = [];
-        $totales = array_fill_keys(array_keys($meses), 0);
-
-        foreach ($movimientos as $movimiento) {
-            $importe = $deudora
-                ? $movimiento->debe - $movimiento->haber
-                : $movimiento->haber - $movimiento->debe;
-
-            $filas[$movimiento->id] ??= [
-                'codigo' => $movimiento->codigo,
-                'nombre' => $movimiento->nombre,
-                'meses'  => array_fill_keys(array_keys($meses), 0),
-                'total'  => 0,
-            ];
-
-            $filas[$movimiento->id]['meses'][$movimiento->mes] += $importe;
-            $filas[$movimiento->id]['total']                   += $importe;
-            $totales[$movimiento->mes]                         += $importe;
-        }
-
-        return [
-            'filas'   => array_values($filas),
-            'totales' => $totales,
-            'total'   => array_sum($totales),
-        ];
-    }
-
-    public function render()
-    {
-        $saldos            = app(SaldosContablesService::class);
-        $empresaContableId = $this->empresaContableActual()?->id ?? 0;
-        $desde             = $this->desde();
-        $hasta             = $this->hasta();
+        $desde = $this->desde();
+        $hasta = $this->hasta();
 
         // Sin las dos fechas no hay informe: ni meses que pintar ni saldo del que partir.
         if (! $desde || ! $hasta || $hasta < $desde) {
             return view('livewire.movimientos-contables.lista', ['rango' => false]);
         }
 
-        $meses    = $this->meses($desde, $hasta);
-        $balance  = [TipoCuentaContable::ACTIVO, TipoCuentaContable::PASIVO];
-        $ingresos = $this->pivotar(
-            $saldos->movimientosPorMes($empresaContableId, [TipoCuentaContable::INGRESO], $desde, $hasta),
-            $meses,
-            deudora: false,
-        );
-        $gastos = $this->pivotar(
-            $saldos->movimientosPorMes($empresaContableId, [TipoCuentaContable::GASTO], $desde, $hasta),
-            $meses,
-            deudora: true,
-        );
-
         return view('livewire.movimientos-contables.lista', [
-            'rango'         => true,
-            'meses'         => $meses,
-            'ingresos'      => $ingresos,
-            'gastos'        => $gastos,
-            // El saldo de la víspera: lo que había el día antes de empezar el rango.
-            'saldoAnterior' => $saldos->totalSaldos($empresaContableId, $balance, Carbon::parse($desde)->subDay()->format('Y-m-d')),
-            'justificacion' => $saldos->saldosPorCuenta($empresaContableId, $balance, $hasta),
-            'saldoFinal'    => $saldos->totalSaldos($empresaContableId, $balance, $hasta),
-        ]);
+            'rango' => true,
+        ] + $informe->generar($this->empresaContableActual()?->id ?? 0, $desde, $hasta));
     }
 }
