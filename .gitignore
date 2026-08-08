@@ -28,4 +28,9 @@ Thumbs.db
 
 /storage/censofiles
 .env.old
+
+# Los scripts de cron reales llevan las rutas de cada servidor; solo se versionan las plantillas
+/cron/*
+!/cron/*.example.sh
+!/cron/*.example.txt
 /app/Console/Commands/resetdatabase.xml
