@@ -13,9 +13,17 @@ use Zxing\QrReader;
  */
 class VerifactuQrLector
 {
-    /** Un QR real nunca llega a este tamaño; una foto o un escaneo de página completa sí
-     *  (y decodificarlo con ImageMagick puede agotar la memoria del proceso PHP). */
-    protected const MAX_PIXELES_QR = 2_000_000;
+    /**
+     * Un QR real nunca llega a este tamaño; una foto o un escaneo de página completa sí
+     * (y decodificarlo con ImageMagick agota la memoria del proceso PHP).
+     *
+     * El número sale de la cuenta del decodificador: `exportImagePixels` devuelve un array
+     * PHP de ancho × alto × 3 enteros, unos 24 bytes por píxel de la imagen. Con este tope
+     * el pico se queda en ~10 MB, que caben de sobra en los 128 MB de PHP-FPM incluso
+     * importando un árbol entero de facturas de una tacada. 632 × 632 px es un QR enorme:
+     * los que traen las facturas embebidos rondan los 300.
+     */
+    protected const MAX_PIXELES_QR = 400_000;
 
     public function buscar(string $rutaPdf): ?array
     {
