@@ -76,7 +76,9 @@ class Editar extends Component
             : null;
         $this->login            = $usuario->login;
         $this->email            = $usuario->email;
-        $this->roles            = $usuario->getRoleNames()->all();
+        $this->roles            = $usuario->getRoleNames()
+            ->reject(fn ($rol) => $rol === config('doslago.superadmin.nombre_rol'))
+            ->values()->all();
         $this->abrirEditar      = true;
 
         // El foco arranca en login: los datos de persona quedan visibles pero
@@ -113,7 +115,12 @@ class Editar extends Component
         $usuario->email = $validated['email'];
         $usuario->save();
 
-        $usuario->syncRoles($this->roles);
+        // El rol superadmin no pasa por este formulario: si el usuario ya lo
+        // tenía, se conserva al margen de lo marcado en los checkboxes.
+        $roles = $this->usuario->hasRole(config('doslago.superadmin.nombre_rol'))
+            ? [...$this->roles, config('doslago.superadmin.nombre_rol')]
+            : $this->roles;
+        $usuario->syncRoles($roles);
 
         $this->dispatch('toast-success', [
             'title' => __('El usuario ha sido modificado'),

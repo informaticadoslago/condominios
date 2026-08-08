@@ -1,9 +1,10 @@
-<x-dosl.dialog-modal wire:model.live="abrirEditar" class="backdrop-blur" maxWidth="4xl">
+<x-dosl.dialog-modal wire:model.live="abrirEditar" class="backdrop-blur" maxWidth="7xl">
     <x-slot name="title">
         {{ __('Modificar usuario') }}
     </x-slot>
 
     <x-slot name="content">
+           
         <x-dosl.datos-persona :persona="$usuario?->persona" :generos="$generos" />
 
         <hr class="my-4" />
