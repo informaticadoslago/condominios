@@ -135,7 +135,20 @@
                             : __('Factura adjuntada al proveedor existente ":proveedor".', ['proveedor' => $resultado['dado_de_alta']['proveedor']]) }}
                     </div>
                 @elseif ($documentoParaAlta)
-                    <div class="mt-3 text-right">
+                    <div class="mt-3 flex items-end justify-end gap-2">
+                        @unless ($proveedorExiste[$loop->index] ?? false)
+                            {{-- Proveedor nuevo: a qué se dedica, que decide la cuenta de gasto. --}}
+                            <div class="w-1/3">
+                                <x-label :value="__('Tipo')" />
+                                <x-select class="block mt-1 w-full mayusculas"
+                                    wire:model="tipoProveedor.{{ $loop->index }}">
+                                    <option value="">{{ __('--') }}</option>
+                                    @foreach ($tiposProveedor as $tipo)
+                                        <option value="{{ $tipo->id }}">{{ $tipo->descripcion }}</option>
+                                    @endforeach
+                                </x-select>
+                            </div>
+                        @endunless
                         <x-button type="button" class="btn" wire:click="darDeAlta({{ $loop->index }})">
                             {{ __('Dar de alta / adjuntar factura') }}
                         </x-button>

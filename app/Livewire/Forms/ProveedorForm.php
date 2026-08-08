@@ -35,6 +35,10 @@ class ProveedorForm extends Form
 
     public int $persona_comunidad_id = 0;
 
+    // --- Datos del proveedor ---
+    // A qué se dedica: de ahí sale la cuenta de gasto de sus facturas.
+    public $tipo_proveedor_id = null;
+
     // Auxiliares para la vista
     public $tipo_documento_identificativos;
     public bool $es_tipo_documento_cif = false;
@@ -102,6 +106,9 @@ class ProveedorForm extends Form
             $rules['razon_social']     = ['required_without:nombre', 'max:100'];
             $rules['nombre_comercial'] = ['nullable', 'string', 'max:100'];
         }
+
+        // Es del proveedor, no de la persona: se pide aunque la persona ya existiera.
+        $rules['tipo_proveedor_id'] = ['required', 'exists:tipo_proveedores,id'];
 
         $rules['documento_identificativo'][] = Rule::unique('personas_comunidad', 'documento_identificativo')
             ->where(fn ($q) => $q->where('comunidad_id', $this->comunidad_id))
@@ -199,6 +206,7 @@ class ProveedorForm extends Form
         $this->documento_identificativo = $persona->documento_identificativo;
         $this->fecha_nacimiento         = $persona->fecha_nacimiento?->format('Y-m-d');
         $this->genero_id                = $persona->genero_id;
+        $this->tipo_proveedor_id        = $this->proveedor->tipo_proveedor_id;
 
         $this->es_tipo_documento_cif = TipoDocumentoIdentificativo::isTipoDocumento($this->tipo_documento_id, TipoDocumentoIdentificativo::TIPO_JURIDICA);
         $this->documentoComprobado   = true;
@@ -212,7 +220,10 @@ class ProveedorForm extends Form
             $persona = PersonaComunidad::create($this->datosPersona());
         }
 
-        $proveedor = Proveedor::create(['persona_comunidad_id' => $persona->id]);
+        $proveedor = Proveedor::create([
+            'persona_comunidad_id' => $persona->id,
+            'tipo_proveedor_id'    => $this->tipo_proveedor_id,
+        ]);
         $proveedor->setRelation('persona', $persona);
 
         $this->proveedor            = $proveedor;
@@ -225,6 +236,7 @@ class ProveedorForm extends Form
     public function update($validated): Proveedor
     {
         $this->persona->update($this->datosPersona());
+        $this->proveedor->update(['tipo_proveedor_id' => $this->tipo_proveedor_id]);
 
         return $this->proveedor;
     }
@@ -240,6 +252,7 @@ class ProveedorForm extends Form
         $this->documento_identificativo = '';
         $this->genero_id                = null;
         $this->persona_comunidad_id     = 0;
+        $this->tipo_proveedor_id        = null;
         $this->proveedor                = null;
         $this->persona                  = null;
         $this->documentoComprobado      = false;

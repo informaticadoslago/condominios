@@ -51,6 +51,8 @@
                                 <th class="py-3 px-6">{{ __('Importe') }}</th>
                             @endif
                             <th class="py-3 px-6">{{ __('Soporte') }}</th>
+                            <th class="py-3 px-6">{{ __('Contabilidad') }}</th>
+                            <th class="py-3 px-6">{{ __('Pago') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
@@ -93,13 +95,56 @@
                                         </button>
                                     </td>
                                 @endif
-                                {{-- Sin documento no hay papel detrás: la factura se tecleó
-                                     (o se leyó su QR) y el PDF puede llegar después. --}}
+                                {{-- Con papel, el ojo lo abre en otra pestaña (documentos.ver lo
+                                     sirve inline, así que se ve en el navegador sin descargarlo).
+                                     Sin documento la factura se tecleó (o se leyó su QR) y el PDF
+                                     puede llegar después. --}}
                                 <td class="px-6 py-4">
-                                    @if (! $item->documento_id)
+                                    @if ($item->documento)
+                                        <a href="{{ route('documentos.ver', $item->documento) }}" target="_blank"
+                                            class="text-gray-500 hover:text-gray-800" title="{{ __('Ver') }}">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                    @else
                                         <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
                                             {{ __('Sin soporte') }}
                                         </span>
+                                    @endif
+                                </td>
+                                {{-- Contabilizar es explícito: el gasto entra cuando quien lleva la
+                                     comunidad lo manda, no al teclear la factura. Una vez hecho,
+                                     queda el número de asiento y ya no hay botón. --}}
+                                <td class="px-6 py-4">
+                                    <span class="flex items-center gap-2">
+                                        @if ($item->asiento_contable)
+                                            <span class="text-gray-500" title="{{ __('Cuenta de gasto') }}: {{ $item->cuenta_gasto }}">
+                                                {{ __('Asiento') }} {{ $item->asiento_contable }}
+                                            </span>
+                                        @endif
+                                        {{-- La balanza sigue ahí mientras quede algo por asentar: la
+                                             propia factura, o pagos suyos que se quedaron sin asiento. --}}
+                                        @if ($item->faltaPorContabilizar())
+                                            <x-secondary-button type="button" class="px-3 py-2"
+                                                title="{{ $item->asiento_contable ? __('Contabilizar los pagos pendientes') : __('Contabilizar') }}"
+                                                wire:click="contabilizar({{ $item->id }})">
+                                                <i class="fa-solid fa-scale-balanced text-base"></i>
+                                            </x-secondary-button>
+                                        @endif
+                                    </span>
+                                </td>
+                                {{-- El pago admite parciales, así que hasta que no queda a
+                                     cero se sigue viendo lo que falta y el botón. --}}
+                                <td class="px-6 py-4">
+                                    @if ($item->pendiente() <= 0)
+                                        <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200">
+                                            {{ __('Pagada') }}
+                                        </span>
+                                    @else
+                                        <x-secondary-button type="button" class="px-3 py-2"
+                                            title="{{ __('Pagar') }} ({{ __('pendiente') }}: {{ number_format($item->pendiente(), 2, ',', '.') }} €)"
+                                            wire:click="$dispatch('abrir-pagar-factura', { id: {{ $item->id }} })">
+                                            <i class="fa-solid fa-money-bill-transfer text-base"></i>
+                                        </x-secondary-button>
                                     @endif
                                 </td>
                             </tr>
@@ -116,6 +161,7 @@
             @endif
         </x-dosl.tabla>
 
+        @livewire('facturas.pagar-factura')
         @livewire('facturas.importar-facturas')
         @livewire('proveedores.resultado-factura')
         @livewire('proveedores.marcar-plantilla-factura')

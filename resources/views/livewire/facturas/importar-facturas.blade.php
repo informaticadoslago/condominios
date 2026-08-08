@@ -59,6 +59,7 @@
                                     <th class="py-2 px-4">{{ __('Fecha') }}</th>
                                     <th class="py-2 px-4">{{ __('Nº factura') }}</th>
                                     <th class="py-2 px-4">{{ __('Importe') }}</th>
+                                    <th class="py-2 px-4">{{ __('Tipo') }}</th>
                                     <th class="py-2 px-4">{{ __('Acción') }}</th>
                                 </tr>
                             </thead>
@@ -71,6 +72,19 @@
                                         <td class="px-4 py-2">{{ $resultado['plantilla']['fecha'] }}</td>
                                         <td class="px-4 py-2">{{ $resultado['plantilla']['numero_factura'] }}</td>
                                         <td class="px-4 py-2">{{ $resultado['plantilla']['importe'] }}</td>
+                                        <td class="px-4 py-2">
+                                            @if ($resultado['proveedor_existe'] ?? false)
+                                                <span class="text-gray-400">{{ __('--') }}</span>
+                                            @else
+                                                <x-select class="block w-full text-xs mayusculas"
+                                                    wire:model="tipoProveedor.{{ $indice }}">
+                                                    <option value="">{{ __('--') }}</option>
+                                                    @foreach ($tiposProveedor as $tipo)
+                                                        <option value="{{ $tipo->id }}">{{ $tipo->descripcion }}</option>
+                                                    @endforeach
+                                                </x-select>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-2 whitespace-nowrap">
                                             @if ($resultado['duplicada'] ?? false)
                                                 <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1"

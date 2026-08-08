@@ -2,10 +2,16 @@
 
 namespace App\Livewire\Facturas;
 
+use App\Exceptions\AsientoInvalidoException;
+use App\Exceptions\CuentaContableDesconocidaException;
+use App\Exceptions\EjercicioCerradoException;
+use App\Exceptions\EjercicioContableDesconocidoException;
 use App\Livewire\ListaComponent;
 use App\Models\Documento;
 use App\Models\FacturaProveedor;
 use App\Services\Facturas\AltaProveedorDesdeFactura;
+use App\Services\Facturas\EnlazarFacturasContabilidad;
+use App\Services\Facturas\EnlazarPagosContabilidad;
 use App\Services\Facturas\LectorPdf;
 use Livewire\Attributes\On;
 
@@ -18,6 +24,7 @@ class Lista extends ListaComponent
     }
 
     #[On('factura-importada')]
+    #[On('factura-pagada')]
     public function refrescar()
     {
         // el evento fuerza el re-render de la lista
@@ -165,12 +172,104 @@ class Lista extends ListaComponent
         ];
     }
 
+    /**
+     * Manda a la contabilidad lo que le falte a esta factura: el gasto devengado si es la
+     * primera vez, y los pagos que se hubieran quedado sin asiento porque la contabilidad
+     * falló en su momento. Es explícito a propósito —contabilizar es una decisión de quien
+     * lleva la comunidad, no un efecto secundario de teclear la factura— y se puede repetir
+     * sin duplicar nada: la referencia de cada asiento lo impide.
+     */
+    public function contabilizar($facturaId, EnlazarFacturasContabilidad $enlazar)
+    {
+        $factura = FacturaProveedor::with(['proveedor.persona.comunidad', 'proveedor.tipo'])->find($facturaId);
+        if (! $factura) {
+            return;
+        }
+
+        $soloPagos = $factura->asiento_contable !== null;
+
+        // El motivo se mira antes de preguntar: no tiene sentido confirmar algo que no
+        // va a poder hacerse. Con la factura ya asentada, lo que falta son sus pagos.
+        if (! $soloPagos && $motivo = $enlazar->motivoNoEnlazable($factura)) {
+            $this->dispatch('toast-error', ['title' => $motivo]);
+
+            return;
+        }
+
+        if ($soloPagos && ! $factura->faltaPorContabilizar()) {
+            return;
+        }
+
+        $this->dispatch('swalConfirm', [
+            'title'              => $soloPagos ? __('Contabilizar los pagos') : __('Contabilizar la factura'),
+            'text'               => $soloPagos
+                ? __('Sus pagos se quedaron sin asiento. Se vuelven a mandar a la contabilidad.')
+                : __('Se registrará el gasto en la contabilidad. El pago va aparte.'),
+            'icon'               => 'question',
+            'showCancelButton'   => true,
+            'focusConfirm'       => true,
+            'confirmButtonColor' => '#16a34a',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, contabilizar'),
+            'cancelButtonText'   => __('Cancelar'),
+            'confirmCallback'    => 'contabilizar-confirmado',
+            'cancelCallback'     => 'contabilizar-cancelado',
+            'id'                 => $factura->id,
+        ]);
+    }
+
+    #[On('contabilizar-cancelado')]
+    public function contabilizarCancelado($id = null)
+    {
+        // Nada que hacer: el evento existe porque swalConfirm siempre emite uno de los dos.
+    }
+
+    #[On('contabilizar-confirmado')]
+    public function contabilizarConfirmado(
+        $id,
+        EnlazarFacturasContabilidad $enlazar,
+        EnlazarPagosContabilidad $enlazarPagos,
+    ) {
+        $factura = FacturaProveedor::with(['proveedor.persona.comunidad', 'proveedor.tipo'])->find($id);
+        if (! $factura) {
+            return;
+        }
+
+        try {
+            // Sin asiento todavía: primero el gasto. Ya asentada, esto no hace nada y se
+            // pasa directamente a sus pagos.
+            if ($factura->asiento_contable === null && ! $enlazar->motivoNoEnlazable($factura)) {
+                $enlazar->ejecutar([$factura->id]);
+                $factura->refresh();
+            }
+
+            // Los pagos van después y solo si el gasto ya está: el asiento del pago
+            // descarga al acreedor que crea el de la factura.
+            $pagosPendientes = $factura->asiento_contable !== null
+                ? $factura->pagos()->whereNull('asiento_contable')->pluck('id')->all()
+                : [];
+
+            if ($pagosPendientes) {
+                $enlazarPagos->ejecutar($pagosPendientes);
+            }
+        } catch (AsientoInvalidoException|EjercicioCerradoException|EjercicioContableDesconocidoException|CuentaContableDesconocidaException $e) {
+            $this->dispatch('toast-error', ['title' => $e->getMessage()]);
+
+            return;
+        }
+
+        $this->dispatch('toast-success', ['title' => __('Contabilizado')]);
+    }
+
     public function render()
     {
         $search = trim($this->search ?? '');
 
         $items = $this->aplicarFiltros(
-            FacturaProveedor::with('proveedor.persona')
+            FacturaProveedor::with(['proveedor.persona', 'proveedor.tipo', 'documento'])
+                // Para saber si a la fila le falta algo por asentar sin preguntar una vez
+                // por factura.
+                ->withCount(['pagos as pagos_sin_asentar_count' => fn ($q) => $q->whereNull('asiento_contable')])
                 ->whereHas('proveedor.persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
         )
             ->when($search, function ($q) use ($search) {

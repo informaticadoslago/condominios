@@ -7,6 +7,7 @@ use App\Models\Pais;
 use App\Models\Proveedor;
 use App\Models\TipoDocumentoIdentificativo;
 use App\Models\TipoGenero;
+use App\Models\TipoProveedor;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -18,11 +19,13 @@ class Formulario extends Component
 
     public $paises;
     public $generos;
+    public $tiposProveedor;
 
     public function mount()
     {
-        $this->paises  = Pais::activo()->ordenGrupo()->get();
-        $this->generos = TipoGenero::query()->orderBy('nombre')->get();
+        $this->paises         = Pais::activo()->ordenGrupo()->get();
+        $this->generos        = TipoGenero::query()->orderBy('nombre')->get();
+        $this->tiposProveedor = TipoProveedor::activo()->orderBy('descripcion')->get();
 
         $this->formulario->tipo_documento_identificativos = TipoDocumentoIdentificativo::all();
         $this->formulario->resetForm();
@@ -100,12 +103,45 @@ class Formulario extends Component
 
     public function borrarDocumento($facturaProveedorId)
     {
-        $factura = $this->formulario->proveedor->facturas()->find($facturaProveedorId);
+        if (! $this->formulario->proveedor?->facturas()->whereKey($facturaProveedorId)->exists()) {
+            return;
+        }
+
+        $this->dispatch('swalConfirm', [
+            'title'              => __('Borrar la factura'),
+            'text'               => __('No se puede deshacer.'),
+            'icon'               => 'warning',
+            'showCancelButton'   => true,
+            'confirmButtonColor' => '#d33',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, borrar'),
+            'cancelButtonText'   => __('Cancelar'),
+            'confirmCallback'    => 'borrar-factura-confirmado',
+            'cancelCallback'     => 'borrar-factura-cancelado',
+            'id'                 => $facturaProveedorId,
+        ]);
+    }
+
+    #[On('borrar-factura-cancelado')]
+    public function borrarFacturaCancelado($id = null)
+    {
+        // Nada que hacer: swalConfirm siempre emite uno de los dos eventos.
+    }
+
+    #[On('borrar-factura-confirmado')]
+    public function borrarFacturaConfirmado($id)
+    {
+        $factura = $this->formulario->proveedor?->facturas()->find($id);
         if (! $factura) {
             return;
         }
 
-        $factura->documento->delete(); // borra el fichero físico (Documento::booted) y, en cascada, esta fila
+        if ($factura->documento) {
+            $factura->documento->delete(); // borra el fichero físico (Documento::booted) y, en cascada, esta fila
+        } else {
+            $factura->delete(); // tecleada a mano: no hay papel que borrar, solo la fila
+        }
+
         $this->dispatch('toast-success', ['title' => __('Documento borrado')]);
     }
 

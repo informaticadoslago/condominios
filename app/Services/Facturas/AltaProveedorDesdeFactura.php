@@ -36,7 +36,8 @@ class AltaProveedorDesdeFactura
         ?string $importe = null,
         bool $sobrescribir = false,
         ?int $documentoPaisId = null,
-        ?int $tipoDocumentoId = null
+        ?int $tipoDocumentoId = null,
+        ?int $tipoProveedorId = null
     ): array {
         $documento = $this->normalizarDocumento($documento);
         // De un PDF no se sabe el país ni el tipo, se deducen de la letra (y solo puede
@@ -52,8 +53,12 @@ class AltaProveedorDesdeFactura
         $creado = false;
 
         if ($persona) {
+            // El tipo solo se pone al crearlo: al que ya estaba no se le toca.
             $proveedor = Proveedor::where('persona_comunidad_id', $persona->id)->first()
-                ?? Proveedor::create(['persona_comunidad_id' => $persona->id]);
+                ?? Proveedor::create([
+                    'persona_comunidad_id' => $persona->id,
+                    'tipo_proveedor_id'    => $tipoProveedorId,
+                ]);
         } else {
             $persona = PersonaComunidad::create([
                 'comunidad_id'             => $comunidadId,
@@ -66,8 +71,11 @@ class AltaProveedorDesdeFactura
                 'genero_id'                => TipoGenero::GENERO_OTRO,
             ]);
 
-            $proveedor = Proveedor::create(['persona_comunidad_id' => $persona->id]);
-            $creado    = true;
+            $proveedor = Proveedor::create([
+                'persona_comunidad_id' => $persona->id,
+                'tipo_proveedor_id'    => $tipoProveedorId,
+            ]);
+            $creado = true;
         }
 
         $proveedor->setRelation('persona', $persona);
@@ -195,6 +203,20 @@ class AltaProveedorDesdeFactura
      * intentar el alta: para poder avisar en un listado antes de que el usuario pulse
      * "Importar", en vez de descubrirlo al vuelo con la excepción.
      */
+    /** Si el CIF/NIF ya es proveedor de esta comunidad no hay que preguntar su tipo. */
+    public function proveedorExiste(int $comunidadId, ?string $documento): bool
+    {
+        if (! $documento) {
+            return false;
+        }
+
+        $persona = PersonaComunidad::where('comunidad_id', $comunidadId)
+            ->where('documento_identificativo', $this->normalizarDocumento($documento))
+            ->first();
+
+        return $persona && Proveedor::where('persona_comunidad_id', $persona->id)->exists();
+    }
+
     public function existeDuplicada(int $comunidadId, string $documento, ?string $numeroFactura, ?string $fecha = null): bool
     {
         if (! $numeroFactura) {

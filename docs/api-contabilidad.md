@@ -24,6 +24,7 @@ las mismas reglas.
 | [Las líneas](#las-líneas) | Cuenta directa o tercero |
 | [Importes en céntimos](#importes-en-céntimos) | Nunca euros, nunca decimales |
 | [Idempotencia](#idempotencia) | Reenviar el mismo evento no duplica |
+| [Qué manda la gestión](#qué-manda-la-gestión-de-comunidades) | Referencias y diarios que usa esta aplicación |
 | [Terceros y subcuentas](#terceros-y-subcuentas) | Alta, clases y numeración |
 | [Errores](#errores) | Códigos de estado y qué los provoca |
 | [Uso desde dentro](#uso-desde-dentro-de-la-aplicación) | El servicio, con transacción compartida |
@@ -453,6 +454,33 @@ de eventos conocidos, solo los compara.
 
 El `referencia` es opcional: un asiento manual no lleva ninguna, y puede haber tantos
 asientos sin referencia como haga falta.
+
+---
+
+## Qué manda la gestión de comunidades
+
+Las referencias y diarios que usa esta aplicación al hablar con la contabilidad. La
+contabilidad no los interpreta —para ella son texto—, pero conviene tenerlos escritos en
+un solo sitio para no chocar entre módulos:
+
+| Hecho | `diario` | `referencia` | Servicio |
+|---|---|---|---|
+| Emisión de un vencimiento de recibos | `REC` | `recibos` · `<presupuesto>:<fecha>` · `emision` | [`EnlazarRecibosContabilidad`](../app/Services/Recibos/EnlazarRecibosContabilidad.php) |
+| Factura de proveedor | `FAC` | `facturas` · `<id de la factura>` · `registro` | [`EnlazarFacturasContabilidad`](../app/Services/Facturas/EnlazarFacturasContabilidad.php) |
+| Pago de una factura | `PAG` | `pagos_facturas` · `<id del pago>` · `pago` | [`EnlazarPagosContabilidad`](../app/Services/Facturas/EnlazarPagosContabilidad.php) |
+
+La factura entra **al contabilizarla a mano**, no al teclearla ni al pagarla: el asiento es
+el gasto devengado. Al debe, la cuenta de gasto que corresponde al tipo del proveedor
+(`tipo_proveedores.cuenta_gasto`); al haber, el proveedor como tercero de clase `acreedor`,
+con `crear_terceros_desconocidos` para que estrene subcuenta la primera vez. Por el importe
+total: la comunidad no tiene actividad sujeta a IVA, así que no hay IVA soportado que
+desglosar.
+
+El **pago** es un asiento aparte y del revés: al debe el acreedor, al haber la cuenta
+corriente de la que salió el dinero (`5720xxxx`, la que estrena
+`EnlaceContableComunidad::asignarCuentaBancaria`). Se manda solo si la factura ya está
+contabilizada —si no, el acreedor quedaría con saldo a favor— y admite pagos parciales:
+cada fila de `pagos_facturas` es su propio asiento.
 
 ---
 

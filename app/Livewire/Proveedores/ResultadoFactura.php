@@ -8,6 +8,7 @@ use App\Exceptions\GeneracionPlantillaIAException;
 use App\Models\Comunidad;
 use App\Models\PlantillaFactura;
 use App\Models\TipoCampoPlantillaFactura;
+use App\Models\TipoProveedor;
 use App\Services\Facturas\AltaProveedorDesdeFactura;
 use App\Services\Facturas\GeneradorPlantillaIA;
 use Livewire\Attributes\On;
@@ -18,6 +19,9 @@ class ResultadoFactura extends Component
     public bool $abrir = false;
 
     public array $resultados = [];
+
+    /** Tipo elegido para el proveedor de cada resultado, indexado igual que $resultados. */
+    public array $tipoProveedor = [];
 
     #[On('facturas-procesadas')]
     public function mostrar($resultados)
@@ -198,6 +202,14 @@ class ResultadoFactura extends Component
         $fecha         = $conPlantilla ? ($resultado['plantilla']['fecha'] ?? null) : ($resultado['datos']['fecha'] ?? null);
         $importe       = $resultado['plantilla']['importe'] ?? null;
 
+        // Proveedor nuevo: sin saber a qué se dedica no hay cuenta de gasto para su factura.
+        if (empty($this->tipoProveedor[$indice])
+            && ! (new AltaProveedorDesdeFactura())->proveedorExiste((int) session('comunidad_actual_id'), $documento)) {
+            $this->dispatch('toast-error', ['title' => __('Elija el tipo del proveedor')]);
+
+            return;
+        }
+
         $metadatosFichero = array_intersect_key($resultado, array_flip(['nombrefichero', 'nombrelocal', 'camino', 'extension', 'size']));
 
         try {
@@ -210,6 +222,7 @@ class ResultadoFactura extends Component
                 $fecha,
                 $importe,
                 (bool) $sobrescribir,
+                tipoProveedorId: $this->tipoProveedor[$indice] ?? null,
             );
         } catch (DocumentoInvalidoException $e) {
             $this->dispatch('toast-error', ['title' => $e->getMessage()]);
@@ -266,6 +279,22 @@ class ResultadoFactura extends Component
 
     public function render()
     {
-        return view('livewire.proveedores.resultado-factura');
+        // Solo hay que preguntar el tipo del proveedor que todavía no existe.
+        $alta            = new AltaProveedorDesdeFactura();
+        $comunidadId     = (int) session('comunidad_actual_id');
+        $proveedorExiste = [];
+
+        foreach ($this->resultados as $indice => $resultado) {
+            $documento = ($resultado['con_plantilla'] ?? false)
+                ? ($resultado['plantilla']['cif'] ?? null)
+                : ($resultado['datos']['cif'] ?? null);
+
+            $proveedorExiste[$indice] = $alta->proveedorExiste($comunidadId, $documento);
+        }
+
+        return view('livewire.proveedores.resultado-factura', [
+            'tiposProveedor'  => TipoProveedor::activo()->orderBy('descripcion')->get(),
+            'proveedorExiste' => $proveedorExiste,
+        ]);
     }
 }

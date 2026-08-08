@@ -8,6 +8,7 @@ use App\Models\Comunidad;
 use App\Models\Documento;
 use App\Models\PlantillaFactura;
 use App\Models\TipoCampoPlantillaFactura;
+use App\Models\TipoProveedor;
 use App\Services\Facturas\AltaProveedorDesdeFactura;
 use App\Services\Facturas\ExtractorDatosFactura;
 use App\Services\Facturas\LectorPdf;
@@ -37,6 +38,9 @@ class ImportarFacturas extends Component
 
     /** Resultado del análisis de cada PDF ya recibido, indexado por su posición de llegada. */
     public array $resultados = [];
+
+    /** Tipo elegido para el proveedor de cada fila, indexado igual que $resultados. */
+    public array $tipoProveedor = [];
 
     protected function rules()
     {
@@ -239,6 +243,14 @@ class ImportarFacturas extends Component
             return;
         }
 
+        // Proveedor nuevo: sin saber a qué se dedica no hay cuenta de gasto para su factura.
+        if (empty($this->tipoProveedor[$indice])
+            && ! (new AltaProveedorDesdeFactura())->proveedorExiste((int) session('comunidad_actual_id'), $documento)) {
+            $this->dispatch('toast-error', ['title' => __('Elija el tipo del proveedor')]);
+
+            return;
+        }
+
         $metadatosFichero = array_intersect_key($resultado, array_flip(['nombrefichero', 'nombrelocal', 'camino', 'extension', 'size']));
 
         try {
@@ -251,6 +263,7 @@ class ImportarFacturas extends Component
                 $plantilla['fecha'] ?? null,
                 $plantilla['importe'] ?? null,
                 (bool) $sobrescribir,
+                tipoProveedorId: $this->tipoProveedor[$indice] ?? null,
             );
         } catch (DocumentoInvalidoException $e) {
             $this->dispatch('toast-error', ['title' => $e->getMessage()]);
@@ -306,10 +319,17 @@ class ImportarFacturas extends Component
         $incompletos = [];
         $noFacturas  = [];
 
+        $alta = new AltaProveedorDesdeFactura();
+
         foreach ($this->resultados as $indice => $resultado) {
             if (! ($resultado['es_factura'] ?? false)) {
                 $noFacturas[$indice] = $resultado;
             } elseif ($this->datosCompletos($resultado)) {
+                // Solo hay que preguntar el tipo del proveedor que todavía no existe.
+                $resultado['proveedor_existe'] = $alta->proveedorExiste(
+                    (int) session('comunidad_actual_id'),
+                    $resultado['plantilla']['cif'] ?? null,
+                );
                 $completos[$indice] = $resultado;
             } else {
                 $incompletos[$indice] = $resultado;
@@ -317,9 +337,10 @@ class ImportarFacturas extends Component
         }
 
         return view('livewire.facturas.importar-facturas', [
-            'completos'   => $completos,
-            'incompletos' => $incompletos,
-            'noFacturas'  => $noFacturas,
+            'completos'      => $completos,
+            'incompletos'    => $incompletos,
+            'noFacturas'     => $noFacturas,
+            'tiposProveedor' => TipoProveedor::activo()->orderBy('descripcion')->get(),
         ]);
     }
 }

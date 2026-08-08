@@ -87,6 +87,21 @@
                 </div>
             @endif
         @endif
+
+        {{-- Del proveedor, no de la persona: se pide también cuando la persona ya existía. --}}
+        @if ($formulario->proveedor?->exists || $formulario->documentoComprobado)
+            <div class="mt-2 w-1/2">
+                <x-label for="select-proveedor-tipo" :value="__('Tipo')" />
+                <x-select id="select-proveedor-tipo" class="block mt-1 w-full mayusculas" name="tipo-proveedor"
+                    wire:model="formulario.tipo_proveedor_id">
+                    <option value="">{{ __('--') }}</option>
+                    @foreach ($tiposProveedor as $tipo)
+                        <option value="{{ $tipo->id }}">{{ $tipo->descripcion }}</option>
+                    @endforeach
+                </x-select>
+                <x-input-error for="formulario.tipo_proveedor_id" class="mt-2" />
+            </div>
+        @endif
     </x-slot>
 
     <x-slot name="footer">

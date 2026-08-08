@@ -20,12 +20,18 @@ class Proveedor extends Model
 
     protected $fillable = [
         'persona_comunidad_id',
+        'tipo_proveedor_id',
         'estado_id',
     ];
 
     public function persona()
     {
         return $this->belongsTo(PersonaComunidad::class, 'persona_comunidad_id');
+    }
+
+    public function tipo()
+    {
+        return $this->belongsTo(TipoProveedor::class, 'tipo_proveedor_id');
     }
 
     public function estado()
