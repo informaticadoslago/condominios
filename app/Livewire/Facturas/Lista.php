@@ -9,14 +9,26 @@ use App\Exceptions\EjercicioContableDesconocidoException;
 use App\Livewire\ListaComponent;
 use App\Models\Documento;
 use App\Models\FacturaProveedor;
+use App\Services\Facturas\AdjuntarSoporteFactura;
 use App\Services\Facturas\AltaProveedorDesdeFactura;
 use App\Services\Facturas\EnlazarFacturasContabilidad;
 use App\Services\Facturas\EnlazarPagosContabilidad;
 use App\Services\Facturas\LectorPdf;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
+use Livewire\WithFileUploads;
 
 class Lista extends ListaComponent
 {
+    use WithFileUploads;
+
+    /**
+     * El papel que llega tarde, indexado por id de factura: el «Sin soporte» de cada fila
+     * hace de clip, y el id va en el propio nombre del modelo (soporte.7) para no tener
+     * que recordar aparte de qué factura era.
+     */
+    public array $soporte = [];
+
     public function mount()
     {
         $this->sort      = 'id';
@@ -28,6 +40,53 @@ class Lista extends ListaComponent
     public function refrescar()
     {
         // el evento fuerza el re-render de la lista
+    }
+
+    /**
+     * El papel de una factura «sin soporte» aparece más tarde: se sube desde la propia
+     * lista y se le engancha como documento del proveedor, igual que si hubiera venido en
+     * el alta. Solo va hacia adelante: al que ya tiene papel no se le cambia desde aquí.
+     */
+    public function updatedSoporte($fichero, $facturaId)
+    {
+        // En una lista no hay hueco para el mensaje de error debajo del campo: va en toast.
+        try {
+            $this->validate([
+                "soporte.$facturaId" => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            ], [
+                'mimes' => __('El fichero tiene que ser un PDF o una imagen'),
+                'max'   => __('El fichero no puede pasar de 10 MB'),
+            ]);
+        } catch (ValidationException $e) {
+            unset($this->soporte[$facturaId]);
+            $this->dispatch('toast-error', ['title' => $e->validator->errors()->first()]);
+
+            return;
+        }
+
+        $factura = FacturaProveedor::with('proveedor.persona')->find($facturaId);
+
+        // El id viene del navegador: se comprueba que la factura es de esta comunidad.
+        $esDeLaComunidadActual = $factura
+            && $factura->proveedor->persona->comunidad_id == session('comunidad_actual_id');
+
+        if (! $esDeLaComunidadActual || $factura->documento_id) {
+            unset($this->soporte[$facturaId]);
+
+            return;
+        }
+
+        $documento = (new AdjuntarSoporteFactura())->ejecutar(
+            $factura->proveedor,
+            $factura->numero_factura,
+            Documento::subirFichero($fichero, enBorrador: true),
+        );
+
+        $factura->update(['documento_id' => $documento->id]);
+
+        unset($this->soporte[$facturaId]);
+
+        $this->dispatch('toast-success', ['title' => __('Papel adjuntado a la factura')]);
     }
 
     /**

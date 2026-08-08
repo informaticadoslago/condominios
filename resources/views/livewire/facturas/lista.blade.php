@@ -50,7 +50,7 @@
                             @if ($this->verColumna('importe'))
                                 <th class="py-3 px-6">{{ __('Importe') }}</th>
                             @endif
-                            <th class="py-3 px-6">{{ __('Soporte') }}</th>
+                            <th class="py-3 px-6 text-center">{{ __('Soporte') }}</th>
                             <th class="py-3 px-6">{{ __('Contabilidad') }}</th>
                             <th class="py-3 px-6">{{ __('Pago') }}</th>
                         </tr>
@@ -97,18 +97,23 @@
                                 @endif
                                 {{-- Con papel, el ojo lo abre en otra pestaña (documentos.ver lo
                                      sirve inline, así que se ve en el navegador sin descargarlo).
-                                     Sin documento la factura se tecleó (o se leyó su QR) y el PDF
-                                     puede llegar después. --}}
-                                <td class="px-6 py-4">
+                                     Sin documento la factura se tecleó (o se leyó su QR) y el papel
+                                     puede llegar después: el propio «Sin soporte» hace de clip, y
+                                     el label abre el selector sin necesitar una línea de JavaScript. --}}
+                                <td class="px-6 py-4 text-center">
                                     @if ($item->documento)
                                         <a href="{{ route('documentos.ver', $item->documento) }}" target="_blank"
                                             class="text-gray-500 hover:text-gray-800" title="{{ __('Ver') }}">
-                                            <i class="fa-solid fa-eye"></i>
+                                            <i class="fa-solid fa-eye text-lg"></i>
                                         </a>
                                     @else
-                                        <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                                            {{ __('Sin soporte') }}
-                                        </span>
+                                        <label class="cursor-pointer inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/70"
+                                            title="{{ __('Adjuntar el papel de esta factura') }}"
+                                            wire:loading.class="opacity-50" wire:target="soporte.{{ $item->id }}">
+                                            <i class="fa-solid fa-paperclip mr-1"></i>{{ __('Sin soporte') }}
+                                            <input type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png"
+                                                wire:model="soporte.{{ $item->id }}" />
+                                        </label>
                                     @endif
                                 </td>
                                 {{-- Contabilizar es explícito: el gasto entra cuando quien lleva la

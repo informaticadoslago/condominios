@@ -4,12 +4,10 @@ namespace App\Services\Facturas;
 
 use App\Exceptions\DocumentoInvalidoException;
 use App\Exceptions\FacturaDuplicadaException;
-use App\Models\Documento;
 use App\Models\FacturaProveedor;
 use App\Models\Pais;
 use App\Models\PersonaComunidad;
 use App\Models\Proveedor;
-use App\Models\TipoDocumento;
 use App\Models\TipoDocumentoIdentificativo;
 use App\Models\TipoGenero;
 use App\Rules\Includes\ValidadorDocumentoId;
@@ -103,17 +101,9 @@ class AltaProveedorDesdeFactura
             $duplicada->documento ? $duplicada->documento->delete() : $duplicada->delete();
         }
 
-        // documentos.descripcion es varchar(30): no cabe "Factura + nº + fecha", solo el nº.
-        $descripcion = mb_substr(trim($numeroFactura ? "Factura {$numeroFactura}" : 'Factura'), 0, 30);
-
         // Sin fichero, la factura queda sin soporte: no se inventa un documento vacío.
         $documentoCreado = $metadatosFichero
-            ? $proveedor->documentos()->create(
-                Documento::consolidarFichero($metadatosFichero) + [
-                    'tipo_documento_id' => TipoDocumento::FACTURA,
-                    'descripcion'       => $descripcion,
-                ]
-            )
+            ? (new AdjuntarSoporteFactura())->ejecutar($proveedor, $numeroFactura, $metadatosFichero)
             : null;
 
         FacturaProveedor::create([
