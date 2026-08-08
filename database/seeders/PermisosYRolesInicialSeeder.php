@@ -43,28 +43,51 @@ class PermisosYRolesInicialSeeder extends Seeder
      */
     public function run()
     {
+        // El seeder es la única fuente de verdad: se borra todo (permisos, roles y sus
+        // asignaciones a usuarios) y se reconstruye desde cero. El super-admin no lo
+        // gestiona este seeder, así que se salva de la quema.
         Permission::query()->delete();
+        Role::where('name', '<>', config('doslago.superadmin.nombre_rol'))->delete();
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
         $permisos_administrativo = [
             'download-create',
             'download-delete',
             'download-edit',
             'download-list',
             'download-show',
+            
             'inicio-cumpleaños-show',
             'inicio-favoritos-show',
             'inicio-situacion-show',
             'menu-informes',
-            'usuario-perfil',
+        ];
+        $this->asignarPermisos('administrativo', $permisos_administrativo, true);
+
+        $permisos_administrativo_comunidad = [
+            'comunidad-create',
+            'comunidad-delete',
+            'comunidad-edit',
+            'comunidad-list',
+            // Entradas del menú principal: gestión de comunidades y gestión contable.
+            'gestion-comunidad',
         ];
 
-         $this->asignarPermisos('administrativo', $permisos_administrativo, true);
-        // $this->crearpermisos($permisos_administrativo);
+         $this->asignarPermisos('administrativo_comunidad', $permisos_administrativo_comunidad, true);
 
-        // $roladministrativo = Role::where('name', 'administrativo')->first();
-        // if ($roladministrativo) {
-        //     $roladministrativo->syncPermissions($permisos_administrativo);
-        // }
+        $permisos_administrativo_contabilidad = [
+            'cuenta-contable-create',
+            'cuenta-contable-delete',
+            'cuenta-contable-edit',
+            'cuenta-contable-list',
+            'empresa-contable-create',
+            'empresa-contable-delete',
+            'empresa-contable-edit',
+            'empresa-contable-list',
+            // Entradas del menú principal: gestión de comunidades y gestión contable.
+            'gestion-contable',
+        ];
+         $this->asignarPermisos('administrativo_contabilidad', $permisos_administrativo_contabilidad, true);
 
         $permisos = [
             'configuracion-delete',
@@ -100,15 +123,8 @@ class PermisosYRolesInicialSeeder extends Seeder
             'user-sendwelcomeemails',
         ];
 
-        $this->crearpermisos($permisos);
-
         // admin lleva TODO: lo de administrativo más lo suyo propio.
-        $permisos = array_merge($permisos_administrativo, $permisos);
-
-        $roladministrador = Role::where('name', 'admin')->first();
-        if ($roladministrador) {
-            $roladministrador->syncPermissions($permisos);
-        }
+        $this->asignarPermisos('admin', $permisos, true);
 
         $permisos_noadmin = [
             'anonimiza-list',
@@ -125,27 +141,17 @@ class PermisosYRolesInicialSeeder extends Seeder
         $this->crearpermisos($permisos_noadmin);
 
         // Rol puerta de entrada: quien lo tenga accede a TODAS las comunidades, sin
-        // permisos propios (esos los dan los demás roles). No se poda como los permisos.
+        // permisos propios (esos los dan los demás roles).
         $this->crearRol('global');
+
+        $this->crearRol('comunidad-1');
+        $this->crearRol('comunidad-2');
+        $this->crearRol('empresa-contable-1');
+        $this->crearRol('empresa-contable-2');
 
         $permisos_usuario = [
             'usuario-perfil',
         ];
         $this->asignarPermisos('user', $permisos_usuario, true);
-
-        // El seeder es la única fuente de verdad: lo que no esté en estas listas
-        // se borra de la tabla (y con él sus asignaciones a roles y usuarios).
-        $this->podarPermisos(array_merge(
-            $permisos,
-            $permisos_noadmin,
-            $permisos_usuario,
-        ));
-    }
-
-    private function podarPermisos(array $permisos): void
-    {
-        Permission::whereNotIn('name', array_unique($permisos))->delete();
-
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

@@ -21,18 +21,22 @@ return [
                     'type'  => 'group',
                     'icon'  => 'fa-solid fa-building-user',
                     'label' => trans_key('menu.Gestión administrativa'),
-                    'can'   => 'menu-administracion-sistema',
+                    'can'   => 'gestion-comunidad',
                     'items' => [
-                        ['icon' => 'fa-solid fa-city', 'label' => trans_key('menu.Comunidades'), 'route' => 'comunidades.index'],
+                        ['icon' => 'fa-solid fa-city', 'label' => trans_key('menu.Comunidades'), 'route' => 'comunidades.index',
+                            'can' => 'comunidad-list'],
                     ],
                 ],
                 [
                     'type'  => 'group',
                     'icon'  => 'fa-solid fa-calculator',
                     'label' => trans_key('menu.Gestión contable'),
+                    'can'   => 'gestion-contable',
                     'items' => [
-                        ['icon' => 'fa-solid fa-building', 'label' => trans_key('menu.Empresas contables'), 'route' => 'empresas-contables.index'],
-                        ['icon' => 'fa-solid fa-book', 'label' => trans_key('menu.Cuentas contables'), 'route' => 'cuentas-contables.index'],
+                        ['icon' => 'fa-solid fa-building', 'label' => trans_key('menu.Empresas contables'), 'route' => 'empresas-contables.index',
+                            'can' => 'empresa-contable-list'],
+                        ['icon' => 'fa-solid fa-book', 'label' => trans_key('menu.Cuentas contables'), 'route' => 'cuentas-contables.index',
+                            'can' => 'cuenta-contable-list'],
                     ],
                 ],
                 [
