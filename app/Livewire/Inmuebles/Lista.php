@@ -55,6 +55,63 @@ class Lista extends ListaComponent
         // el usuario canceló; no hacemos nada
     }
 
+    /**
+     * Copia el inmueble (datos, propietarios y forma de pago) a un borrador de ALTA nueva
+     * — nunca de edición: 'inmueble_id' se deja vacío para que Terminar cree un inmueble
+     * real distinto. Planta y puerta se dejan en blanco porque son justo lo que suele
+     * cambiar entre inmuebles "iguales" (mismo tipo, coeficiente...); si al final coinciden
+     * con las de otro inmueble ya existente, DatosStep lo rechaza al validar.
+     */
+    public function duplicar($id)
+    {
+        $inmueble = Inmueble::where('comunidad_id', session('comunidad_actual_id'))->find($id);
+        if (! $inmueble) {
+            return;
+        }
+
+        $datos = $inmueble->only(['comunidad_id', 'ocupacion_id', 'tipo_inmueble_id', 'coeficiente', 'referencia_catastral']);
+        $datos['planta'] = null;
+        $datos['puerta'] = null;
+
+        $propietarios = Titularidad::vigente()
+            ->where('inmueble_id', $inmueble->id)
+            ->with('propietario.persona')
+            ->get()
+            ->values()
+            ->map(fn (Titularidad $t, $i) => [
+                'ref'                  => $i,
+                // Sin titularidad_id: son líneas NUEVAS para el inmueble nuevo, no hay que
+                // tocar la titularidad real del inmueble original.
+                'titularidad_id'       => null,
+                'persona_comunidad_id' => $t->propietario->persona_comunidad_id,
+                'persona_nueva'        => null,
+                'nombre'               => ($t->propietario->persona->documento_identificativo ?? '').' — '.$t->propietario->persona->nombreCompleto,
+                'cuota_percent'        => (float) $t->cuota_percent,
+                'causa'                => $t->causa,
+                'fecha_inicio'         => $t->fecha_inicio?->toDateString(),
+            ])->all();
+
+        $vigentePago = $inmueble->formaPagoVigente()->with('propietario')->first();
+        $financiero  = $vigentePago ? [
+            'forma_de_pago_id'          => $vigentePago->forma_de_pago_id,
+            'persona_comunidad_id_pago' => $vigentePago->propietario?->persona_comunidad_id,
+            'cuenta_bancaria_id'        => $vigentePago->cuenta_bancaria_id,
+        ] : null;
+
+        $borrador = Borrador::create([
+            'user_id' => auth()->id(),
+            'tipo'    => Borrador::TIPO_INMUEBLE,
+            'payload' => [
+                'inmueble_id'  => null,
+                'datos'        => $datos,
+                'propietarios' => $propietarios,
+                'financiero'   => $financiero,
+            ],
+        ]);
+
+        $this->redirect(route('inmuebles.crear', ['borrador' => $borrador->id]), navigate: true);
+    }
+
     public function confirmarDescartarBorrador($borradorId)
     {
         $this->dispatch('swalConfirm', [

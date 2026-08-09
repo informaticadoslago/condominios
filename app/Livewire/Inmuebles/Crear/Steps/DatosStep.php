@@ -69,10 +69,33 @@ class DatosStep extends CrearInmuebleStep
             'ocupacion_id'         => ['required', 'exists:tipo_ocupaciones,id'],
             'tipo_inmueble_id'     => ['required', 'exists:tipo_inmuebles,id'],
             'planta'               => ['required', 'integer', 'between:-99,99'],
-            'puerta'               => ['nullable', 'string', 'max:5'],
+            'puerta'               => ['nullable', 'string', 'max:5', function ($attribute, $value, $fail) {
+                if ($this->existeOtroInmuebleConEstaPlantaYPuerta()) {
+                    $fail(__('Ya existe un inmueble con esa planta y puerta en esta comunidad.'));
+                }
+            }],
             'coeficiente'          => ['required', 'numeric', 'min:0.001', 'max:100', 'regex:/^\d{1,3}(\.\d{1,3})?$/'],
             'referencia_catastral' => ['nullable', 'string', 'max:20'],
         ];
+    }
+
+    /**
+     * Un piso puede no tener puerta (entonces solo puede haber uno por planta), pero si la
+     * tiene puede convivir con otros inmuebles de la misma planta con otra puerta — por eso
+     * no vale un unique de Eloquent normal (NULL no compara igual a NULL en SQL): sin puerta
+     * se compara por planta+puerta NULL, con puerta por planta+puerta exacta.
+     */
+    private function existeOtroInmuebleConEstaPlantaYPuerta(): bool
+    {
+        if (! $this->comunidad_id || $this->planta === null || $this->planta === '') {
+            return false;
+        }
+
+        return Inmueble::where('comunidad_id', $this->comunidad_id)
+            ->where('planta', $this->planta)
+            ->where('puerta', trim((string) $this->puerta) ?: null)
+            ->when($this->inmuebleId, fn ($q) => $q->whereKeyNot($this->inmuebleId))
+            ->exists();
     }
 
     /**

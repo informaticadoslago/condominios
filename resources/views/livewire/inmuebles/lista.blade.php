@@ -113,6 +113,11 @@
                                         id="btn-editar-inmueble-{{ $item->id }}" title="{{ __('Modificar') }}">
                                         <i class="fa-solid fa-pen"> </i>
                                     </a>
+                                    <x-button type="button" class="bg-blue-600 hover:bg-blue-700 text-white ml-1"
+                                        wire:click="duplicar({{ $item->id }})"
+                                        id="btn-duplicar-inmueble-{{ $item->id }}" title="{{ __('Duplicar') }}">
+                                        <i class="fa-solid fa-copy"> </i>
+                                    </x-button>
                                     <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white ml-1"
                                         wire:click="confirmarEliminar({{ $item->id }})" title="{{ __('Eliminar') }}">
                                         <i class="fa-solid fa-trash"> </i>
