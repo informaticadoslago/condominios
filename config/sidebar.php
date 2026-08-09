@@ -15,7 +15,7 @@ return [
         [
             'type'  => 'nav',
             'items' => [
-                ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.dashboard'), 'route' => 'dashboard'],
+                ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.Inicio'), 'route' => 'dashboard'],
                 ['icon' => 'fa-regular fa-clock', 'label' => trans_key('menu.Fichar'), 'href' => '#', 'device' => 'mobile'],
                 [
                     'type'  => 'group',
@@ -105,7 +105,7 @@ return [
         [
             'type'  => 'nav',
             'items' => [
-                ['icon' => 'fa-regular fa-gear', 'label' => trans_key('menu.settings'), 'can' => 'global-configuracion', 'action' => 'abrir-configuracion', 'device' => 'desktop'],
+                ['icon' => 'fa-regular fa-gear', 'label' => trans_key('menu.Configuracion'), 'can' => 'global-configuracion', 'action' => 'abrir-configuracion', 'device' => 'desktop'],
             ],
         ],
     ],

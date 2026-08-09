@@ -1,12 +1,12 @@
 <?php
 
 return [
-    'Administracion de sistema' => 'Administracion de sistema',
-    'Alumnos' => 'Alumnos',
+    'Administracion de sistema' => 'Administracion de sistema',    
     'Asientos contables' => 'Asientos contables',
     'Cerrar comunidad' => 'Cerrar comunidad',
     'Cerrar empresa contable' => 'Cerrar empresa contable',
     'Comunidades' => 'Comunidades',
+    'Configuracion' => 'Configuración',
     'Copias de seguridad' => 'Copias de seguridad',
     'Cuentas contables' => 'Cuentas contables',
     'dashboard' => 'dashboard',
@@ -23,6 +23,7 @@ return [
     'Grupos de reparto' => 'Grupos de reparto',
     'Informes' => 'Informes',
     'Informes generados' => 'Informes generados',
+    'Inicio' => 'Inicio',
     'Inmuebles' => 'Inmuebles',
     'Libro mayor' => 'Libro mayor',
     'Maestros' => 'Maestros',
@@ -36,8 +37,7 @@ return [
     'Proveedores' => 'Proveedores',
     'Recibos' => 'Recibos',
     'Remesas' => 'Remesas',
-    'Roles' => 'Roles',
-    'settings' => 'settings',
+    'Roles' => 'Roles',    
     'Sumas y saldos' => 'Sumas y saldos',
     'Tipos de cuenta contable' => 'Tipos de cuenta contable',
     'Tipos de inmueble' => 'Tipos de inmueble',
