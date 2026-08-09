@@ -61,13 +61,8 @@
                                         <i class="fa-solid fa-table-cells"> </i>
                                     </a>
                                     <a href="{{ route('presupuestos.conceptos.pdf', $item) }}" target="_blank" class="btn-editar ml-1"
-                                        id="btn-imprimir-conceptos-presupuesto-{{ $item->id }}"
-                                        title="{{ __('Imprimir presupuesto (conceptos)') }}">
-                                        <i class="fa-solid fa-file-lines"> </i>
-                                    </a>
-                                    <a href="{{ route('presupuestos.reparto.pdf', $item) }}" target="_blank" class="btn-editar ml-1"
-                                        id="btn-imprimir-pagos-presupuesto-{{ $item->id }}"
-                                        title="{{ __('Imprimir informe de pagos') }}">
+                                        id="btn-imprimir-presupuesto-{{ $item->id }}"
+                                        title="{{ __('Imprimir presupuesto') }}">
                                         <i class="fa-solid fa-print"> </i>
                                     </a>
                                     <x-button type="button" class="btn-editar ml-1" id="btn-editar-presupuesto-{{ $item->id }}"

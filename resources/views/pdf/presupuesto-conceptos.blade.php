@@ -1,6 +1,9 @@
 {{-- Presupuesto con sus conceptos: A4 vertical. --}}
 @php
     $fmt = fn ($v) => number_format((float) $v, 2, ',', '.');
+    $estadoInforme = (int) $presupuesto->estado_id === \App\Models\TipoEstadoPresupuesto::APROBADO
+        ? __('Aprobado')
+        : __('Provisional');
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -60,7 +63,7 @@
 <div class="meta">
     <strong>{{ $presupuesto->nombre }}</strong>
     &nbsp;·&nbsp;{{ __('Año') }}: {{ $presupuesto->anho }}
-    &nbsp;·&nbsp;{{ __('Estado') }}: {{ $presupuesto->estado?->descripcion }}
+    &nbsp;·&nbsp;{{ __('Estado') }}: {{ $estadoInforme }}
     @if ($presupuesto->periodicidad)
         &nbsp;·&nbsp;{{ __('Periodicidad') }}: {{ $presupuesto->periodicidad->descripcion }}
     @endif

@@ -213,6 +213,10 @@
     </div>
 
     <footer class="flex justify-end gap-2 px-6 py-4 border-t border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900">
+        <a href="{{ route('presupuestos.conceptos.pdf', $presupuesto) }}" target="_blank" tabindex="-1"
+            class="btn btn-editar px-2 mr-auto" title="{{ __('Imprimir presupuesto') }}">
+            <i class="fa-solid fa-print"></i> {{ __('Imprimir') }}
+        </a>
         <a href="{{ route('presupuestos.index') }}" wire:navigate tabindex="-1"
             class="btn btn-cerrar px-2 mr-3" title="{{ __('Cancelar') }}">{{ __('Cancelar') }}</a>
         <button type="button" class="btn btn-guardar px-2" wire:click="guardar"
