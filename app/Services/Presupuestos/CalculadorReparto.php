@@ -27,6 +27,23 @@ final class CalculadorReparto
      */
     public function calcular(Presupuesto $presupuesto): array
     {
+        $reparto = $this->calcularEnVivo($presupuesto);
+
+        if ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
+            $reparto = $this->aplicarRecibosExistentes($presupuesto, $reparto);
+        }
+
+        return $reparto;
+    }
+
+    /**
+     * Reparto recalculado desde cero a partir de conceptos, grupos de reparto y el
+     * porcentaje de cada pago — sin mirar los recibos ya generados. Es el que se vuelca a
+     * `recibos` al aprobar (ver aplicarRecibosExistentes(): una vez hay recibos, son la
+     * fuente de verdad y esto deja de usarse para ese presupuesto).
+     */
+    private function calcularEnVivo(Presupuesto $presupuesto): array
+    {
         $presupuesto->loadMissing(['periodicidad', 'conceptos.grupoDeReparto.inmuebles']);
 
         $datosPagoCompletos = (bool) ($presupuesto->fecha_primer_pago && $presupuesto->periodicidad_id && $presupuesto->numero_pagos);
@@ -74,10 +91,11 @@ final class CalculadorReparto
         unset($datosGrupo);
 
         $fechasPagos = $datosPagoCompletos ? $this->fechasPagos($presupuesto) : [];
+        $pesosPago   = $datosPagoCompletos ? $this->pesosPago($presupuesto) : [];
 
         foreach ($global as &$fila) {
             $fila['pagos'] = $datosPagoCompletos
-                ? Presupuesto::repartirPagos($fila['total'], $presupuesto->numero_pagos)
+                ? array_values(Presupuesto::repartirProporcional($fila['total'], $pesosPago))
                 : [];
         }
         unset($fila);
@@ -89,6 +107,54 @@ final class CalculadorReparto
             'global'             => collect($global)->sortBy(fn ($f) => [$f['inmueble']->planta, $f['inmueble']->puerta])->values(),
             'fechasPagos'        => $fechasPagos,
         ];
+    }
+
+    /**
+     * Superpone al reparto en vivo los importes ya congelados en `recibos` (fuente de
+     * verdad de una aprobación ya hecha: no se vuelven a tocar). Si el presupuesto
+     * aprobado todavía no tiene recibos —está a punto de generarlos—, se deja el reparto
+     * en vivo tal cual, que es lo que van a volcar.
+     */
+    private function aplicarRecibosExistentes(Presupuesto $presupuesto, array $reparto): array
+    {
+        $recibosPorInmueble = $presupuesto->recibos()
+            ->orderBy('numero_pago')
+            ->get(['inmueble_id', 'numero_pago', 'importe'])
+            ->groupBy('inmueble_id');
+
+        if ($recibosPorInmueble->isEmpty()) {
+            return $reparto;
+        }
+
+        $reparto['global'] = $reparto['global']->map(function ($fila) use ($recibosPorInmueble) {
+            $recibosInmueble = $recibosPorInmueble->get($fila['inmueble']->id);
+
+            if ($recibosInmueble && $recibosInmueble->isNotEmpty()) {
+                $fila['pagos'] = $recibosInmueble->pluck('importe')->map(fn ($importe) => (float) $importe)->values()->all();
+            }
+
+            return $fila;
+        });
+
+        return $reparto;
+    }
+
+    /**
+     * Peso relativo de cada pago dentro del total del presupuesto: el porcentaje que el
+     * usuario le dio a cada uno en la pantalla del presupuesto (un pago del 40% se lleva
+     * el 40% de cada inmueble). Si no hay nada editado, o el número no cuadra con
+     * numero_pagos, se reparte a partes iguales.
+     *
+     * @return float[]
+     */
+    private function pesosPago(Presupuesto $presupuesto): array
+    {
+        $persistidos = $presupuesto->porcentajes_pago;
+        if (is_array($persistidos) && count($persistidos) === $presupuesto->numero_pagos) {
+            return array_map(fn ($pct) => (float) $pct, array_values($persistidos));
+        }
+
+        return array_fill(0, $presupuesto->numero_pagos, 1.0);
     }
 
     /** @return Carbon[] */

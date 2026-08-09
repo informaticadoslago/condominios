@@ -31,10 +31,22 @@ class Conceptos extends Component
     /** Fechas finales propuestas de cada pago. Se usan para editar el plazo real. */
     public array $fechas_pago = [];
 
-    /** Importe final propuesto de cada pago. Se usan para editar el importe real. */
+    /**
+     * Porcentaje del total que representa cada pago. Es lo único que se edita: el
+     * importe en euros no se puede fijar aquí porque depende de cómo lo reparta cada
+     * grupo de reparto, algo que solo se sabe en la pantalla de Reparto.
+     */
+    public array $porcentajes_pago = [];
+
+    /** Importe en euros de cada pago, calculado a partir de porcentajes_pago. Solo lectura. */
     public array $importes_pago = [];
 
-    /** Si el presupuesto ya está aprobado, los vencimientos y el marco de pagos quedan fijos. */
+    /**
+     * Si el presupuesto ya está aprobado, los recibos ya se generaron con este reparto y
+     * no se vuelven a tocar: periodicidad, fechas, porcentajes de pago, grupo de reparto
+     * e importe de cada concepto quedan fijos (guardar() los ignora aunque lleguen
+     * distintos). Solo el texto del concepto se puede seguir corrigiendo.
+     */
     public bool $bloqueado = false;
 
     public function mount(Presupuesto $presupuesto): void
@@ -75,18 +87,28 @@ class Conceptos extends Component
             $this->sincronizarPrevisionFechas();
         }
 
-        if ($presupuesto->importes_pago !== null && $presupuesto->importes_pago !== []) {
-            $this->importes_pago = array_values(array_map(fn ($importe) => number_format((float) $importe, 2, '.', ''), $presupuesto->importes_pago));
+        $total = collect($this->conceptos)->sum(fn ($c) => (float) ($c['importe'] ?? 0));
+
+        if ($presupuesto->porcentajes_pago !== null && $presupuesto->porcentajes_pago !== []) {
+            $this->porcentajes_pago = array_values(array_map(fn ($pct) => number_format((float) $pct, 2, '.', ''), $presupuesto->porcentajes_pago));
         } elseif ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
-            $this->importes_pago = $presupuesto->recibos()
+            // Reconstruye qué porcentaje representó cada pago ya generado, sumando los
+            // recibos de todos los inmuebles para ese número de pago.
+            $totalesPorPago = $presupuesto->recibos()
                 ->orderBy('numero_pago')
                 ->get()
-                ->map(fn ($recibo) => number_format((float) $recibo->importe, 2, '.', ''))
-                ->values()
-                ->all();
+                ->groupBy('numero_pago')
+                ->map(fn ($recibos) => (float) $recibos->sum('importe'))
+                ->values();
+
+            $this->porcentajes_pago = $total > 0
+                ? $totalesPorPago->map(fn ($importe) => number_format($importe / $total * 100, 2, '.', ''))->all()
+                : [];
         } else {
-            $this->sincronizarPrevisionImportes();
+            $this->sincronizarPrevisionPorcentajes();
         }
+
+        $this->recalcularImportesPago($total);
     }
 
     protected function sincronizarPrevisionFechas(): void
@@ -111,16 +133,38 @@ class Conceptos extends Component
             ->all();
     }
 
-    protected function sincronizarPrevisionImportes(): void
+    /**
+     * Porcentaje igualado por defecto entre todos los pagos (editable después). No se
+     * puede sugerir un importe en euros aquí: depende de cómo lo reparta cada grupo de
+     * reparto, algo que solo se ve en la pantalla de Reparto.
+     */
+    protected function sincronizarPrevisionPorcentajes(): void
     {
         if (! $this->periodicidad_id || ! $this->fecha_primer_pago || ! $this->numero_pagos) {
+            $this->porcentajes_pago = [];
+
+            return;
+        }
+
+        $this->porcentajes_pago = collect(Presupuesto::repartirPagos(100, (int) $this->numero_pagos))
+            ->map(fn ($pct) => number_format($pct, 2, '.', ''))
+            ->values()
+            ->all();
+    }
+
+    /** Importe en euros de cada pago = su porcentaje sobre el total actual de conceptos. Solo lectura. */
+    protected function recalcularImportesPago(?float $total = null): void
+    {
+        $total ??= collect($this->conceptos)->sum(fn ($c) => (float) ($c['importe'] ?? 0));
+
+        if (empty($this->porcentajes_pago)) {
             $this->importes_pago = [];
 
             return;
         }
 
-        $total = collect($this->conceptos)->sum(fn ($c) => (float) ($c['importe'] ?? 0));
-        $this->importes_pago = collect(Presupuesto::repartirPagos($total, (int) $this->numero_pagos))
+        $pesos = array_map(fn ($pct) => (float) $pct, $this->porcentajes_pago);
+        $this->importes_pago = collect(Presupuesto::repartirProporcional($total, $pesos))
             ->map(fn ($importe) => number_format($importe, 2, '.', ''))
             ->values()
             ->all();
@@ -151,7 +195,8 @@ class Conceptos extends Component
         $meses = TipoPeriodicidadPago::find($value)?->meses;
         $this->numero_pagos = $meses ? Presupuesto::numeroPagosPara($meses) : null;
         $this->sincronizarPrevisionFechas();
-        $this->sincronizarPrevisionImportes();
+        $this->sincronizarPrevisionPorcentajes();
+        $this->recalcularImportesPago();
     }
 
     /** [fecha, importe] por pago, con el total actual de los conceptos (aunque no se hayan guardado aún). */
@@ -166,15 +211,13 @@ class Conceptos extends Component
             return [];
         }
 
-        $total  = collect($this->conceptos)->sum(fn ($c) => (float) ($c['importe'] ?? 0));
         $inicio = Carbon::parse($this->fecha_primer_pago);
 
-        return collect(Presupuesto::repartirPagos($total, $this->numero_pagos))
-            ->values()
-            ->map(function ($importe, $i) use ($inicio, $meses) {
+        return collect(range(0, $this->numero_pagos - 1))
+            ->map(function ($i) use ($inicio, $meses) {
                 $fecha = $this->fechas_pago[$i] ?? $inicio->copy()->addMonthsNoOverflow($i * $meses)->toDateString();
 
-                return ['fecha' => Carbon::parse($fecha), 'importe' => $importe];
+                return ['fecha' => Carbon::parse($fecha), 'importe' => $this->importes_pago[$i] ?? 0];
             })
             ->all();
     }
@@ -186,7 +229,8 @@ class Conceptos extends Component
         }
 
         $this->sincronizarPrevisionFechas();
-        $this->sincronizarPrevisionImportes();
+        $this->sincronizarPrevisionPorcentajes();
+        $this->recalcularImportesPago();
     }
 
     public function updatedNumeroPagos($value): void
@@ -196,7 +240,8 @@ class Conceptos extends Component
         }
 
         $this->sincronizarPrevisionFechas();
-        $this->sincronizarPrevisionImportes();
+        $this->sincronizarPrevisionPorcentajes();
+        $this->recalcularImportesPago();
     }
 
     public function updatedConceptos(): void
@@ -205,12 +250,23 @@ class Conceptos extends Component
             return;
         }
 
-        $this->sincronizarPrevisionImportes();
+        // Los porcentajes elegidos no cambian solo porque cambie el total: se
+        // recalculan los euros de cada pago sobre ese porcentaje.
+        $this->recalcularImportesPago();
+    }
+
+    public function updatedPorcentajesPago(): void
+    {
+        if ($this->bloqueado) {
+            return;
+        }
+
+        $this->recalcularImportesPago();
     }
 
     protected function rules()
     {
-        return [
+        $reglas = [
             'conceptos'                        => ['array'],
             // Individualmente nada es obligatorio: una línea puede quedar en blanco
             // (se descarta al guardar). withValidator() exige las 3 en cuanto se
@@ -222,13 +278,23 @@ class Conceptos extends Component
                 Rule::exists('grupos_de_reparto', 'id')->where('comunidad_id', session('comunidad_actual_id')),
             ],
             'periodicidad_id'                  => ['nullable', 'exists:tipo_periodicidad_pagos,id'],
-            'fecha_primer_pago'                => ['nullable', 'date', 'required_with:periodicidad_id'],
-            'numero_pagos'                     => ['nullable', 'integer', 'min:1', 'required_with:periodicidad_id'],
-            'fechas_pago'                      => ['nullable', 'array'],
-            'fechas_pago.*'                    => ['required', 'date'],
-            'importes_pago'                    => ['nullable', 'array'],
-            'importes_pago.*'                  => ['required', 'numeric', 'min:0.01'],
         ];
+
+        // Bloqueado, estos campos son de solo lectura (recalculados en mount() a partir
+        // de los recibos ya emitidos): no se validan, para no bloquear la corrección del
+        // texto de un concepto por un desajuste de céntimos ajeno a lo que se guarda.
+        if (! $this->bloqueado) {
+            $reglas += [
+                'fecha_primer_pago'   => ['nullable', 'date', 'required_with:periodicidad_id'],
+                'numero_pagos'        => ['nullable', 'integer', 'min:1', 'required_with:periodicidad_id'],
+                'fechas_pago'         => ['nullable', 'array'],
+                'fechas_pago.*'       => ['required', 'date'],
+                'porcentajes_pago'    => ['nullable', 'array'],
+                'porcentajes_pago.*'  => ['required', 'numeric', 'min:0.01', 'max:100'],
+            ];
+        }
+
+        return $reglas;
     }
 
     protected function messages()
@@ -253,7 +319,7 @@ class Conceptos extends Component
             'fecha_primer_pago'               => __('fecha del primer pago'),
             'numero_pagos'                     => __('número de pagos'),
             'fechas_pago.*'                   => __('fecha de pago'),
-            'importes_pago.*'                 => __('importe de pago'),
+            'porcentajes_pago.*'              => __('porcentaje de pago'),
         ];
     }
 
@@ -293,17 +359,14 @@ class Conceptos extends Component
                 $validator->errors()->add('conceptos', __('El presupuesto debe tener al menos un concepto'));
             }
 
-            $totalPresupuesto = collect($this->conceptos)->sum(fn ($c) => (float) ($c['importe'] ?? 0));
-            $totalCentimos    = (int) round($totalPresupuesto * 100);
-
-            if (! empty($this->importes_pago) && ! empty($this->numero_pagos)) {
-                $sumadosCentimos = 0;
-                foreach ($this->importes_pago as $valor) {
-                    $sumadosCentimos += (int) round((float) $valor * 100);
+            if (! $this->bloqueado && ! empty($this->porcentajes_pago) && ! empty($this->numero_pagos)) {
+                $sumadosCentesimas = 0;
+                foreach ($this->porcentajes_pago as $valor) {
+                    $sumadosCentesimas += (int) round((float) $valor * 100);
                 }
 
-                if ($sumadosCentimos !== $totalCentimos) {
-                    $validator->errors()->add('importes_pago', __('La suma de los importes de pago debe ser exactamente el 100% del presupuesto: :total', ['total' => number_format($totalPresupuesto, 2, ',', '.') ]));
+                if ($sumadosCentesimas !== 10000) {
+                    $validator->errors()->add('porcentajes_pago', __('La suma de los porcentajes de pago debe ser exactamente 100%'));
                 }
             }
         });
@@ -311,6 +374,10 @@ class Conceptos extends Component
 
     public function agregarLinea(): void
     {
+        if ($this->bloqueado) {
+            return;
+        }
+
         $linea             = $this->lineaVacia();
         $this->conceptos[] = $linea;
 
@@ -320,6 +387,10 @@ class Conceptos extends Component
 
     public function quitarLinea(int $index): void
     {
+        if ($this->bloqueado) {
+            return;
+        }
+
         unset($this->conceptos[$index]);
         $this->conceptos = array_values($this->conceptos);
     }
@@ -331,79 +402,54 @@ class Conceptos extends Component
         DB::transaction(function () use ($data) {
             $presupuesto = $this->presupuesto();
 
-            if (! $presupuesto->estado_id || $presupuesto->estado_id != TipoEstadoPresupuesto::APROBADO) {
+            // Periodicidad, fecha del primer pago, número de pagos, fechas y porcentajes
+            // de cada pago quedan fijos en cuanto se aprueba: los recibos ya generados a
+            // partir de ellos no se tocan más.
+            if (! $this->bloqueado) {
                 $presupuesto->update([
                     'periodicidad_id'   => $data['periodicidad_id'],
                     'fecha_primer_pago' => $data['fecha_primer_pago'],
                     'numero_pagos'      => $data['numero_pagos'],
                     'fechas_pago'       => $data['fechas_pago'] ?? [],
-                    'importes_pago'     => $data['importes_pago'] ?? [],
+                    'porcentajes_pago'  => $data['porcentajes_pago'] ?? [],
                 ]);
             }
 
-            // Sin histórico que preservar (a diferencia de los asientos contables): se
-            // sustituyen todas las líneas por las que llegan del formulario.
-            $presupuesto->conceptos()->delete();
+            if ($this->bloqueado) {
+                // Aprobado, el reparto ya está fijado: solo se puede corregir el texto
+                // de un concepto existente, nunca su importe, su grupo de reparto, ni
+                // añadir o quitar líneas (cambiaría lo que ya se cobró en los recibos).
+                $originales = $presupuesto->conceptos()->get()->keyBy('id');
 
-            foreach ($data['conceptos'] as $linea) {
-                if ($this->esLineaVacia($linea)) {
-                    continue;
+                foreach ($data['conceptos'] as $linea) {
+                    if (empty($linea['id']) || ! $originales->has($linea['id'])) {
+                        continue;
+                    }
+
+                    $originales[$linea['id']]->update(['concepto' => $linea['concepto']]);
                 }
+            } else {
+                // Sin histórico que preservar (a diferencia de los asientos contables):
+                // se sustituyen todas las líneas por las que llegan del formulario.
+                $presupuesto->conceptos()->delete();
 
-                $presupuesto->conceptos()->create([
-                    'concepto'            => $linea['concepto'],
-                    'importe'             => $linea['importe'],
-                    'grupo_de_reparto_id' => $linea['grupo_de_reparto_id'],
-                ]);
-            }
+                foreach ($data['conceptos'] as $linea) {
+                    if ($this->esLineaVacia($linea)) {
+                        continue;
+                    }
 
-            if ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
-                $this->sincronizarFechasEnRecibos($presupuesto, $data['fechas_pago'] ?? []);
-                $this->sincronizarImportesEnRecibos($presupuesto, $data['importes_pago'] ?? []);
+                    $presupuesto->conceptos()->create([
+                        'concepto'            => $linea['concepto'],
+                        'importe'             => $linea['importe'],
+                        'grupo_de_reparto_id' => $linea['grupo_de_reparto_id'],
+                    ]);
+                }
             }
         });
 
         session()->flash('mensaje', __('Conceptos del presupuesto guardados'));
 
         return redirect()->route('presupuestos.index');
-    }
-
-    private function sincronizarFechasEnRecibos(Presupuesto $presupuesto, array $fechas): void
-    {
-        if ($fechas === []) {
-            return;
-        }
-
-        $presupuesto->recibos()
-            ->orderBy('numero_pago')
-            ->get()
-            ->each(function ($recibo) use ($fechas) {
-                $indice = (int) $recibo->numero_pago - 1;
-                if (isset($fechas[$indice])) {
-                    $recibo->update([
-                        'fecha_vencimiento' => $fechas[$indice],
-                    ]);
-                }
-            });
-    }
-
-    private function sincronizarImportesEnRecibos(Presupuesto $presupuesto, array $importes): void
-    {
-        if ($importes === []) {
-            return;
-        }
-
-        $presupuesto->recibos()
-            ->orderBy('numero_pago')
-            ->get()
-            ->each(function ($recibo) use ($importes) {
-                $indice = (int) $recibo->numero_pago - 1;
-                if (isset($importes[$indice])) {
-                    $recibo->update([
-                        'importe' => round((float) $importes[$indice], 2),
-                    ]);
-                }
-            });
     }
 
     public function render()

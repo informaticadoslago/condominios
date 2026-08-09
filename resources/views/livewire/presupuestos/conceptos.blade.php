@@ -26,14 +26,19 @@
 
     <div class="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
         <div class="flex gap-6 items-start">
-            <div class="flex-1 min-w-0 max-w-[min(62%,58rem)]">
+            <div class="flex-1 min-w-0 max-w-[min(52%,48rem)]">
                 <x-input-error for="conceptos" class="mb-2" />
+                @if ($bloqueado)
+                    <div class="text-xs text-amber-700 dark:text-amber-300 mb-2">
+                        {{ __('Este presupuesto está aprobado: el grupo de reparto y el importe de cada concepto quedan bloqueados (cambiarían lo ya cobrado). Solo se puede corregir el texto.') }}
+                    </div>
+                @endif
                 <table class="w-full table-fixed text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
-                            <th class="py-2 pr-2 w-[40%]">{{ __('Concepto') }}</th>
-                            <th class="py-2 pr-2 w-[32%]">{{ __('Grupo de reparto') }}</th>
-                            <th class="py-2 pr-2 text-right w-32">{{ __('Importe') }}</th>
+                            <th class="py-2 pr-2 w-[45%]">{{ __('Concepto') }}</th>
+                            <th class="py-2 pr-2 w-[22%]">{{ __('Grupo de reparto') }}</th>
+                            <th class="py-2 pr-2 text-right w-40">{{ __('Importe') }}</th>
                             <th class="py-2 w-8"></th>
                         </tr>
                     </thead>
@@ -46,7 +51,7 @@
                                     <x-input-error for="conceptos.{{ $index }}.concepto" class="mt-1" />
                                 </td>
                                 <td class="py-1 pr-2 align-top">
-                                    <x-select class="block w-full" wire:model="conceptos.{{ $index }}.grupo_de_reparto_id">
+                                    <x-select class="block w-full" :disabled="$bloqueado" wire:model="conceptos.{{ $index }}.grupo_de_reparto_id">
                                         <option value="">{{ __('--') }}</option>
                                         @foreach ($grupos as $grupo)
                                             <option value="{{ $grupo->id }}">{{ $grupo->nombre }}</option>
@@ -55,15 +60,17 @@
                                     <x-input-error for="conceptos.{{ $index }}.grupo_de_reparto_id" class="mt-1" />
                                 </td>
                                 <td class="py-1 pr-2 align-top">
-                                    <x-input class="block w-full text-right" type="number" step="0.01" min="0"
+                                    <x-input class="block w-full text-right" type="number" step="0.01" min="0" :disabled="$bloqueado"
                                         wire:model.live.debounce.400ms="conceptos.{{ $index }}.importe" />
                                     <x-input-error for="conceptos.{{ $index }}.importe" class="mt-1" />
                                 </td>
                                 <td class="py-1 text-center align-middle">
-                                    <button type="button" tabindex="-1" wire:click="quitarLinea({{ $index }})"
-                                        class="text-red-600 hover:text-red-800" title="{{ __('Quitar línea') }}">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
+                                    @unless ($bloqueado)
+                                        <button type="button" tabindex="-1" wire:click="quitarLinea({{ $index }})"
+                                            class="text-red-600 hover:text-red-800" title="{{ __('Quitar línea') }}">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    @endunless
                                 </td>
                             </tr>
                         @endforeach
@@ -77,17 +84,33 @@
                     </tfoot>
                 </table>
 
-                <button type="button" wire:click="agregarLinea" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">
-                    <i class="fa-solid fa-plus"></i> {{ __('Añadir línea') }}
-                </button>
+                @unless ($bloqueado)
+                    <button type="button" wire:click="agregarLinea" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">
+                        <i class="fa-solid fa-plus"></i> {{ __('Añadir línea') }}
+                    </button>
+                @endunless
             </div>
 
-            <div class="w-64 max-w-[20vw] shrink-0 border border-gray-200 dark:border-zinc-700 rounded-lg p-4">
+            <div class="w-80 max-w-[30vw] shrink-0 border border-gray-200 dark:border-zinc-700 rounded-lg p-4">
                 <h2 class="font-medium mb-3">{{ __('Pagos') }}</h2>
 
                 @if ($bloqueado)
-                    <div class="text-xs text-amber-700 dark:text-amber-300">
-                        {{ __('Este presupuesto está aprobado: la periodicidad, la fecha del primer pago y el número de pagos quedan bloqueados.') }}
+                    <div class="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                        {{ __('Este presupuesto está aprobado: la periodicidad, la fecha del primer pago, el número de pagos y el reparto entre pagos quedan bloqueados.') }}
+                    </div>
+                    <div class="text-sm space-y-2">
+                        <div class="flex justify-between gap-2">
+                            <span class="text-gray-500 dark:text-gray-400">{{ __('Periodicidad') }}</span>
+                            <span class="font-medium text-right">{{ $periodicidades->firstWhere('id', $periodicidad_id)?->descripcion ?? '—' }}</span>
+                        </div>
+                        <div class="flex justify-between gap-2">
+                            <span class="text-gray-500 dark:text-gray-400">{{ __('Fecha del primer pago') }}</span>
+                            <span class="font-medium">{{ $fecha_primer_pago ? \Carbon\Carbon::parse($fecha_primer_pago)->format('d/m/Y') : '—' }}</span>
+                        </div>
+                        <div class="flex justify-between gap-2">
+                            <span class="text-gray-500 dark:text-gray-400">{{ __('Número de pagos') }}</span>
+                            <span class="font-medium">{{ $numero_pagos ?? '—' }}</span>
+                        </div>
                     </div>
                 @else
                     <div>
@@ -113,39 +136,77 @@
                             {{ __('Sugerido según la periodicidad; puedes cambiarlo sin que cambie la separación entre pagos.') }}
                         </p>
                     </div>
+                @endif
 
-                    @if (count($this->previsionPagos))
-                        <div class="mt-4 pt-3 border-t border-gray-200 dark:border-zinc-700 space-y-3">
-                            <div class="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
-                                <div class="w-6">{{ __('Nº') }}</div>
-                                <div class="flex-1">{{ __('Fecha') }}</div>
-                                <div class="flex-1 text-right">{{ __('Importe') }}</div>
-                            </div>
-                            @foreach ($this->previsionPagos as $index => $pago)
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 shrink-0">
-                                        <span class="whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-400">{{ $index + 1 }}</span>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
+                @if (count($this->previsionPagos))
+                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-zinc-700 space-y-3">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
+                            <div class="w-6">{{ __('Nº') }}</div>
+                            <div class="flex-1">{{ __('Fecha') }}</div>
+                            <div class="w-16 text-right">{{ __('%') }}</div>
+                            <div class="flex-1 text-right">{{ __('Importe') }}</div>
+                        </div>
+                        @foreach ($this->previsionPagos as $index => $pago)
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 shrink-0">
+                                    <span class="whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-400">{{ $index + 1 }}</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    @if ($bloqueado)
+                                        <div class="h-12 flex items-center px-2 text-base text-gray-900 dark:text-gray-100">
+                                            {{ $pago['fecha']->format('d/m/Y') }}
+                                        </div>
+                                    @else
                                         <input
                                             type="date"
                                             wire:model.live="fechas_pago.{{ $index }}"
                                             class="h-12 w-full rounded-lg border border-gray-300 bg-white px-2 text-base text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-100"
                                         >
-                                    </div>
-                                    <div class="flex-1 min-w-0">
+                                    @endif
+                                </div>
+                                <div class="w-16 shrink-0">
+                                    @if ($bloqueado)
+                                        <div class="h-12 flex items-center justify-end px-1 text-base text-gray-900 dark:text-gray-100">
+                                            {{ number_format((float) ($porcentajes_pago[$index] ?? 0), 2, ',', '.') }}
+                                        </div>
+                                    @else
                                         <input
                                             type="number"
                                             min="0.01"
+                                            max="100"
                                             step="0.01"
-                                            wire:model.live="importes_pago.{{ $index }}"
-                                            class="h-12 w-full rounded-lg border border-gray-300 bg-white px-2 text-right text-base text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-100"
+                                            wire:model.live="porcentajes_pago.{{ $index }}"
+                                            class="h-12 w-full rounded-lg border border-gray-300 bg-white px-1 text-right text-base text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-100"
                                         >
-                                    </div>
+                                    @endif
                                 </div>
-                            @endforeach
+                                <div class="flex-1 min-w-0 text-right text-sm text-gray-600 dark:text-gray-400 px-2">
+                                    {{ number_format($pago['importe'], 2, ',', '.') }}
+                                </div>
+                            </div>
+                        @endforeach
+
+                        @php
+                            $sumaPorcentajes = collect($porcentajes_pago)->sum(fn ($v) => (float) $v);
+                            $diferenciaPct   = round($sumaPorcentajes - 100, 2);
+                        @endphp
+                        <div class="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-zinc-700 text-sm font-semibold">
+                            <div class="w-6"></div>
+                            <div class="flex-1">{{ __('Suma') }}</div>
+                            <div class="w-16 text-right {{ ! $bloqueado && abs($diferenciaPct) >= 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-200' }}">
+                                {{ number_format($sumaPorcentajes, 2, ',', '.') }}
+                            </div>
+                            <div class="flex-1 text-right text-gray-700 dark:text-gray-200">
+                                {{ number_format(collect($importes_pago)->sum(fn ($v) => (float) $v), 2, ',', '.') }}
+                            </div>
                         </div>
-                    @endif
+                        @if (! $bloqueado && abs($diferenciaPct) >= 0.01)
+                            <div class="text-right text-xs font-medium text-red-600 dark:text-red-400">
+                                {{ $diferenciaPct > 0 ? '+' : '' }}{{ number_format($diferenciaPct, 2, ',', '.') }}%
+                                {{ $diferenciaPct > 0 ? __('de más') : __('de menos') }}
+                            </div>
+                        @endif
+                    </div>
                 @endif
             </div>
         </div>
