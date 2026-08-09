@@ -4,6 +4,7 @@ namespace App\Livewire\Presupuestos;
 
 use App\Models\GrupoDeReparto;
 use App\Models\Presupuesto;
+use App\Models\TipoEstadoPresupuesto;
 use App\Models\TipoPeriodicidadPago;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,15 @@ class Conceptos extends Component
     public ?string $fecha_primer_pago = null;
     public ?int $numero_pagos = null;
 
+    /** Fechas finales propuestas de cada pago. Se usan para editar el plazo real. */
+    public array $fechas_pago = [];
+
+    /** Importe final propuesto de cada pago. Se usan para editar el importe real. */
+    public array $importes_pago = [];
+
+    /** Si el presupuesto ya está aprobado, los vencimientos y el marco de pagos quedan fijos. */
+    public bool $bloqueado = false;
+
     public function mount(Presupuesto $presupuesto): void
     {
         abort_if($presupuesto->comunidad_id != session('comunidad_actual_id'), 403);
@@ -45,9 +55,75 @@ class Conceptos extends Component
             $this->conceptos = [$this->lineaVacia()];
         }
 
+        $this->bloqueado = $presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO;
+
         $this->periodicidad_id   = $presupuesto->periodicidad_id;
         $this->fecha_primer_pago = $presupuesto->fecha_primer_pago?->toDateString();
         $this->numero_pagos      = $presupuesto->numero_pagos;
+
+        if ($presupuesto->fechas_pago !== null && $presupuesto->fechas_pago !== []) {
+            $this->fechas_pago = array_values(array_map(fn ($fecha) => (string) $fecha, $presupuesto->fechas_pago));
+        } elseif ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
+            $this->fechas_pago = $presupuesto->recibos()
+                ->orderBy('numero_pago')
+                ->get()
+                ->map(fn ($recibo) => $recibo->fecha_vencimiento?->toDateString())
+                ->filter()
+                ->values()
+                ->all();
+        } else {
+            $this->sincronizarPrevisionFechas();
+        }
+
+        if ($presupuesto->importes_pago !== null && $presupuesto->importes_pago !== []) {
+            $this->importes_pago = array_values(array_map(fn ($importe) => number_format((float) $importe, 2, '.', ''), $presupuesto->importes_pago));
+        } elseif ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
+            $this->importes_pago = $presupuesto->recibos()
+                ->orderBy('numero_pago')
+                ->get()
+                ->map(fn ($recibo) => number_format((float) $recibo->importe, 2, '.', ''))
+                ->values()
+                ->all();
+        } else {
+            $this->sincronizarPrevisionImportes();
+        }
+    }
+
+    protected function sincronizarPrevisionFechas(): void
+    {
+        if (! $this->periodicidad_id || ! $this->fecha_primer_pago || ! $this->numero_pagos) {
+            $this->fechas_pago = [];
+
+            return;
+        }
+
+        $meses = TipoPeriodicidadPago::find($this->periodicidad_id)?->meses;
+        if (! $meses) {
+            $this->fechas_pago = [];
+
+            return;
+        }
+
+        $inicio = Carbon::parse($this->fecha_primer_pago);
+        $this->fechas_pago = collect(range(1, (int) $this->numero_pagos))
+            ->map(fn ($i) => $inicio->copy()->addMonthsNoOverflow(($i - 1) * $meses)->toDateString())
+            ->values()
+            ->all();
+    }
+
+    protected function sincronizarPrevisionImportes(): void
+    {
+        if (! $this->periodicidad_id || ! $this->fecha_primer_pago || ! $this->numero_pagos) {
+            $this->importes_pago = [];
+
+            return;
+        }
+
+        $total = collect($this->conceptos)->sum(fn ($c) => (float) ($c['importe'] ?? 0));
+        $this->importes_pago = collect(Presupuesto::repartirPagos($total, (int) $this->numero_pagos))
+            ->map(fn ($importe) => number_format($importe, 2, '.', ''))
+            ->values()
+            ->all();
     }
 
     protected function presupuesto(): Presupuesto
@@ -68,8 +144,14 @@ class Conceptos extends Component
      */
     public function updatedPeriodicidadId($value): void
     {
+        if ($this->bloqueado) {
+            return;
+        }
+
         $meses = TipoPeriodicidadPago::find($value)?->meses;
         $this->numero_pagos = $meses ? Presupuesto::numeroPagosPara($meses) : null;
+        $this->sincronizarPrevisionFechas();
+        $this->sincronizarPrevisionImportes();
     }
 
     /** [fecha, importe] por pago, con el total actual de los conceptos (aunque no se hayan guardado aún). */
@@ -89,8 +171,41 @@ class Conceptos extends Component
 
         return collect(Presupuesto::repartirPagos($total, $this->numero_pagos))
             ->values()
-            ->map(fn ($importe, $i) => ['fecha' => $inicio->copy()->addMonthsNoOverflow($i * $meses), 'importe' => $importe])
+            ->map(function ($importe, $i) use ($inicio, $meses) {
+                $fecha = $this->fechas_pago[$i] ?? $inicio->copy()->addMonthsNoOverflow($i * $meses)->toDateString();
+
+                return ['fecha' => Carbon::parse($fecha), 'importe' => $importe];
+            })
             ->all();
+    }
+
+    public function updatedFechaPrimerPago($value): void
+    {
+        if ($this->bloqueado) {
+            return;
+        }
+
+        $this->sincronizarPrevisionFechas();
+        $this->sincronizarPrevisionImportes();
+    }
+
+    public function updatedNumeroPagos($value): void
+    {
+        if ($this->bloqueado) {
+            return;
+        }
+
+        $this->sincronizarPrevisionFechas();
+        $this->sincronizarPrevisionImportes();
+    }
+
+    public function updatedConceptos(): void
+    {
+        if ($this->bloqueado) {
+            return;
+        }
+
+        $this->sincronizarPrevisionImportes();
     }
 
     protected function rules()
@@ -109,6 +224,10 @@ class Conceptos extends Component
             'periodicidad_id'                  => ['nullable', 'exists:tipo_periodicidad_pagos,id'],
             'fecha_primer_pago'                => ['nullable', 'date', 'required_with:periodicidad_id'],
             'numero_pagos'                     => ['nullable', 'integer', 'min:1', 'required_with:periodicidad_id'],
+            'fechas_pago'                      => ['nullable', 'array'],
+            'fechas_pago.*'                    => ['required', 'date'],
+            'importes_pago'                    => ['nullable', 'array'],
+            'importes_pago.*'                  => ['required', 'numeric', 'min:0.01'],
         ];
     }
 
@@ -133,6 +252,8 @@ class Conceptos extends Component
             'periodicidad_id'                 => __('periodicidad'),
             'fecha_primer_pago'               => __('fecha del primer pago'),
             'numero_pagos'                     => __('número de pagos'),
+            'fechas_pago.*'                   => __('fecha de pago'),
+            'importes_pago.*'                 => __('importe de pago'),
         ];
     }
 
@@ -171,6 +292,20 @@ class Conceptos extends Component
             if ($rellenas === 0) {
                 $validator->errors()->add('conceptos', __('El presupuesto debe tener al menos un concepto'));
             }
+
+            $totalPresupuesto = collect($this->conceptos)->sum(fn ($c) => (float) ($c['importe'] ?? 0));
+            $totalCentimos    = (int) round($totalPresupuesto * 100);
+
+            if (! empty($this->importes_pago) && ! empty($this->numero_pagos)) {
+                $sumadosCentimos = 0;
+                foreach ($this->importes_pago as $valor) {
+                    $sumadosCentimos += (int) round((float) $valor * 100);
+                }
+
+                if ($sumadosCentimos !== $totalCentimos) {
+                    $validator->errors()->add('importes_pago', __('La suma de los importes de pago debe ser exactamente el 100% del presupuesto: :total', ['total' => number_format($totalPresupuesto, 2, ',', '.') ]));
+                }
+            }
         });
     }
 
@@ -196,11 +331,15 @@ class Conceptos extends Component
         DB::transaction(function () use ($data) {
             $presupuesto = $this->presupuesto();
 
-            $presupuesto->update([
-                'periodicidad_id'   => $data['periodicidad_id'],
-                'fecha_primer_pago' => $data['fecha_primer_pago'],
-                'numero_pagos'      => $data['numero_pagos'],
-            ]);
+            if (! $presupuesto->estado_id || $presupuesto->estado_id != TipoEstadoPresupuesto::APROBADO) {
+                $presupuesto->update([
+                    'periodicidad_id'   => $data['periodicidad_id'],
+                    'fecha_primer_pago' => $data['fecha_primer_pago'],
+                    'numero_pagos'      => $data['numero_pagos'],
+                    'fechas_pago'       => $data['fechas_pago'] ?? [],
+                    'importes_pago'     => $data['importes_pago'] ?? [],
+                ]);
+            }
 
             // Sin histórico que preservar (a diferencia de los asientos contables): se
             // sustituyen todas las líneas por las que llegan del formulario.
@@ -217,11 +356,54 @@ class Conceptos extends Component
                     'grupo_de_reparto_id' => $linea['grupo_de_reparto_id'],
                 ]);
             }
+
+            if ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
+                $this->sincronizarFechasEnRecibos($presupuesto, $data['fechas_pago'] ?? []);
+                $this->sincronizarImportesEnRecibos($presupuesto, $data['importes_pago'] ?? []);
+            }
         });
 
         session()->flash('mensaje', __('Conceptos del presupuesto guardados'));
 
         return redirect()->route('presupuestos.index');
+    }
+
+    private function sincronizarFechasEnRecibos(Presupuesto $presupuesto, array $fechas): void
+    {
+        if ($fechas === []) {
+            return;
+        }
+
+        $presupuesto->recibos()
+            ->orderBy('numero_pago')
+            ->get()
+            ->each(function ($recibo) use ($fechas) {
+                $indice = (int) $recibo->numero_pago - 1;
+                if (isset($fechas[$indice])) {
+                    $recibo->update([
+                        'fecha_vencimiento' => $fechas[$indice],
+                    ]);
+                }
+            });
+    }
+
+    private function sincronizarImportesEnRecibos(Presupuesto $presupuesto, array $importes): void
+    {
+        if ($importes === []) {
+            return;
+        }
+
+        $presupuesto->recibos()
+            ->orderBy('numero_pago')
+            ->get()
+            ->each(function ($recibo) use ($importes) {
+                $indice = (int) $recibo->numero_pago - 1;
+                if (isset($importes[$indice])) {
+                    $recibo->update([
+                        'importe' => round((float) $importes[$indice], 2),
+                    ]);
+                }
+            });
     }
 
     public function render()

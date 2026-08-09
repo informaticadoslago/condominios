@@ -3,8 +3,8 @@
 namespace App\Services\Presupuestos;
 
 use App\Models\Presupuesto;
+use App\Models\TipoEstadoPresupuesto;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 /**
  * Reparto de un presupuesto entre sus inmuebles, y desglose de cada uno en sus pagos.
@@ -94,8 +94,35 @@ final class CalculadorReparto
     /** @return Carbon[] */
     public function fechasPagos(Presupuesto $presupuesto): array
     {
-        $meses  = $presupuesto->periodicidad->meses;
-        $inicio = Carbon::parse($presupuesto->fecha_primer_pago);
+        // 1) La fuente de verdad de una aprobación ya realizada son los recibos.
+        if ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
+            $fechas = $presupuesto->recibos()
+                ->orderBy('numero_pago')
+                ->get(['fecha_vencimiento'])
+                ->map(fn ($recibo) => Carbon::parse($recibo->fecha_vencimiento))
+                ->all();
+
+            if ($fechas !== []) {
+                return $fechas;
+            }
+        }
+
+        // 2) Si el usuario ya guardó el calendario en el presupuesto, ese payload
+        //    debe competir con cualquier reconstrucción motivada por la periodicidad.
+        $persistidas = $presupuesto->fechas_pago;
+        if (is_array($persistidas) && $persistidas !== []) {
+            return collect($persistidas)
+                ->map(fn ($fecha) => Carbon::parse($fecha))
+                ->values()
+                ->all();
+        }
+
+        $meses  = $presupuesto->periodicidad?->meses;
+        $inicio = $presupuesto->fecha_primer_pago ? Carbon::parse($presupuesto->fecha_primer_pago) : null;
+
+        if (! $meses || ! $inicio || ! $presupuesto->numero_pagos) {
+            return [];
+        }
 
         return collect(range(1, $presupuesto->numero_pagos))
             ->map(fn ($i) => $inicio->copy()->addMonthsNoOverflow(($i - 1) * $meses))

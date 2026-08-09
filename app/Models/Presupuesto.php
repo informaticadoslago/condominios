@@ -26,10 +26,14 @@ class Presupuesto extends Model
         'numero_pagos',
         'fecha_primer_pago',
         'periodicidad_id',
+        'fechas_pago',
+        'importes_pago',
     ];
 
     protected $casts = [
         'fecha_primer_pago' => 'date',
+        'fechas_pago'       => 'array',
+        'importes_pago'     => 'array',
     ];
 
     public function comunidad()
