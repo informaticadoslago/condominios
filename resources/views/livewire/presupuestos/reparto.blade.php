@@ -30,6 +30,11 @@
                         <i class="fa-solid fa-circle-check mr-1"></i>{{ __('Aprobar') }}
                     </x-secondary-button>
                 @endunless
+                <a href="{{ route('presupuestos.reparto.pdf', $presupuesto) }}" target="_blank">
+                    <x-secondary-button type="button" title="{{ __('Imprimir / Descargar PDF') }}">
+                        <i class="fa-solid fa-print mr-1"></i>{{ __('Imprimir') }}
+                    </x-secondary-button>
+                </a>
             </x-slot>
 
             <div class="py-3 px-6 flex items-center justify-between">

@@ -8,6 +8,7 @@ use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
 use App\Http\Controllers\MandatoSepaPlantillaController;
 use App\Http\Controllers\MovimientosContablesPdfController;
+use App\Http\Controllers\PresupuestoRepartoPdfController;
 use App\Http\Controllers\RemesaFicheroController;
 use App\Livewire\Remesas\Lista as RemesasLista;
 use App\Http\Controllers\EmpresaContableContextoController;
@@ -141,6 +142,7 @@ Route::middleware([
         Route::get('/presupuestos', PresupuestosLista::class)->name('presupuestos.index');
         Route::get('/presupuestos/{presupuesto}/conceptos', PresupuestosConceptos::class)->name('presupuestos.conceptos');
         Route::get('/presupuestos/{presupuesto}/reparto', PresupuestosReparto::class)->name('presupuestos.reparto');
+        Route::get('/presupuestos/{presupuesto}/reparto/pdf', PresupuestoRepartoPdfController::class)->name('presupuestos.reparto.pdf');
         Route::get('/recibos', RecibosLista::class)->name('recibos.index');
     });
 

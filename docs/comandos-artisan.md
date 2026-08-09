@@ -15,10 +15,13 @@ php artisan <comando>
 | [`doslago:db-reset`](#doslagodb-reset) | Recrea la BD de una "comunidad" y migra | Borra la BD de esa comunidad |
 | [`doslago:installresources`](#doslagoinstallresources) | Copia los logos a `public/` | Ninguno (solo copia ficheros) |
 | [`condominios:fakeseed`](#condominiosfakeseed) | Genera datos ficticios de demo | Solo en modo debug |
+| [`condominios:comunidades-listar`](#condominioscomunidades-listar) | Lista comunidades con `id` y nombre, una por línea | Ninguno (solo lectura) |
 | [`condominios:comunidad-exportar`](#condominioscomunidad-exportar) | Exporta una comunidad completa a `.zip` | Ninguno (solo lectura) |
 | [`condominios:comunidad-borrar`](#condominioscomunidad-borrar) | Borra una comunidad y todos sus datos | **Irreversible** |
+| [`condominios:contabilidades-listar`](#condominioscontabilidades-listar) | Lista empresas contables con `id` y razón social, una por línea | Ninguno (solo lectura) |
 | [`condominios:contabilidad-exportar`](#condominioscontabilidad-exportar) | Exporta una empresa contable completa a `.zip` | Ninguno (solo lectura) |
 | [`condominios:contabilidad-borrar`](#condominioscontabilidad-borrar) | Borra una empresa contable y sus libros | **Irreversible** |
+| [`condominios:cuentas-contables-listar`](#condominioscuentas-contables-listar) | Lista cuentas contables con `id` y nombre, una por línea | Ninguno (solo lectura) |
 
 ---
 
@@ -102,6 +105,66 @@ presupuesto, llamando en orden a `DemoComunidadSeeder`, `DemoInmuebleSeeder` y
 demo). Cada ejecución genera comunidades nuevas con nombre y CIF al azar.
 
 Solo está disponible (oculto fuera de `APP_DEBUG=true`) en modo debug.
+
+---
+
+## `condominios:comunidades-listar`
+
+```bash
+php artisan condominios:comunidades-listar
+```
+
+Lista las comunidades almacenadas con el formato estable `id nombre`, una entidad por
+línea, para reutilizarlo desde otras tareas de consola o scripts de integración.
+
+Ejemplo de salida:
+
+```text
+12 Comunidad Los Pinos
+25 Comunidad Las Palmeras
+```
+
+El comando también admite el alias `condominios:comunidad-listar`.
+
+---
+
+## `condominios:contabilidades-listar`
+
+```bash
+php artisan condominios:contabilidades-listar
+```
+
+Lista las empresas contables con el formato `id razon_social`, una empresa por línea,
+para consumir en el resto de comandos u automatizaciones en lote.
+
+Ejemplo de salida:
+
+```text
+1 Empresa Local S.L.
+6 Sociedad de Gestión Contable
+```
+
+El comando también admite el alias `condominios:contabilidad-listar`.
+
+---
+
+## `condominios:cuentas-contables-listar`
+
+```bash
+php artisan condominios:cuentas-contables-listar [empresa]
+```
+
+Lista las cuentas contables con el formato `id nombre`, una por línea. Si se pasa un
+entero como argumento, el filtro se restringe a la empresa contable indicada;
+si no, sale el conjunto completo de cuentas cargadas en la base.
+
+Ejemplo de salida:
+
+```text
+1001 Banco
+1002 Tesorería
+2500 Propietarios
+```
 
 ---
 

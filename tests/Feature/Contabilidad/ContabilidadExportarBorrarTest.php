@@ -8,6 +8,7 @@ use App\Models\Comunidad;
 use App\Models\CuentaContable;
 use App\Models\EjercicioContable;
 use App\Models\EmpresaContable;
+use App\Models\Persona;
 use App\Models\TerceroContable;
 use App\Models\User;
 use App\Services\Contabilidad\ContabilidadEliminador;
@@ -250,5 +251,38 @@ class ContabilidadExportarBorrarTest extends TestCase
             ->assertExitCode(0);
 
         $this->assertNull($comunidad->fresh()->empresa_contable_id);
+    }
+
+    public function test_los_comandos_de_listado_salen_id_y_nombre_una_linea_por_entidad(): void
+    {
+        $persona = Persona::create([
+            'nombre'                    => 'Comunidad',
+            'apellido1'                 => 'Listado',
+            'razon_social'              => 'Comunidad del listado',
+            'documento_identificativo'  => 'B12345678',
+            'tipo_documento_id'         => 1,
+            'estado_id'                 => 1,
+            'invisible'                 => false,
+        ]);
+
+        $comunidad = Comunidad::create([
+            'persona_id' => $persona->id,
+            'estado_id' => 1,
+            'sufijo' => '000',
+            'empresa_contable_id' => null,
+        ]);
+
+        $empresa = EmpresaContable::create([
+            'cif' => 'H12345679',
+            'razon_social' => 'Empresa del listado',
+        ]);
+
+        $this->artisan('condominios:comunidades-listar')
+            ->assertExitCode(0)
+            ->expectsOutput("{$comunidad->id} Comunidad del listado");
+
+        $this->artisan('condominios:contabilidades-listar')
+            ->assertExitCode(0)
+            ->expectsOutput("{$empresa->id} Empresa del listado");
     }
 }
