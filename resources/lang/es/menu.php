@@ -9,6 +9,7 @@ return [
     'Configuracion' => 'Configuración',
     'Copias de seguridad' => 'Copias de seguridad',
     'Cuentas contables' => 'Cuentas contables',
+        'Importar comunidad' => 'Importar comunidad',
     'dashboard' => 'dashboard',
     'Ejercicios contables' => 'Ejercicios contables',
     'Empresa' => 'Empresa',

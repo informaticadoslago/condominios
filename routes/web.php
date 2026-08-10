@@ -14,9 +14,9 @@ use App\Http\Controllers\RemesaFicheroController;
 use App\Livewire\Remesas\Lista as RemesasLista;
 use App\Http\Controllers\EmpresaContableContextoController;
 use App\Livewire\AdministracionSistema\Backups\Lista as BackupsLista;
+use App\Livewire\AdministracionSistema\Comunidades\Importar as ComunidadesImportar;
 use App\Livewire\AdministracionSistema\Empresa\Editar as EmpresaEditar;
 use App\Livewire\AdministracionSistema\Permisos\Lista as PermisosLista;
-use App\Livewire\AdministracionSistema\Personas\Editar as PersonasEditar;
 use App\Livewire\AdministracionSistema\Personas\Lista as PersonasLista;
 use App\Livewire\AdministracionSistema\Roles\Lista as RolesLista;
 use App\Livewire\AdministracionSistema\TokensApi\Lista as AdminTokensApiLista;
@@ -112,6 +112,7 @@ Route::middleware([
         Route::get('/backups/{fichero}/descargar', BackupDescargaController::class)
             ->where('fichero', '.*')
             ->name('backups.download');
+        Route::get('/comunidades/importar', ComunidadesImportar::class)->name('comunidades.importar');
     });
 
     Route::get('/comunidades', ComunidadesLista::class)->name('comunidades.index');

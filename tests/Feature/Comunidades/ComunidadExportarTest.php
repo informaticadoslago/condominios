@@ -208,4 +208,20 @@ class ComunidadExportarTest extends TestCase
             $this->assertStringContainsString("- **{$tabla}**: 1 fila(s)", $indice);
         }
     }
+
+    public function test_borrar_comunidad_con_mandatos_y_remesas_no_revienta_por_foreign_keys(): void
+    {
+        $this->cicloCompletoDeCobro();
+
+        $this->artisan('condominios:comunidad-borrar', ['comunidad' => $this->comunidad->id])
+            ->expectsConfirmation('¿Continuar?', 'yes')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseMissing('comunidades', ['id' => $this->comunidad->id]);
+        $this->assertDatabaseCount('mandatos_sepa', 0);
+        $this->assertDatabaseCount('remesas', 0);
+        $this->assertDatabaseCount('lineas_remesas', 0);
+        $this->assertDatabaseCount('cobros', 0);
+        $this->assertDatabaseCount('avisos_recibos', 0);
+    }
 }

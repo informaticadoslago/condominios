@@ -12,10 +12,10 @@ use App\Models\MandatoSepa;
  * Ninguno de los dos se genera. El RUM lo teclea quien registra el papel, y aquí solo se
  * comprueba que lo tecleado es coherente:
  *
- * - Tiene la forma `P19` + NIF del titular de la cuenta + contador. Si el NIF del código
- *   no es el del titular, el mandato no vale para esta cuenta.
+ * - Empieza por `P19` + NIF del titular de la cuenta. Si el NIF del código no es el del
+ *   titular, el mandato no vale para esta cuenta.
  * - Ese RUM no está ya registrado con OTRA cuenta en la misma comunidad. Un mandato va
- *   casado con una cuenta; el contador existe precisamente para no reutilizarlo.
+ *   casado con una cuenta y no se reutiliza.
  * - Si la cuenta ya tiene mandato, no se pide otro: se devuelve el que hay.
  */
 final class RegistrarMandatoSepa
@@ -48,7 +48,7 @@ final class RegistrarMandatoSepa
         if ($deOtraCuenta) {
             throw new MandatoSepaInvalidoException(
                 "El mandato «{$referencia}» ya está registrado con otra cuenta ({$deOtraCuenta->cuentaBancaria?->iban}). "
-                .'Cada cuenta necesita su propio mandato: avanza el contador.'
+                .'Cada cuenta necesita su propio mandato: usa otra referencia.'
             );
         }
 
@@ -83,14 +83,6 @@ final class RegistrarMandatoSepa
         if (! str_starts_with($referencia, $esperado)) {
             throw new MandatoSepaInvalidoException(
                 "El mandato tiene que empezar por «{$esperado}»: se numera con el NIF del titular de la cuenta."
-            );
-        }
-
-        $contador = substr($referencia, strlen($esperado));
-
-        if ($contador === '' || ! ctype_digit($contador)) {
-            throw new MandatoSepaInvalidoException(
-                "Después de «{$esperado}» falta el contador del mandato, que son solo dígitos."
             );
         }
     }
