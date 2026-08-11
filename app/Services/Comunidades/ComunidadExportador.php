@@ -18,6 +18,7 @@ use App\Models\HistorialEstado;
 use App\Models\Inmueble;
 use App\Models\LineaRemesa;
 use App\Models\MandatoSepa;
+use App\Models\PagoFactura;
 use App\Models\Presupuesto;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
@@ -102,6 +103,9 @@ class ComunidadExportador extends ExportadorZip
 
         $lineasRemesas = LineaRemesa::whereIn('remesa_id', $remesaIds)->get();
 
+        $facturas   = FacturaProveedor::whereIn('proveedor_id', $proveedorIds)->get();
+        $facturaIds = $facturas->pluck('id');
+
         $documentos = Documento::where(function ($q) use ($proveedorIds, $mandatoIds) {
             $q->where(fn ($q2) => $q2->where('documentable_type', Proveedor::class)->whereIn('documentable_id', $proveedorIds))
                 ->orWhere(fn ($q2) => $q2->where('documentable_type', MandatoSepa::class)->whereIn('documentable_id', $mandatoIds));
@@ -138,7 +142,8 @@ class ComunidadExportador extends ExportadorZip
             'cobros'                   => Cobro::whereIn('recibo_id', $reciboIds)->get(),
             'avisos_recibos'           => AvisoRecibo::whereIn('recibo_id', $reciboIds)->get(),
             'documentos'               => $documentos,
-            'facturas_proveedores'     => FacturaProveedor::whereIn('proveedor_id', $proveedorIds)->get(),
+            'facturas_proveedores'     => $facturas,
+            'pagos_facturas'           => PagoFactura::whereIn('factura_proveedor_id', $facturaIds)->get(),
             'historial_estados'        => HistorialEstado::where(function ($q) use ($presupuestoIds, $propietarioIds, $proveedorIds) {
                 $q->where(fn ($q2) => $q2->where('estadoable_type', Presupuesto::class)->whereIn('estadoable_id', $presupuestoIds))
                     ->orWhere(fn ($q2) => $q2->where('estadoable_type', Propietario::class)->whereIn('estadoable_id', $propietarioIds))
@@ -220,7 +225,7 @@ class ComunidadExportador extends ExportadorZip
         8. `presupuestos`, `conceptos_presupuestos`
         9. `recibos`, `remesas`, `lineas_remesas`, `cobros`, `avisos_recibos`
         10. `documentos` (creando primero el fichero físico con el contenido de `ficheros.json`,
-            luego la fila), `facturas_proveedores`
+            luego la fila), `facturas_proveedores`, `pagos_facturas`
         11. `historial_estados`
 
         La contabilidad (`empresas_contables`, `cuenta_contables`, `tercero_contables`,
@@ -229,8 +234,9 @@ class ComunidadExportador extends ExportadorZip
         por separado con `condominios:contabilidad-exportar`. Las columnas de esta exportación que
         apuntan a ella (`comunidades.empresa_contable_id`, `presupuestos.cuenta_contable_id`,
         `propietarios.cuenta_contable_id`, `cuentas_bancarias.cuenta_contable_id`,
-        `recibos.asiento_contable_id`, `cobros.asiento_contable_id`) llevan ids de esa otra
-        exportación y solo valen si se reconstruyen las dos a la vez.
+        `recibos.asiento_contable_id`, `cobros.asiento_contable_id`,
+        `facturas_proveedores.asiento_contable_id`, `pagos_facturas.asiento_contable_id`) llevan
+        ids de esa otra exportación y solo valen si se reconstruyen las dos a la vez.
 
         ## Catálogos NO incluidos (deben existir ya en el sistema destino)
 

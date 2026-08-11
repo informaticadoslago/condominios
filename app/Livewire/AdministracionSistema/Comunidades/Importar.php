@@ -2,9 +2,7 @@
 
 namespace App\Livewire\AdministracionSistema\Comunidades;
 
-use App\Jobs\ImportarComunidadZipJob;
 use App\Services\Comunidades\ImportadorZipComunidad;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -28,7 +26,7 @@ class Importar extends Component
         $this->abrir = true;
     }
 
-    public function importar(): void
+    public function importar()
     {
         $this->validate();
 
@@ -36,8 +34,8 @@ class Importar extends Component
             return;
         }
 
-        $nombreOriginal = strtolower((string) $this->zip->getClientOriginalName());
-        if (! str_ends_with($nombreOriginal, '.zip')) {
+        $nombreOriginal = (string) $this->zip->getClientOriginalName();
+        if (! str_ends_with(strtolower($nombreOriginal), '.zip')) {
             $this->addError('zip', __('El fichero debe ser un .zip'));
             $this->dispatch('toast-error', ['title' => __('El fichero debe ser un .zip')]);
 
@@ -56,27 +54,22 @@ class Importar extends Component
         }
 
         try {
-            app(ImportadorZipComunidad::class)->validarCifDisponible($ruta);
+            app(ImportadorZipComunidad::class)->importar($ruta, $nombreOriginal);
         } catch (\RuntimeException $e) {
-            Storage::disk('local')->delete($ruta);
             $this->addError('zip', $e->getMessage());
             $this->dispatch('toast-error', ['title' => $e->getMessage()]);
 
             return;
         }
 
-        ImportarComunidadZipJob::dispatch($ruta);
+        $this->dispatch('toast-success', ['title' => __('Comunidad importada correctamente')]);
 
-        $this->dispatch('toast-success', ['title' => __('Importación de comunidad en curso')]);
-        $this->reset('zip');
-        $this->abrir = false;
+        return redirect()->route('comunidades.index');
     }
 
-    public function cerrar(): void
+    public function cerrar()
     {
-        $this->abrir = false;
-        $this->reset('zip');
-        $this->resetErrorBag();
+        return redirect()->route('comunidades.index');
     }
 
     public function render()

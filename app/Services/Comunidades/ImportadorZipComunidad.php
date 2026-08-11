@@ -2,12 +2,15 @@
 
 namespace App\Services\Comunidades;
 
+use App\Models\Comunidad;
 use App\Models\Documento;
 use App\Models\EmpresaContable;
 use App\Models\HistorialEstado;
+use App\Models\HistorialImportacionComunidad;
 use App\Models\Persona;
 use App\Models\Recibo;
 use App\Models\TipoEstadoRecibo;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -18,136 +21,227 @@ use ZipArchive;
 
 class ImportadorZipComunidad
 {
-    public function validarCifDisponible(string $rutaTemporal): string
-    {
-        $cif = $this->obtenerCif($rutaTemporal);
-
-        if (Persona::where('documento_identificativo', $cif)->exists()) {
-            throw new RuntimeException('Ese CIF ya pertenece a otra persona registrada en el sistema.');
-        }
-
-        return $cif;
-    }
-
-    public function importar(string $rutaTemporal): void
+    /**
+     * Desempaqueta el ZIP y solo mira lo justo para poder decidir si la importación es
+     * viable: el CIF de la comunidad y si venía enlazada a una contabilidad. No toca la
+     * base de datos.
+     *
+     * @return array{cif: string, enlazadaContabilidad: bool}
+     */
+    public function analizarComunidad(string $rutaTemporal): array
     {
         $disco = Storage::disk('local');
-        $rutaZip = $disco->path($rutaTemporal);
-        $importado = false;
 
         if (! $disco->exists($rutaTemporal)) {
             throw new RuntimeException("No existe el ZIP temporal '{$rutaTemporal}'.");
         }
 
-        $cifComunidad = $this->validarCifDisponible($rutaTemporal);
-
-        $carpeta = 'importaciones-comunidades/'.Str::random(20);
-        $disco->makeDirectory($carpeta);
+        $zip = new ZipArchive();
+        if ($zip->open($disco->path($rutaTemporal)) !== true) {
+            throw new RuntimeException('No se pudo abrir el ZIP de comunidad.');
+        }
 
         try {
-            $zip = new ZipArchive();
-            if ($zip->open($rutaZip) !== true) {
-                throw new RuntimeException('No se pudo abrir el ZIP de comunidad.');
-            }
-
-            $zip->extractTo($disco->path($carpeta));
-            $zip->close();
-
-            $datosPath = $disco->path($carpeta.'/datos.xml');
-            $ficherosPath = $disco->path($carpeta.'/ficheros.json');
-
-            if (! file_exists($datosPath)) {
+            $datos = $zip->getFromName('datos.xml');
+            if ($datos === false) {
                 throw new RuntimeException('El ZIP no contiene datos.xml.');
             }
 
-            $xml = simplexml_load_file($datosPath);
+            $xml = simplexml_load_string($datos);
             if ($xml === false) {
                 throw new RuntimeException('datos.xml no se pudo leer.');
             }
 
-            $ficheros = file_exists($ficherosPath)
-                ? json_decode((string) file_get_contents($ficherosPath), true, 512, JSON_THROW_ON_ERROR)
-                : [];
+            $cif = trim((string) ($xml->personas->fila[0]->documento_identificativo ?? ''));
+            if ($cif === '') {
+                throw new RuntimeException('El ZIP no trae el CIF de la comunidad.');
+            }
 
-            $avisosContables = [];
+            $empresaContableId = trim((string) ($xml->comunidad->fila[0]->empresa_contable_id ?? ''));
 
-            DB::transaction(function () use ($xml, $ficheros, $cifComunidad, &$importado, &$avisosContables) {
-                $driver = DB::connection()->getDriverName();
-                $comunidadIds = [];
-                $mapaIds = [];
-                $mantenerReferenciasContables = true;
+            return [
+                'cif' => $cif,
+                'enlazadaContabilidad' => $empresaContableId !== '',
+            ];
+        } finally {
+            $zip->close();
+        }
+    }
 
-                if ($driver === 'mysql') {
-                    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+    /**
+     * @param  array{cif: string, enlazadaContabilidad: bool}  $analisis
+     */
+    private function validarImportacionPosible(array $analisis): void
+    {
+        if (Persona::where('documento_identificativo', $analisis['cif'])->exists()) {
+            throw new RuntimeException('Ese CIF ya pertenece a otra persona registrada en el sistema.');
+        }
+
+        if (! $analisis['enlazadaContabilidad']) {
+            return;
+        }
+
+        $cifNormalizado = $this->normalizarCif($analisis['cif']);
+        $existeEmpresa = EmpresaContable::query()
+            ->whereRaw("UPPER(REPLACE(REPLACE(REPLACE(cif, ' ', ''), '-', ''), '.', '')) = ?", [$cifNormalizado])
+            ->exists();
+
+        if ($existeEmpresa) {
+            throw new RuntimeException('La comunidad estaba enlazada a contabilidad y ya existe una empresa contable con ese CIF. No se puede importar.');
+        }
+    }
+
+    public function importar(string $rutaTemporal, ?string $nombreFichero = null): void
+    {
+        $disco = Storage::disk('local');
+
+        if (! $disco->exists($rutaTemporal)) {
+            throw new RuntimeException("No existe el ZIP temporal '{$rutaTemporal}'.");
+        }
+
+        try {
+            $analisis = $this->analizarComunidad($rutaTemporal);
+            $this->validarImportacionPosible($analisis);
+
+            $rutaZip = $disco->path($rutaTemporal);
+            $carpeta = 'importaciones-comunidades/'.Str::random(20);
+            $disco->makeDirectory($carpeta);
+
+            try {
+                $zip = new ZipArchive();
+                if ($zip->open($rutaZip) !== true) {
+                    throw new RuntimeException('No se pudo abrir el ZIP de comunidad.');
                 }
 
-                try {
-                    $bloques = [];
-                    foreach ($xml->children() as $tabla => $filas) {
-                        $tablaDestino = $this->tablaDestino((string) $tabla);
-                        $bloques[$tablaDestino] = $filas;
+                $zip->extractTo($disco->path($carpeta));
+                $zip->close();
+
+                $datosPath = $disco->path($carpeta.'/datos.xml');
+                $ficherosPath = $disco->path($carpeta.'/ficheros.json');
+
+                if (! file_exists($datosPath)) {
+                    throw new RuntimeException('El ZIP no contiene datos.xml.');
+                }
+
+                $xml = simplexml_load_file($datosPath);
+                if ($xml === false) {
+                    throw new RuntimeException('datos.xml no se pudo leer.');
+                }
+
+                $ficheros = file_exists($ficherosPath)
+                    ? json_decode((string) file_get_contents($ficherosPath), true, 512, JSON_THROW_ON_ERROR)
+                    : [];
+
+                $avisosContables = [];
+                $comunidadIdImportada = null;
+                $enlazadoContabilidad = false;
+
+                DB::transaction(function () use ($xml, $ficheros, &$avisosContables, &$comunidadIdImportada, &$enlazadoContabilidad) {
+                    $driver = DB::connection()->getDriverName();
+                    $comunidadIds = [];
+                    $mapaIds = [];
+                    $mantenerReferenciasContables = true;
+
+                    if ($driver === 'mysql') {
+                        DB::statement('SET FOREIGN_KEY_CHECKS=0');
                     }
 
-                    foreach ($this->ordenarTablasImportacion($bloques) as $tablaDestino) {
-                        $filas = $bloques[$tablaDestino];
+                    try {
+                        $bloques = [];
+                        foreach ($xml->children() as $tabla => $filas) {
+                            $tablaDestino = $this->tablaDestino((string) $tabla);
+                            $bloques[$tablaDestino] = $filas;
+                        }
 
-                        foreach ($filas->fila as $fila) {
-                            $datosOriginales = $this->filaAtributos($fila);
+                        foreach ($this->ordenarTablasImportacion($bloques) as $tablaDestino) {
+                            $filas = $bloques[$tablaDestino];
 
-                            if ($tablaDestino === 'comunidades') {
-                                $resolucion = $this->resolverEnlaceContableComunidad($datosOriginales, $cifComunidad);
-                                $datosOriginales['empresa_contable_id'] = $resolucion['empresa_contable_id'];
-                                $mantenerReferenciasContables = $resolucion['mantener_referencias'];
+                            foreach ($filas->fila as $fila) {
+                                $datosOriginales = $this->filaAtributos($fila);
 
-                                if ($resolucion['aviso'] !== null) {
-                                    $avisosContables[] = $resolucion['aviso'];
+                                if ($tablaDestino === 'comunidades') {
+                                    $resolucion = $this->resolverEnlaceContableComunidad($datosOriginales);
+                                    $datosOriginales['empresa_contable_id'] = $resolucion['empresa_contable_id'];
+                                    $mantenerReferenciasContables = $resolucion['mantener_referencias'];
+
+                                    if ($resolucion['aviso'] !== null) {
+                                        $avisosContables[] = $resolucion['aviso'];
+                                    }
+                                }
+
+                                $datos = $this->remapearFila($tablaDestino, $datosOriginales, $mapaIds, $mantenerReferenciasContables);
+
+                                $idOriginal = isset($datosOriginales['id']) ? (int) $datosOriginales['id'] : null;
+                                $idRemapeable = $idOriginal !== null && $this->tablaConIdAutoIncrement($tablaDestino);
+
+                                if ($idRemapeable) {
+                                    unset($datos['id']);
+                                    $idNuevo = (int) DB::table($tablaDestino)->insertGetId($datos);
+                                    $mapaIds[$tablaDestino][$idOriginal] = $idNuevo;
+                                } else {
+                                    DB::table($tablaDestino)->insert($datos);
+                                }
+
+                                if ($tablaDestino === 'comunidades') {
+                                    $comunidadIds[] = $idRemapeable
+                                        ? $mapaIds['comunidades'][$idOriginal]
+                                        : (int) ($datos['id'] ?? 0);
                                 }
                             }
+                        }
 
-                            $datos = $this->remapearFila($tablaDestino, $datosOriginales, $mapaIds, $mantenerReferenciasContables);
+                        if (! $mantenerReferenciasContables) {
+                            $this->normalizarEstadosRecibosSinContabilidad($mapaIds['recibos'] ?? []);
+                        }
 
-                            $idOriginal = isset($datosOriginales['id']) ? (int) $datosOriginales['id'] : null;
-                            $idRemapeable = $idOriginal !== null && $this->tablaConIdAutoIncrement($tablaDestino);
+                        $this->reponerDocumentos($ficheros, $mapaIds['documentos'] ?? []);
+                        $this->asegurarRolesComunidad($comunidadIds);
 
-                            if ($idRemapeable) {
-                                unset($datos['id']);
-                                $idNuevo = (int) DB::table($tablaDestino)->insertGetId($datos);
-                                $mapaIds[$tablaDestino][$idOriginal] = $idNuevo;
-                            } else {
-                                DB::table($tablaDestino)->insert($datos);
-                            }
-
-                            if ($tablaDestino === 'comunidades') {
-                                $comunidadIds[] = $idRemapeable
-                                    ? $mapaIds['comunidades'][$idOriginal]
-                                    : (int) ($datos['id'] ?? 0);
-                            }
+                        $comunidadIdImportada = $comunidadIds[0] ?? null;
+                        $enlazadoContabilidad = $mantenerReferenciasContables;
+                    } finally {
+                        if ($driver === 'mysql') {
+                            DB::statement('SET FOREIGN_KEY_CHECKS=1');
                         }
                     }
+                });
 
-                    if (! $mantenerReferenciasContables) {
-                        $this->normalizarEstadosRecibosSinContabilidad($mapaIds['recibos'] ?? []);
-                    }
+                $this->registrarHistorial($analisis, $comunidadIdImportada, $nombreFichero, $enlazadoContabilidad, $avisosContables);
 
-                    $this->reponerDocumentos($ficheros, $mapaIds['documentos'] ?? []);
-                    $this->asegurarRolesComunidad($comunidadIds);
-                    $importado = true;
-                } finally {
-                    if ($driver === 'mysql') {
-                        DB::statement('SET FOREIGN_KEY_CHECKS=1');
-                    }
+                foreach ($avisosContables as $aviso) {
+                    Log::warning('Importación de comunidad: resolución de enlace contable', $aviso);
                 }
-            });
-
-            foreach ($avisosContables as $aviso) {
-                Log::warning('Importación de comunidad: resolución de enlace contable', $aviso);
+            } finally {
+                $disco->deleteDirectory($carpeta);
             }
         } finally {
-            $disco->deleteDirectory($carpeta);
-            if ($importado) {
-                $disco->delete($rutaTemporal);
-            }
+            // Sin colas ni reintentos: se acabó el intento, se acabó el ZIP temporal.
+            $disco->delete($rutaTemporal);
         }
+    }
+
+    /**
+     * @param  array{cif: string, enlazadaContabilidad: bool}  $analisis
+     * @param  array<int, array<string, mixed>>  $avisosContables
+     */
+    private function registrarHistorial(
+        array $analisis,
+        ?int $comunidadId,
+        ?string $nombreFichero,
+        bool $enlazadoContabilidad,
+        array $avisosContables,
+    ): void {
+        $comunidad = $comunidadId ? Comunidad::with('persona')->find($comunidadId) : null;
+
+        HistorialImportacionComunidad::create([
+            'comunidad_id' => $comunidadId,
+            'cif' => $analisis['cif'],
+            'nombre_comunidad' => $comunidad?->nombre,
+            'nombre_fichero' => $nombreFichero,
+            'enlazado_contabilidad' => $enlazadoContabilidad,
+            'avisos' => $avisosContables === [] ? null : $avisosContables,
+            'user_id' => Auth::id(),
+        ]);
     }
 
     /**
@@ -190,6 +284,7 @@ class ImportadorZipComunidad
             'avisos_recibos',
             'documentos',
             'facturas_proveedores',
+            'pagos_facturas',
             'historial_estados',
         ];
 
@@ -231,6 +326,7 @@ class ImportadorZipComunidad
             'avisos_recibos',
             'documentos',
             'facturas_proveedores',
+            'pagos_facturas',
             'historial_estados',
         ], true);
     }
@@ -361,6 +457,11 @@ class ImportadorZipComunidad
                 $this->remapearColumna($datos, 'proveedor_id', 'proveedores', $mapaIds);
                 break;
 
+            case 'pagos_facturas':
+                $this->remapearColumna($datos, 'factura_proveedor_id', 'facturas_proveedores', $mapaIds);
+                $this->remapearColumna($datos, 'cuenta_bancaria_id', 'cuentas_bancarias', $mapaIds);
+                break;
+
             case 'historial_estados':
                 $this->remapearEstadoable($datos, $mapaIds);
                 break;
@@ -370,61 +471,26 @@ class ImportadorZipComunidad
     }
 
     /**
+     * La comunidad importada nunca se enlaza sola con una contabilidad ajena: si venía
+     * enlazada en origen, aquí siempre se desvincula. Que ya exista una empresa contable
+     * con ese CIF en destino se comprueba antes de empezar (validarImportacionPosible) y
+     * hace fallar toda la importación, así que si se llega hasta aquí es seguro
+     * desvincular sin más.
+     *
      * @return array{empresa_contable_id:int|null,mantener_referencias:bool,aviso:array<string,mixed>|null}
      */
-    private function resolverEnlaceContableComunidad(array $datosComunidad, string $cifComunidad): array
+    private function resolverEnlaceContableComunidad(array $datosComunidad): array
     {
         $empresaIdZip = isset($datosComunidad['empresa_contable_id']) && $datosComunidad['empresa_contable_id'] !== ''
             ? (int) $datosComunidad['empresa_contable_id']
             : null;
 
-        if (! $empresaIdZip) {
-            return [
-                'empresa_contable_id' => null,
-                'mantener_referencias' => false,
-                'aviso' => null,
-            ];
-        }
-
-        $cifNormalizado = $this->normalizarCif($cifComunidad);
-        $empresaEnId = EmpresaContable::find($empresaIdZip);
-        $empresaPorCif = EmpresaContable::query()
-            ->whereRaw("UPPER(REPLACE(REPLACE(REPLACE(cif, ' ', ''), '-', ''), '.', '')) = ?", [$cifNormalizado])
-            ->first();
-
-        if ($empresaEnId && $this->normalizarCif((string) $empresaEnId->cif) === $cifNormalizado) {
-            return [
-                'empresa_contable_id' => $empresaEnId->id,
-                'mantener_referencias' => true,
-                'aviso' => null,
-            ];
-        }
-
-        if ($empresaPorCif) {
-            return [
-                'empresa_contable_id' => $empresaPorCif->id,
-                'mantener_referencias' => true,
-                'aviso' => [
-                    'motivo' => $empresaEnId
-                        ? 'id_enlazado_no_coincide_con_cif_reenlazado'
-                        : 'id_enlazado_inexistente_reenlazado_por_cif',
-                    'empresa_zip_id' => $empresaIdZip,
-                    'empresa_destino_id' => $empresaPorCif->id,
-                    'cif_comunidad' => $cifComunidad,
-                    'cif_empresa_destino' => $empresaPorCif->cif,
-                ],
-            ];
-        }
-
         return [
             'empresa_contable_id' => null,
             'mantener_referencias' => false,
-            'aviso' => [
-                'motivo' => $empresaEnId
-                    ? 'id_enlazado_no_coincide_y_sin_empresa_por_cif_desvinculada'
-                    : 'id_enlazado_inexistente_y_sin_empresa_por_cif_desvinculada',
+            'aviso' => $empresaIdZip === null ? null : [
+                'motivo' => 'comunidad_enlazada_desvinculada_en_importacion',
                 'empresa_zip_id' => $empresaIdZip,
-                'cif_comunidad' => $cifComunidad,
             ],
         ];
     }
@@ -466,6 +532,7 @@ class ImportadorZipComunidad
             case 'recibos':
             case 'cobros':
             case 'facturas_proveedores':
+            case 'pagos_facturas':
                 if (array_key_exists('asiento_contable', $datos)) {
                     $datos['asiento_contable'] = null;
                 }
@@ -477,6 +544,11 @@ class ImportadorZipComunidad
     }
 
     /**
+     * Sin la contabilidad que enlazaba, un recibo que solo estaba COBRADO porque el
+     * enlace le seguía el rastro a un pago que aquí no existe vuelve a su estado
+     * anterior, y la línea de historial que registró ese "cobrado" se borra: ya no
+     * cuenta nada cierto en este sistema.
+     *
      * @param  array<int, int>  $mapaRecibos
      */
     private function normalizarEstadosRecibosSinContabilidad(array $mapaRecibos): void
@@ -487,32 +559,31 @@ class ImportadorZipComunidad
         }
 
         foreach (Recibo::query()->whereIn('id', $reciboIds)->get(['id', 'estado_id', 'saldo']) as $recibo) {
-            $nuevoEstado = $this->estadoReciboSinContabilidad($recibo);
+            if ((float) $recibo->saldo <= 0) {
+                if ((int) $recibo->estado_id !== TipoEstadoRecibo::COBRADO) {
+                    DB::table('recibos')->where('id', $recibo->id)->update(['estado_id' => TipoEstadoRecibo::COBRADO]);
+                }
 
-            if ((int) $recibo->estado_id !== $nuevoEstado) {
-                DB::table('recibos')->where('id', $recibo->id)->update(['estado_id' => $nuevoEstado]);
+                continue;
             }
+
+            if ((int) $recibo->estado_id !== TipoEstadoRecibo::COBRADO) {
+                continue;
+            }
+
+            $historial = HistorialEstado::query()
+                ->where('estadoable_type', Recibo::class)
+                ->where('estadoable_id', $recibo->id)
+                ->where('estado_nuevo', TipoEstadoRecibo::COBRADO)
+                ->orderByDesc('id')
+                ->first();
+
+            $estadoAnterior = $historial?->estado_anterior ? (int) $historial->estado_anterior : TipoEstadoRecibo::GENERADO;
+
+            DB::table('recibos')->where('id', $recibo->id)->update(['estado_id' => $estadoAnterior]);
+
+            $historial?->delete();
         }
-    }
-
-    private function estadoReciboSinContabilidad(Recibo $recibo): int
-    {
-        if ((float) $recibo->saldo <= 0) {
-            return TipoEstadoRecibo::COBRADO;
-        }
-
-        if ((int) $recibo->estado_id !== TipoEstadoRecibo::COBRADO) {
-            return (int) $recibo->estado_id;
-        }
-
-        $anterior = HistorialEstado::query()
-            ->where('estadoable_type', Recibo::class)
-            ->where('estadoable_id', $recibo->id)
-            ->where('estado_nuevo', TipoEstadoRecibo::COBRADO)
-            ->orderByDesc('id')
-            ->value('estado_anterior');
-
-        return $anterior ? (int) $anterior : TipoEstadoRecibo::GENERADO;
     }
 
     /**
