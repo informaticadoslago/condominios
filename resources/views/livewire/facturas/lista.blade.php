@@ -42,16 +42,32 @@
                                 <th class="py-3 px-6">{{ __('Razón social') }}</th>
                             @endif
                             @if ($this->verColumna('fecha_factura'))
-                                <th class="py-3 px-6">{{ __('Fecha factura') }}</th>
+                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('fecha_factura')">
+                                    {{ __('Fecha factura') }}
+                                    @if ($sort == 'fecha_factura')
+                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                    @else
+                                        <i class="fa-solid fa-sort float-right mt-1"></i>
+                                    @endif
+                                </th>
                             @endif
                             @if ($this->verColumna('numero_factura'))
                                 <th class="py-3 px-6">{{ __('Número factura') }}</th>
                             @endif
                             @if ($this->verColumna('importe'))
-                                <th class="py-3 px-6">{{ __('Importe') }}</th>
+                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('importe')">
+                                    {{ __('Importe') }}
+                                    @if ($sort == 'importe')
+                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                    @else
+                                        <i class="fa-solid fa-sort float-right mt-1"></i>
+                                    @endif
+                                </th>
                             @endif
                             <th class="py-3 px-6 text-center">{{ __('Soporte') }}</th>
-                            <th class="py-3 px-6">{{ __('Contabilidad') }}</th>
+                            @if (contabilidad_activa())
+                                <th class="py-3 px-6">{{ __('Contabilidad') }}</th>
+                            @endif
                             <th class="py-3 px-6">{{ __('Pago') }}</th>
                         </tr>
                     </thead>
@@ -119,31 +135,36 @@
                                 {{-- Contabilizar es explícito: el gasto entra cuando quien lleva la
                                      comunidad lo manda, no al teclear la factura. Una vez hecho,
                                      queda el número de asiento y ya no hay botón. --}}
-                                <td class="px-6 py-4">
-                                    <span class="flex items-center gap-2">
-                                        @if ($item->asiento_contable)
-                                            <span class="text-gray-500" title="{{ __('Cuenta de gasto') }}: {{ $item->cuenta_gasto }}">
-                                                {{ __('Asiento') }} {{ $item->asiento_contable }}
-                                            </span>
-                                        @endif
-                                        {{-- La balanza sigue ahí mientras quede algo por asentar: la
-                                             propia factura, o pagos suyos que se quedaron sin asiento. --}}
-                                        @if ($item->faltaPorContabilizar())
-                                            <x-secondary-button type="button" class="px-3 py-2"
-                                                title="{{ $item->asiento_contable ? __('Contabilizar los pagos pendientes') : __('Contabilizar') }}"
-                                                wire:click="contabilizar({{ $item->id }})">
-                                                <i class="fa-solid fa-scale-balanced text-base"></i>
-                                            </x-secondary-button>
-                                        @endif
-                                    </span>
-                                </td>
+                                @if (contabilidad_activa())
+                                    <td class="px-6 py-4">
+                                        <span class="flex items-center gap-2">
+                                            @if ($item->asiento_contable)
+                                                <span class="text-gray-500" title="{{ __('Cuenta de gasto') }}: {{ $item->cuenta_gasto }}">
+                                                    {{ __('Asiento') }} {{ $item->asiento_contable }}
+                                                </span>
+                                            @endif
+                                            {{-- La balanza sigue ahí mientras quede algo por asentar: la
+                                                 propia factura, o pagos suyos que se quedaron sin asiento. --}}
+                                            @if ($item->faltaPorContabilizar())
+                                                <x-secondary-button type="button" class="px-3 py-2"
+                                                    title="{{ $item->asiento_contable ? __('Contabilizar los pagos pendientes') : __('Contabilizar') }}"
+                                                    wire:click="contabilizar({{ $item->id }})">
+                                                    <i class="fa-solid fa-scale-balanced text-base"></i>
+                                                </x-secondary-button>
+                                            @endif
+                                        </span>
+                                    </td>
+                                @endif
                                 {{-- El pago admite parciales, así que hasta que no queda a
-                                     cero se sigue viendo lo que falta y el botón. --}}
+                                     cero se sigue viendo lo que falta y el botón. Pagada, se
+                                     puede desplegar el histórico de sus pagos. --}}
                                 <td class="px-6 py-4">
                                     @if ($item->pendiente() <= 0)
-                                        <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200">
+                                        <button type="button" class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200"
+                                            wire:click="toggleDetalle({{ $item->id }})" title="{{ __('Ver pagos') }}">
                                             {{ __('Pagada') }}
-                                        </span>
+                                            <i class="fa-solid fa-chevron-{{ in_array($item->id, $expandido, true) ? 'up' : 'down' }} ml-1"></i>
+                                        </button>
                                     @else
                                         <x-secondary-button type="button" class="px-3 py-2"
                                             title="{{ __('Pagar') }} ({{ __('pendiente') }}: {{ number_format($item->pendiente(), 2, ',', '.') }} €)"
@@ -153,6 +174,35 @@
                                     @endif
                                 </td>
                             </tr>
+                            @if ($item->pendiente() <= 0 && in_array($item->id, $expandido, true))
+                                <tr wire:key="{{ $item->id }}-pagos">
+                                    <td colspan="{{ count($this->columnas) + 2 + (contabilidad_activa() ? 1 : 0) }}"
+                                        class="px-6 py-4 bg-gray-50 dark:bg-gray-800">
+                                        <table class="w-full text-sm text-left">
+                                            <thead>
+                                                <tr class="border-b">
+                                                    <th class="py-1 pr-4">{{ __('Fecha') }}</th>
+                                                    <th class="py-1 pr-4 text-right">{{ __('Importe') }}</th>
+                                                    @if (contabilidad_activa())
+                                                        <th class="py-1 text-right">{{ __('Asiento') }}</th>
+                                                    @endif
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($item->pagos as $pago)
+                                                    <tr wire:key="pago-{{ $pago->id }}">
+                                                        <td class="py-1 pr-4">{{ $pago->fecha?->format('d/m/Y') }}</td>
+                                                        <td class="py-1 pr-4 text-right">{{ number_format($pago->importe, 2, ',', '.') }} €</td>
+                                                        @if (contabilidad_activa())
+                                                            <td class="py-1 text-right">{{ $pago->asiento_contable ?? '—' }}</td>
+                                                        @endif
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>

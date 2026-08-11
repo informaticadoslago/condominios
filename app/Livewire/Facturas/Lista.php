@@ -29,10 +29,22 @@ class Lista extends ListaComponent
      */
     public array $soporte = [];
 
+    /** ids de facturas con su histórico de pagos desplegado en la tabla. */
+    public array $expandido = [];
+
     public function mount()
     {
         $this->sort      = 'id';
         $this->direction = 'desc';
+    }
+
+    public function toggleDetalle(int $id): void
+    {
+        if (in_array($id, $this->expandido, true)) {
+            $this->expandido = array_values(array_diff($this->expandido, [$id]));
+        } else {
+            $this->expandido[] = $id;
+        }
     }
 
     #[On('factura-importada')]
@@ -231,6 +243,12 @@ class Lista extends ListaComponent
         ];
     }
 
+    /** cif y razon_social viven en proveedor.persona (pedirían join); el resto se ordena tal cual. */
+    protected function columnasOrdenables(): ?array
+    {
+        return ['id', 'fecha_factura', 'importe'];
+    }
+
     /**
      * Manda a la contabilidad lo que le falte a esta factura: el gasto devengado si es la
      * primera vez, y los pagos que se hubieran quedado sin asiento porque la contabilidad
@@ -325,7 +343,7 @@ class Lista extends ListaComponent
         $search = trim($this->search ?? '');
 
         $items = $this->aplicarFiltros(
-            FacturaProveedor::with(['proveedor.persona', 'proveedor.tipo', 'documento'])
+            FacturaProveedor::with(['proveedor.persona', 'proveedor.tipo', 'documento', 'pagos'])
                 // Para saber si a la fila le falta algo por asentar sin preguntar una vez
                 // por factura.
                 ->withCount(['pagos as pagos_sin_asentar_count' => fn ($q) => $q->whereNull('asiento_contable')])
@@ -341,7 +359,12 @@ class Lista extends ListaComponent
                             ->orWhere('documento_identificativo', 'like', "%{$search}%"));
                 });
             })
-            ->orderBy($this->sort, $this->direction)
+            // fecha_factura se guarda como texto dd/mm/aaaa (ver filtroFechaDesde): ordenar tal
+            // cual sería alfabético, no cronológico, así que se reordena igual que en el filtro.
+            ->when($this->sort === 'fecha_factura', fn ($q) => $q->orderByRaw(
+                "STR_TO_DATE(fecha_factura, '%d/%m/%Y') {$this->direction}"
+            ))
+            ->when($this->sort !== 'fecha_factura', fn ($q) => $q->orderBy($this->sort, $this->direction))
             ->paginate($this->lineasXPagina);
 
         return view('livewire.facturas.lista', compact('items'));
