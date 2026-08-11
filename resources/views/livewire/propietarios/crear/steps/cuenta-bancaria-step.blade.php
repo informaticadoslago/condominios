@@ -4,35 +4,106 @@
     <div class="flex-1 space-y-4">
         <p class="text-sm text-gray-500">{{ __('Opcional: se puede rellenar más adelante desde la ficha del propietario.') }}</p>
 
+        @if ($cuentasExistentes->count())
+            <table class="w-full text-sm text-left">
+                <thead>
+                    <tr class="border-b">
+                        <th class="py-1 pr-4">{{ __('IBAN') }}</th>
+                        <th class="py-1 pr-4">{{ __('Entidad') }}</th>
+                        <th class="py-1 pr-4">{{ __('Alias') }}</th>
+                        <th class="py-1 pr-4">{{ __('Estado') }}</th>
+                        <th class="py-1"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    @foreach ($cuentasExistentes as $cuenta)
+                        <tr wire:key="cuenta-existente-{{ $cuenta->id }}">
+                            <td class="py-2 pr-4 mayusculas">{{ $cuenta->iban }}</td>
+                            <td class="py-2 pr-4">{{ $cuenta->entidadBancaria?->descripcion }}</td>
+                            <td class="py-2 pr-4">{{ $cuenta->alias }}</td>
+                            <td class="py-2 pr-4">
+                                @if ($cuenta->estado_id == \App\Models\CuentaBancaria::ESTADO_ACTIVA)
+                                    <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200">
+                                        {{ __('Activa') }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                        {{ __('Cancelada') }}
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="py-2 text-right">
+                                @if ($cuenta->estado_id == \App\Models\CuentaBancaria::ESTADO_ACTIVA)
+                                    <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white"
+                                        wire:click="confirmarCancelarCuenta({{ $cuenta->id }})" title="{{ __('Cancelar') }}">
+                                        <i class="fa-solid fa-ban"></i>
+                                    </x-button>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+
+        @if (count($cuentasPendientes))
+            <table class="w-full text-sm text-left">
+                <thead>
+                    <tr class="border-b">
+                        <th class="py-1 pr-4">{{ __('IBAN') }}</th>
+                        <th class="py-1 pr-4">{{ __('Entidad') }}</th>
+                        <th class="py-1 pr-4">{{ __('Alias') }}</th>
+                        <th class="py-1"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    @foreach ($cuentasPendientes as $pendiente)
+                        <tr wire:key="cuenta-pendiente-{{ $pendiente['_key'] }}">
+                            <td class="py-2 pr-4 mayusculas">{{ $pendiente['iban'] }}</td>
+                            <td class="py-2 pr-4">{{ $pendiente['entidad_bancaria_texto'] }}</td>
+                            <td class="py-2 pr-4">{{ $pendiente['alias'] }}</td>
+                            <td class="py-2 text-right">
+                                <button type="button" class="text-gray-400 hover:text-gray-800" title="{{ __('Quitar') }}"
+                                    wire:click="quitarCuentaPendiente('{{ $pendiente['_key'] }}')">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+
         <div>
-            <x-label :value="__('IBAN')" />
-            <x-input class="block mt-1 w-full mayusculas" type="text" wire:model="iban" autofocus />
-            <x-input-error for="iban" class="mt-2" />
-        </div>
-
-        <div class="flex w-full">
-            <div class="mt-2 mr-4 w-1/2">
-                <x-label :value="__('Entidad bancaria')" />
-                <div class="mt-1">
-                    <x-dosl.input-autocomplete
-                        wire:model="entidad_bancaria_texto"
-                        source="buscarEntidadesBancarias"
-                        items="resultadosEntidadesBancarias"
-                        valorCampo="valor"
-                        etiquetaCampo="etiqueta"
-                        valorModel="entidad_bancaria_id"
-                        placeholder="{{ __('Código o nombre...') }}" />
+            <x-label :value="__('Añadir cuenta bancaria')" />
+            <div class="flex items-end gap-4 mt-1">
+                <div class="flex flex-1 gap-4">
+                    <div class="w-3/6">
+                        <x-input class="mayusculas w-full" type="text" wire:model="nueva.iban" placeholder="{{ __('IBAN') }}" />
+                        <x-input-error for="nueva.iban" class="mt-2" />
+                    </div>
+                    <div class="w-2/6">
+                        <x-dosl.input-autocomplete
+                            wire:model="nueva.entidad_bancaria_texto"
+                            source="buscarEntidadesBancarias"
+                            items="resultadosEntidadesBancarias"
+                            valorCampo="valor"
+                            etiquetaCampo="etiqueta"
+                            valorModel="nueva.entidad_bancaria_id"
+                            placeholder="{{ __('Entidad: código o nombre...') }}" />
+                        <x-input-error for="nueva.entidad_bancaria_id" class="mt-2" />
+                    </div>
+                    <div class="w-1/6">
+                        <x-input class="w-full" type="text" wire:model="nueva.alias" placeholder="{{ __('Alias') }}" />
+                    </div>
                 </div>
-                <x-input-error for="entidad_bancaria_id" class="mt-2" />
-            </div>
-            <div class="mt-2 w-1/2">
-                <x-label :value="__('Alias')" />
-                <x-input class="block mt-1 w-full" type="text" wire:model="alias" placeholder="{{ __('Cuenta principal...') }}" />
-                <x-input-error for="alias" class="mt-2" />
+                <x-button type="button" wire:click="agregarCuenta" title="{{ __('Añadir cuenta') }}">
+                    <i class="fa-solid fa-plus"></i>
+                </x-button>
             </div>
         </div>
 
-        @if ($propietarioEsMenor && $iban)
+        @if ($propietarioEsMenor && ! empty($nueva['iban']))
             <div class="border rounded p-3 space-y-3">
                 <p class="text-sm font-semibold text-gray-600 dark:text-gray-300">
                     {{ __('El propietario es menor de edad: la cuenta tiene que tener como titular a una persona mayor de edad.') }}

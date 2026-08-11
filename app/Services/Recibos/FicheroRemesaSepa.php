@@ -79,7 +79,10 @@ final class FicheroRemesaSepa
     /** @return array<int, MandatoSepa> */
     private function mandatosPorCuenta(Remesa $remesa): array
     {
+        // Solo el ACTIVO: uno cancelado no puede acabar en el fichero que se manda al
+        // banco, aunque la cuenta llegara a tener más de uno con el tiempo.
         return MandatoSepa::where('comunidad_id', $remesa->comunidad_id)
+            ->where('estado_id', MandatoSepa::ESTADO_ACTIVO)
             ->whereIn('cuenta_bancaria_id', $remesa->lineas->pluck('recibo.cuenta_bancaria_id')->unique())
             ->get()
             ->keyBy('cuenta_bancaria_id')

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\ConDocumentos;
+use App\Models\Traits\ConHistorialEstado;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -13,8 +14,9 @@ use Illuminate\Database\Eloquent\Model;
  * `P19` + NIF del titular de la cuenta + un contador que avanza; ver
  * RegistrarMandatoSepa para las comprobaciones.
  *
- * Va casado con UNA cuenta de por vida. Si esa cuenta se deja de usar, el mandato muere
- * con ella: no se recicla para otra, se firma uno nuevo con el contador siguiente.
+ * Va casado con UNA cuenta mientras está ACTIVO: no se edita si está mal tecleado, se
+ * cancela (RegistrarMandatoSepa::cancelar()) y se registra uno nuevo con el contador
+ * siguiente — el RUM cancelado no se recicla para otra cuenta ni se reutiliza.
  *
  * Como es de la cuenta y no del inmueble, sirve para todos los inmuebles de esa
  * comunidad que paguen con ella, sin duplicarlo.
@@ -22,6 +24,11 @@ use Illuminate\Database\Eloquent\Model;
 class MandatoSepa extends Model
 {
     use ConDocumentos;
+    use ConHistorialEstado;
+
+    const
+        ESTADO_ACTIVO = 1,
+        ESTADO_CANCELADO = 2;
 
     protected $table = 'mandatos_sepa';
 
@@ -33,6 +40,7 @@ class MandatoSepa extends Model
         'cuenta_bancaria_id',
         'referencia',
         'fecha_firma',
+        'estado_id',
     ];
 
     protected $casts = [
@@ -47,6 +55,11 @@ class MandatoSepa extends Model
     public function cuentaBancaria()
     {
         return $this->belongsTo(CuentaBancaria::class);
+    }
+
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class);
     }
 
     /**

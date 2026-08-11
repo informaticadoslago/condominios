@@ -49,6 +49,9 @@ class DatosFinancierosStep extends CrearInmuebleStep
 
     public bool $modalPlantillaMandatoAbierta = false;
 
+    /** Editando en línea la referencia/fecha del mandato ya registrado de esta cuenta. */
+    public bool $editandoMandato = false;
+
     public bool $cargado = false;
 
     // Si el titular elegido no tiene ninguna cuenta bancaria, se puede editar (o dar de
@@ -165,6 +168,92 @@ class DatosFinancierosStep extends CrearInmuebleStep
     public function abrirPlantillaMandato(): void
     {
         $this->modalPlantillaMandatoAbierta = true;
+    }
+
+    public function editarMandato(): void
+    {
+        $vigente = $this->mandatoVigente();
+        if (! $vigente) {
+            return;
+        }
+
+        $this->mandato_referencia  = $vigente->referencia;
+        $this->mandato_fecha_firma = $vigente->fecha_firma?->format('Y-m-d');
+        $this->editandoMandato = true;
+        $this->resetErrorBag(['mandato_referencia', 'mandato_fecha_firma']);
+    }
+
+    public function cancelarEdicionMandato(): void
+    {
+        $this->editandoMandato = false;
+        $this->olvidarMandato();
+        $this->resetErrorBag(['mandato_referencia', 'mandato_fecha_firma']);
+    }
+
+    public function guardarEdicionMandato(RegistrarMandatoSepa $registrar): void
+    {
+        $vigente = $this->mandatoVigente();
+        if (! $vigente) {
+            $this->editandoMandato = false;
+
+            return;
+        }
+
+        $datos = $this->validate([
+            'mandato_referencia'  => ['required', 'string', 'max:35'],
+            'mandato_fecha_firma' => ['required', 'date', 'before_or_equal:today'],
+        ], [], $this->validationAttributes());
+
+        try {
+            $registrar->corregir($vigente, $datos['mandato_referencia'], $datos['mandato_fecha_firma']);
+        } catch (MandatoSepaInvalidoException $e) {
+            $this->addError('mandato_referencia', $e->getMessage());
+
+            return;
+        }
+
+        $this->editandoMandato = false;
+        $this->olvidarMandato();
+        $this->dispatch('toast-success', ['title' => __('Mandato corregido')]);
+    }
+
+    public function confirmarCancelarMandato($id): void
+    {
+        $this->dispatch('swalConfirm', [
+            'title'              => __('¿Cancelar este mandato?'),
+            'text'               => __('Se podrá registrar uno nuevo para esta cuenta. No se puede deshacer.'),
+            'icon'               => 'warning',
+            'showCancelButton'   => true,
+            'confirmButtonColor' => '#d33',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, cancelar'),
+            'cancelButtonText'   => __('Volver'),
+            'confirmCallback'    => 'ejecutarCancelarMandato',
+            'cancelCallback'     => 'cancelacionMandatoCancelada',
+            'id'                 => $id,
+        ]);
+    }
+
+    #[On('ejecutarCancelarMandato')]
+    public function ejecutarCancelarMandato($id, RegistrarMandatoSepa $registrar): void
+    {
+        $mandato = MandatoSepa::where('id', $id)
+            ->where('comunidad_id', $this->comunidadId())
+            ->where('cuenta_bancaria_id', $this->cuenta_bancaria_id)
+            ->first();
+
+        if (! $mandato) {
+            return;
+        }
+
+        $registrar->cancelar($mandato);
+        $this->dispatch('toast-success', ['title' => __('Mandato cancelado')]);
+    }
+
+    #[On('cancelacionMandatoCancelada')]
+    public function cancelacionMandatoCancelada($id = null): void
+    {
+        // el usuario canceló el diálogo de confirmación; no hacemos nada
     }
 
     public function cerrarPlantillaMandato(): void

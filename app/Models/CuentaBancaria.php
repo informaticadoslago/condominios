@@ -2,11 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Traits\ConHistorialEstado;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class CuentaBancaria extends Model
 {
+    use ConHistorialEstado;
+
+    const
+        ESTADO_ACTIVA = 1,
+        ESTADO_CANCELADA = 2;
+
     protected $table = 'cuentas_bancarias';
 
     protected $fillable = [
@@ -18,11 +25,28 @@ class CuentaBancaria extends Model
         'nombre_contable',
         'cuenta_contable',
         'persona_comunidad_id',
+        'estado_id',
     ];
 
     public function titular(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class);
+    }
+
+    public function formasPagoInmueble()
+    {
+        return $this->hasMany(FormaPagoInmueble::class);
+    }
+
+    /** Algún inmueble la tiene HOY como su forma de pago vigente: no se puede cancelar. */
+    public function enUso(): bool
+    {
+        return $this->formasPagoInmueble()->vigente()->exists();
     }
 
     public function entidadBancaria()
@@ -58,5 +82,11 @@ class CuentaBancaria extends Model
     public function mandatosSepa()
     {
         return $this->hasMany(MandatoSepa::class);
+    }
+
+    /** El mandato ACTIVO de esta cuenta, si lo hay (uno cancelado no cuenta). */
+    public function mandatoActivo()
+    {
+        return $this->hasOne(MandatoSepa::class)->where('estado_id', MandatoSepa::ESTADO_ACTIVO);
     }
 }

@@ -31,7 +31,7 @@
             @if ($esReciboBancario)
                 <div class="ml-2 w-1/2">
                     <x-label for="select-inmueble-cuenta-pago" :value="__('Cuenta bancaria')" />
-                    <x-select id="select-inmueble-cuenta-pago" class="block mt-1 w-full" wire:model="cuenta_bancaria_id">
+                    <x-select id="select-inmueble-cuenta-pago" class="block mt-1 w-full" wire:model.live="cuenta_bancaria_id">
                         <option value="">{{ __('--') }}</option>
                         @foreach ($cuentas as $cuenta)
                             <option value="{{ $cuenta['id'] }}">{{ $cuenta['texto'] }}</option>
@@ -61,11 +61,44 @@
                     @endif
                 </div>
 
-                @if ($mandatoVigente)
-                    <p class="mt-2 text-sm">
-                        {{ __('Esta cuenta ya tiene mandato') }}:
-                        <span class="font-semibold">{{ $mandatoVigente->referencia }}</span>
-                        — {{ __('firmado el') }} {{ $mandatoVigente->fecha_firma?->format('d/m/Y') }}
+                @if ($editandoMandato)
+                    <div class="flex w-full mt-2">
+                        <div class="w-1/2">
+                            <x-label for="input-mandato-referencia-editar" :value="__('Número de mandato')" />
+                            <x-input id="input-mandato-referencia-editar" class="block mt-1 w-full mayusculas" type="text"
+                                wire:model.blur="mandato_referencia" placeholder="P19..." autofocus />
+                            <x-input-error for="mandato_referencia" class="mt-2" />
+                        </div>
+                        <div class="ml-2 w-1/2">
+                            <x-label for="input-mandato-fecha-editar" :value="__('Fecha de firma')" />
+                            <x-input id="input-mandato-fecha-editar" class="block mt-1 w-full" type="date"
+                                wire:model.blur="mandato_fecha_firma" />
+                            <x-input-error for="mandato_fecha_firma" class="mt-2" />
+                        </div>
+                    </div>
+                    <div class="mt-2 flex gap-2">
+                        <x-secondary-button type="button" wire:click="guardarEdicionMandato">
+                            <i class="fa-solid fa-check mr-1"></i>{{ __('Guardar') }}
+                        </x-secondary-button>
+                        <button type="button" wire:click="cancelarEdicionMandato" class="text-sm text-gray-500 hover:text-gray-800">
+                            {{ __('Cancelar') }}
+                        </button>
+                    </div>
+                @elseif ($mandatoVigente)
+                    <p class="mt-2 text-sm flex items-center gap-2">
+                        <span>
+                            {{ __('Esta cuenta ya tiene mandato') }}:
+                            <span class="font-semibold">{{ $mandatoVigente->referencia }}</span>
+                            — {{ __('firmado el') }} {{ $mandatoVigente->fecha_firma?->format('d/m/Y') }}
+                        </span>
+                        <button type="button" class="text-gray-400 hover:text-gray-800" title="{{ __('Corregir número o fecha') }}"
+                            wire:click="editarMandato">
+                            <i class="fa-solid fa-pen text-xs"></i>
+                        </button>
+                        <button type="button" class="text-red-600 hover:text-red-800" title="{{ __('Cancelar este mandato para registrar uno nuevo') }}"
+                            wire:click="confirmarCancelarMandato({{ $mandatoVigente->id }})">
+                            <i class="fa-solid fa-ban"></i>
+                        </button>
                     </p>
                 @else
                     <p class="mt-2 text-sm text-gray-500">

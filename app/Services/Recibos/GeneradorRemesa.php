@@ -118,7 +118,10 @@ final class GeneradorRemesa
      */
     private function mandatosPorCuenta(Comunidad $comunidad, Collection $recibos): array
     {
+        // Solo el mandato ACTIVO de cada cuenta: uno cancelado no vale para adeudar,
+        // aunque quede en la tabla como historial (ver MandatoSepa::ESTADO_CANCELADO).
         return MandatoSepa::where('comunidad_id', $comunidad->id)
+            ->where('estado_id', MandatoSepa::ESTADO_ACTIVO)
             ->whereIn('cuenta_bancaria_id', $recibos->pluck('cuenta_bancaria_id')->unique())
             ->with('cuentaBancaria.entidadBancaria')
             ->get()

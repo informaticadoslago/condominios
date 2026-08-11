@@ -16,7 +16,8 @@ use App\Models\MandatoSepa;
  *   titular, el mandato no vale para esta cuenta.
  * - Ese RUM no está ya registrado con OTRA cuenta en la misma comunidad. Un mandato va
  *   casado con una cuenta y no se reutiliza.
- * - Si la cuenta ya tiene mandato, no se pide otro: se devuelve el que hay.
+ * - Si la cuenta ya tiene mandato ACTIVO, no se pide otro: se devuelve el que hay. Uno
+ *   cancelado no cuenta: deja hueco para registrar uno nuevo (ver cancelar()).
  */
 final class RegistrarMandatoSepa
 {
@@ -24,13 +25,13 @@ final class RegistrarMandatoSepa
     {
         $referencia = $this->normalizar($referencia);
 
-        // Esa cuenta ya tiene mandato en esta comunidad: se enlaza al mismo, con su
-        // número y su fecha. Si lo tecleado es otro número, es un error de quien lo
-        // escribe, no una orden de cambiarlo.
+        // Esa cuenta ya tiene mandato activo en esta comunidad: se enlaza al mismo, con
+        // su número y su fecha. Si lo tecleado es otro número, es un error de quien lo
+        // escribe, no una orden de cambiarlo (para eso hay que cancelarlo antes).
         if ($existente = $this->mandatoDeLaCuenta($comunidadId, $cuenta->id)) {
             if ($existente->referencia !== $referencia) {
                 throw new MandatoSepaInvalidoException(
-                    "Esa cuenta ya tiene el mandato «{$existente->referencia}». Un mandato va casado con una cuenta y no se cambia."
+                    "Esa cuenta ya tiene el mandato «{$existente->referencia}». Corrígelo o cancélalo, no se registra otro encima."
                 );
             }
 
@@ -57,15 +58,55 @@ final class RegistrarMandatoSepa
             'cuenta_bancaria_id' => $cuenta->id,
             'referencia'         => $referencia,
             'fecha_firma'        => $fechaFirma,
+            'estado_id'          => MandatoSepa::ESTADO_ACTIVO,
         ]);
     }
 
-    /** El mandato ya registrado de esa cuenta, si lo hay. */
+    /** El mandato ACTIVO ya registrado de esa cuenta, si lo hay. Uno cancelado no cuenta. */
     public function mandatoDeLaCuenta(int $comunidadId, int $cuentaBancariaId): ?MandatoSepa
     {
         return MandatoSepa::where('comunidad_id', $comunidadId)
             ->where('cuenta_bancaria_id', $cuentaBancariaId)
+            ->where('estado_id', MandatoSepa::ESTADO_ACTIVO)
             ->first();
+    }
+
+    /**
+     * Corrige la referencia y/o la fecha de firma de ESTE mismo mandato (se tecleó mal
+     * al registrarlo). Repite las mismas comprobaciones que al registrarlo por primera
+     * vez, excluyéndose a sí mismo de la comprobación de RUM repetido.
+     */
+    public function corregir(MandatoSepa $mandato, string $referencia, string $fechaFirma): MandatoSepa
+    {
+        $referencia = $this->normalizar($referencia);
+
+        $this->comprobarFormato($referencia, $mandato->cuentaBancaria);
+
+        $deOtroMandato = MandatoSepa::where('comunidad_id', $mandato->comunidad_id)
+            ->where('referencia', $referencia)
+            ->where('id', '!=', $mandato->id)
+            ->first();
+
+        if ($deOtroMandato) {
+            throw new MandatoSepaInvalidoException(
+                "El mandato «{$referencia}» ya está registrado con otra cuenta ({$deOtroMandato->cuentaBancaria?->iban}). "
+                .'Cada cuenta necesita su propio mandato: usa otra referencia.'
+            );
+        }
+
+        $mandato->update(['referencia' => $referencia, 'fecha_firma' => $fechaFirma]);
+
+        return $mandato->refresh();
+    }
+
+    /**
+     * El mandato ya no vale (cuenta abandonada, sustitución completa…): se cancela, no
+     * se borra. Deja la cuenta libre para registrar un mandato nuevo con el contador
+     * siguiente; este queda en el historial y su referencia no se reutiliza.
+     */
+    public function cancelar(MandatoSepa $mandato): void
+    {
+        $mandato->update(['estado_id' => MandatoSepa::ESTADO_CANCELADO]);
     }
 
     private function comprobarFormato(string $referencia, CuentaBancaria $cuenta): void
