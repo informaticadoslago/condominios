@@ -98,6 +98,15 @@ class Lista extends ListaComponent
             return;
         }
 
+        // Sin ninguna cuenta bancaria, el enlace se completa igual pero no nace ninguna
+        // subcuenta de bancos: el primer asiento que la necesite (apertura o un pago) se
+        // la inventa por su cuenta, sin que nadie la haya podido nombrar antes.
+        if ($comunidad->cuentasBancarias()->doesntExist()) {
+            $this->dispatch('toast-error', ['title' => __('Dé de alta antes una cuenta bancaria de la comunidad.')]);
+
+            return;
+        }
+
         // Sin nombre contable, la cuenta del banco no llega a la contabilidad y se queda
         // callada (EnlaceContableComunidad::asignarCuentaBancaria devuelve null). Es el
         // dato del primer asiento, así que se pide ANTES de enlazar, no después.
