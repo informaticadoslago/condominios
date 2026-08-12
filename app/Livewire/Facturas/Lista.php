@@ -7,13 +7,16 @@ use App\Exceptions\CuentaContableDesconocidaException;
 use App\Exceptions\EjercicioCerradoException;
 use App\Exceptions\EjercicioContableDesconocidoException;
 use App\Livewire\ListaComponent;
+use App\Livewire\Traits\ConSeleccionMultiple;
 use App\Models\Documento;
 use App\Models\FacturaProveedor;
+use App\Models\PagoFactura;
 use App\Services\Facturas\AdjuntarSoporteFactura;
 use App\Services\Facturas\AltaProveedorDesdeFactura;
 use App\Services\Facturas\EnlazarFacturasContabilidad;
 use App\Services\Facturas\EnlazarPagosContabilidad;
 use App\Services\Facturas\LectorPdf;
+use App\Services\Facturas\RegistrarPagoFactura;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\WithFileUploads;
@@ -21,6 +24,7 @@ use Livewire\WithFileUploads;
 class Lista extends ListaComponent
 {
     use WithFileUploads;
+    use ConSeleccionMultiple;
 
     /**
      * El papel que llega tarde, indexado por id de factura: el «Sin soporte» de cada fila
@@ -31,6 +35,13 @@ class Lista extends ListaComponent
 
     /** ids de facturas con su histórico de pagos desplegado en la tabla. */
     public array $expandido = [];
+
+    public bool $pagoLoteAbierto = false;
+
+    public ?string $pagoLoteFecha = null;
+
+    /** Facturas sobre las que va a actuar el modal, congeladas al abrirlo. */
+    public array $pagoLoteIds = [];
 
     public function mount()
     {
@@ -338,18 +349,23 @@ class Lista extends ListaComponent
         $this->dispatch('toast-success', ['title' => __('Contabilizado')]);
     }
 
-    public function render()
+    /**
+     * La consulta base (comunidad y búsqueda), SIN filtros/selección ni orden ni
+     * paginación: la usan render(), invertirSeleccion() —que necesita los ids de TODO
+     * lo filtrado, no solo de la página— y las acciones en lote.
+     */
+    private function consultaBase()
     {
         $search = trim($this->search ?? '');
 
-        $items = $this->aplicarFiltros(
-            FacturaProveedor::with(['proveedor.persona', 'proveedor.tipo', 'documento', 'pagos'])
-                // Para saber si a la fila le falta algo por asentar sin preguntar una vez
-                // por factura.
-                ->withCount(['pagos as pagos_sin_asentar_count' => fn ($q) => $q->whereNull('asiento_contable')])
-                ->whereHas('proveedor.persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
-        )
-            ->when($search, function ($q) use ($search) {
+        return FacturaProveedor::with(['proveedor.persona', 'proveedor.tipo', 'documento', 'pagos'])
+            // Para saber si a la fila le falta algo por asentar sin preguntar una vez
+            // por factura.
+            ->withCount(['pagos as pagos_sin_asentar_count' => fn ($q) => $q->whereNull('asiento_contable')])
+            ->whereHas('proveedor.persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+            // Ver solo seleccionados manda también sobre la búsqueda: aunque una factura ya
+            // no case con el texto buscado, tiene que poder verse para actuar sobre ella.
+            ->when($search && ! $this->verSoloSeleccionados, function ($q) use ($search) {
                 // Agrupado en un where anidado: si no, el orWhereHas de dentro se
                 // desengancha del whereHas de comunidad de arriba y se ve gente de otras.
                 $q->where(function ($q2) use ($search) {
@@ -358,7 +374,206 @@ class Lista extends ListaComponent
                             ->where('razon_social', 'like', "%{$search}%")
                             ->orWhere('documento_identificativo', 'like', "%{$search}%"));
                 });
-            })
+            });
+    }
+
+    /** Invierte la selección dentro de TODO lo que cumple el filtro actual (no solo la página). */
+    public function invertirSeleccion(): void
+    {
+        $this->invertirSeleccionEn($this->consultaBase());
+    }
+
+    /**
+     * Ids sobre los que actúan las acciones en lote: los marcados si hay alguno y, si no
+     * hay ninguno, todo lo que cumple el filtro actual.
+     */
+    public function idsParaAccion(): array
+    {
+        if ($this->seleccionados !== []) {
+            return array_values($this->seleccionados);
+        }
+
+        return $this->aplicarFiltros($this->consultaBase())
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+    }
+
+    /**
+     * Sin nada marcado, la acción en lote cae sobre TODO lo que cumple el filtro actual,
+     * no solo lo que se ve en la página: antes de lanzarla a ciegas se avisa de cuántos
+     * registros va a tocar y se pide confirmación. Con algo marcado no hace falta: ya es
+     * una elección explícita.
+     */
+    private function confirmarSiSinSeleccion(string $callback, string $participio): bool
+    {
+        if ($this->seleccionados !== []) {
+            return true;
+        }
+
+        $total = $this->aplicarFiltros($this->consultaBase())->count();
+
+        if ($total === 0) {
+            $this->dispatch('toast-error', ['title' => __('No hay facturas sobre las que actuar')]);
+
+            return false;
+        }
+
+        $this->dispatch('swalConfirm', [
+            'title'              => __('No hay registros marcados'),
+            'text'               => __('Se van a dar por :participio :total registros. ¿Desea continuar?', [
+                'participio' => $participio,
+                'total'      => $total,
+            ]),
+            'icon'               => 'warning',
+            'showCancelButton'   => true,
+            'focusConfirm'       => true,
+            'confirmButtonColor' => '#16a34a',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, continuar'),
+            'cancelButtonText'   => __('Cancelar'),
+            'confirmCallback'    => $callback,
+            'cancelCallback'     => 'accion-lote-cancelada',
+        ]);
+
+        return false;
+    }
+
+    #[On('accion-lote-cancelada')]
+    public function accionLoteCancelada(): void
+    {
+        // Nada que hacer: el evento existe porque swalConfirm siempre emite uno de los dos.
+    }
+
+    /**
+     * Contabiliza de golpe lo que le falte a cada factura marcada: el gasto devengado de
+     * las que no lo tengan y los pagos que se hubieran quedado sin asiento.
+     */
+    public function contabilizarLote(EnlazarFacturasContabilidad $enlazar, EnlazarPagosContabilidad $enlazarPagos): void
+    {
+        if (! $this->confirmarSiSinSeleccion('contabilizar-lote-confirmado', __('contabilizadas'))) {
+            return;
+        }
+
+        $this->contabilizarLoteConfirmado($enlazar, $enlazarPagos);
+    }
+
+    #[On('contabilizar-lote-confirmado')]
+    public function contabilizarLoteConfirmado(EnlazarFacturasContabilidad $enlazar, EnlazarPagosContabilidad $enlazarPagos): void
+    {
+        $ids = $this->idsParaAccion();
+
+        $facturas = $enlazar->ejecutar($ids);
+
+        $pagoIds = PagoFactura::whereIn('factura_proveedor_id', $ids)
+            ->whereNull('asiento_contable')
+            ->pluck('id')
+            ->all();
+
+        $pagos = $pagoIds ? $enlazarPagos->ejecutar($pagoIds) : ['enlazados' => 0, 'omitidos' => 0];
+
+        $this->limpiarSeleccion();
+
+        if ($facturas['enlazadas'] === 0 && $pagos['enlazados'] === 0) {
+            $this->dispatch('toast-error', ['title' => __('No se ha contabilizado nada')]);
+
+            return;
+        }
+
+        $this->dispatch('toast-success', [
+            'title' => __(':facturas facturas y :pagos pagos contabilizados', [
+                'facturas' => $facturas['enlazadas'],
+                'pagos'    => $pagos['enlazados'],
+            ]),
+        ]);
+    }
+
+    /**
+     * Abre el modal con los ids ya congelados: entre abrirlo y confirmar se puede cambiar
+     * de página o de filtro, y lo que se paga tiene que ser lo que se vio.
+     */
+    public function abrirPagoLote(): void
+    {
+        if (! $this->confirmarSiSinSeleccion('pago-lote-confirmado', __('pagadas'))) {
+            return;
+        }
+
+        $this->abrirPagoLoteConfirmado();
+    }
+
+    #[On('pago-lote-confirmado')]
+    public function abrirPagoLoteConfirmado(): void
+    {
+        $this->pagoLoteIds = $this->idsParaAccion();
+
+        if ($this->pagoLoteIds === []) {
+            $this->dispatch('toast-error', ['title' => __('No hay facturas sobre las que actuar')]);
+
+            return;
+        }
+
+        $this->pagoLoteFecha   = now()->toDateString();
+        $this->pagoLoteAbierto = true;
+    }
+
+    /**
+     * Paga el pendiente completo de cada factura marcada, en la misma fecha. Las que no
+     * se pueden pagar todavía (ya pagadas, sin cuenta bancaria, sin contabilizar cuando
+     * hace falta…) se saltan solas, con el mismo motivo que vería quien las pagara una a
+     * una desde PagarFactura.
+     */
+    public function pagarLote(RegistrarPagoFactura $pagos): void
+    {
+        $this->validate([
+            'pagoLoteFecha' => ['required', 'date'],
+        ], attributes: [
+            'pagoLoteFecha' => __('Fecha de pago'),
+        ]);
+
+        $facturas = FacturaProveedor::with('proveedor.persona.comunidad')
+            ->whereIn('id', $this->pagoLoteIds)
+            ->get();
+
+        $pagadas       = 0;
+        $sinContabilizar = 0;
+
+        foreach ($facturas as $factura) {
+            if ($pagos->motivoNoPagable($factura)) {
+                continue;
+            }
+
+            try {
+                if ($pagos->registrar($factura->id, $this->pagoLoteFecha)) {
+                    $pagadas++;
+                }
+            } catch (AsientoInvalidoException|EjercicioCerradoException|EjercicioContableDesconocidoException|CuentaContableDesconocidaException $e) {
+                // El pago quedó registrado; lo que falló es su asiento, igual que en
+                // PagarFactura. Se sigue con el resto del lote.
+                $pagadas++;
+                $sinContabilizar++;
+            }
+        }
+
+        $this->pagoLoteAbierto = false;
+        $this->pagoLoteIds     = [];
+        $this->limpiarSeleccion();
+
+        if ($pagadas === 0) {
+            $this->dispatch('toast-error', ['title' => __('No había ninguna factura pagable')]);
+
+            return;
+        }
+
+        $this->dispatch('toast-success', [
+            'title' => $sinContabilizar
+                ? __(':pagadas facturas pagadas; :sinContabilizar sin contabilizar', compact('pagadas', 'sinContabilizar'))
+                : __(':count facturas pagadas', ['count' => $pagadas]),
+        ]);
+    }
+
+    public function render()
+    {
+        $items = $this->aplicarSeleccion($this->consultaBase())
             // fecha_factura se guarda como texto dd/mm/aaaa (ver filtroFechaDesde): ordenar tal
             // cual sería alfabético, no cronológico, así que se reordena igual que en el filtro.
             ->when($this->sort === 'fecha_factura', fn ($q) => $q->orderByRaw(
@@ -366,6 +581,8 @@ class Lista extends ListaComponent
             ))
             ->when($this->sort !== 'fecha_factura', fn ($q) => $q->orderBy($this->sort, $this->direction))
             ->paginate($this->lineasXPagina);
+
+        $this->sincronizarSeleccionVisible($items);
 
         return view('livewire.facturas.lista', compact('items'));
     }

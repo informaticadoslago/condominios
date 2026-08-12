@@ -68,6 +68,7 @@ class RegistrarCobro
                     ]);
                 }
 
+                $recibo->fechaCambioEstado = $fecha;
                 $recibo->estado_id = TipoEstadoRecibo::COBRADO;
             }
 

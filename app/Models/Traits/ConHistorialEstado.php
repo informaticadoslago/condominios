@@ -18,19 +18,30 @@ trait ConHistorialEstado
      */
     public ?string $motivoCambioEstado = null;
 
+    /**
+     * Fecha de negocio del cambio, cuando es distinta de hoy: la fecha de cobro de un
+     * recibo, por ejemplo. Igual que $motivoCambioEstado, se pone justo antes de guardar
+     * y se consume al registrarlo. Si no se indica, se registra con fecha de hoy (fecha
+     * de registro): cada pantalla puede empezar a pedirla y rellenar este campo sin
+     * necesitar ninguna migración nueva, la columna ya existe para todos los modelos.
+     */
+    public ?string $fechaCambioEstado = null;
+
     public static function bootConHistorialEstado()
     {
         static::created(function ($model) {
             if (! is_null($model->getAttributes()['estado_id'] ?? null)) {
-                $model->registrarCambioEstado(null, $model->estado_id, $model->motivoCambioEstado);
+                $model->registrarCambioEstado(null, $model->estado_id, $model->motivoCambioEstado, $model->fechaCambioEstado);
                 $model->motivoCambioEstado = null;
+                $model->fechaCambioEstado = null;
             }
         });
 
         static::updated(function ($model) {
             if ($model->wasChanged('estado_id')) {
-                $model->registrarCambioEstado($model->getOriginal('estado_id'), $model->estado_id, $model->motivoCambioEstado);
+                $model->registrarCambioEstado($model->getOriginal('estado_id'), $model->estado_id, $model->motivoCambioEstado, $model->fechaCambioEstado);
                 $model->motivoCambioEstado = null;
+                $model->fechaCambioEstado = null;
             }
         });
     }
@@ -49,13 +60,14 @@ trait ConHistorialEstado
         return $this->morphOne(HistorialEstado::class, 'estadoable')->latestOfMany();
     }
 
-    public function registrarCambioEstado($anterior, $nuevo, ?string $motivo = null): void
+    public function registrarCambioEstado($anterior, $nuevo, ?string $motivo = null, ?string $fecha = null): void
     {
         $this->historialEstados()->create([
             'estado_anterior' => $anterior,
             'estado_nuevo'    => $nuevo,
             'user_id'         => auth()->id(),
             'motivo'          => $motivo,
+            'fecha'           => $fecha ?? now()->toDateString(),
         ]);
     }
 }

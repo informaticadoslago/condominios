@@ -20,10 +20,53 @@
                     wire:click="$dispatch('abrir-importar-facturas')" title="{{ __('Importar') }}">
                     <i class="fa-solid fa-folder-open mr-1"></i>{{ __('Importar') }}
                 </x-secondary-button>
+                <x-secondary-button type="button" wire:click="invertirSeleccion"
+                    title="{{ __('Invierte la selección dentro de lo que cumple el filtro actual') }}">
+                    <i class="fa-solid fa-arrow-right-arrow-left mr-1"></i>{{ __('Invertir selección') }}
+                </x-secondary-button>
+                @if (count($seleccionados))
+                    <x-secondary-button type="button" wire:click="limpiarSeleccion" class="ml-1"
+                        title="{{ __('Quitar toda la selección') }}">
+                        <i class="fa-solid fa-xmark mr-1"></i>{{ __('Quitar selección') }} ({{ count($seleccionados) }})
+                    </x-secondary-button>
+                    <x-secondary-button type="button" wire:click="toggleVerSoloSeleccionados"
+                        @class(['ml-1' => true, '!bg-blue-600 dark:!bg-blue-800 !text-white hover:!bg-blue-700 dark:hover:!bg-blue-700' => $verSoloSeleccionados])
+                        title="{{ __('Ver solo las filas seleccionadas') }}">
+                        <i class="fa-solid fa-check-double mr-1"></i>{{ __('Ver solo seleccionados') }}
+                    </x-secondary-button>
+                @endif
                 @include('livewire.parciales.selector-columnas')
-                <x-secondary-button type="button" wire:click="borrarFiltro" title="{{ __('Borrar filtro') }}">
+                <x-secondary-button type="button" wire:click="borrarFiltro" class="ml-1" title="{{ __('Borrar filtro') }}">
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>{{ __('Borrar filtro') }}
                 </x-secondary-button>
+                {{-- Acciones en lote: actúan sobre las marcadas si hay alguna y, si no,
+                     sobre todo lo que cumple el filtro. --}}
+                <span class="ml-1 inline-block align-middle">
+                    <x-dropdown align="right" width="60">
+                        <x-slot name="trigger">
+                            <button type="button" title="{{ __('Acciones en lote') }}"
+                                class="p-2 rounded-lg text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-800/5 dark:hover:bg-white/10">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        </x-slot>
+                        <x-slot name="content">
+                            @if (contabilidad_activa())
+                                <x-dropdown-link href="#" wire:click="contabilizarLote">
+                                    <i class="fa-solid fa-scale-balanced mr-1"></i>{{ __('Contabilizar') }}
+                                    @if (count($seleccionados))
+                                        ({{ count($seleccionados) }})
+                                    @endif
+                                </x-dropdown-link>
+                            @endif
+                            <x-dropdown-link href="#" wire:click="abrirPagoLote">
+                                <i class="fa-solid fa-money-bill-transfer mr-1"></i>{{ __('Pagar') }}
+                                @if (count($seleccionados))
+                                    ({{ count($seleccionados) }})
+                                @endif
+                            </x-dropdown-link>
+                        </x-slot>
+                    </x-dropdown>
+                </span>
             </x-slot>
 
             <div class="py-3 px-6 flex items-center">
@@ -35,6 +78,10 @@
                 <table class="table-striped w-full table-auto text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
+                            <th class="py-3 px-6 w-px">
+                                <input type="checkbox" wire:model.live="marcarTodosVisibles"
+                                    title="{{ __('Marcar/desmarcar toda la página') }}" />
+                            </th>
                             @if ($this->verColumna('cif'))
                                 <th class="py-3 px-6">{{ __('CIF proveedor') }}</th>
                             @endif
@@ -74,6 +121,9 @@
                     <tbody class="divide-y">
                         @foreach ($items as $item)
                             <tr wire:key="{{ $item->id }}">
+                                <td class="px-6 py-4">
+                                    <input type="checkbox" wire:model.live="seleccionados" value="{{ $item->id }}" />
+                                </td>
                                 @if ($this->verColumna('cif'))
                                     <td class="px-6 py-4">{{ $item->proveedor->persona->documento_identificativo ?? '' }}</td>
                                 @endif
@@ -176,7 +226,7 @@
                             </tr>
                             @if ($item->pendiente() <= 0 && in_array($item->id, $expandido, true))
                                 <tr wire:key="{{ $item->id }}-pagos">
-                                    <td colspan="{{ count($this->columnas) + 2 + (contabilidad_activa() ? 1 : 0) }}"
+                                    <td colspan="{{ count($this->columnas) + 3 + (contabilidad_activa() ? 1 : 0) }}"
                                         class="px-6 py-4 bg-gray-50 dark:bg-gray-800">
                                         <table class="w-full text-sm text-left">
                                             <thead>
@@ -215,6 +265,36 @@
                 <div class="py-3 px-6">{{ __('No se encontraron resultados.') }}</div>
             @endif
         </x-dosl.tabla>
+
+        {{-- Pago en lote: paga el pendiente completo de cada factura marcada en la misma
+             fecha. Las que no se puedan pagar todavía se saltan solas. --}}
+        <x-dosl.dialog-modal wire:model.live="pagoLoteAbierto" maxWidth="lg">
+            <x-slot name="title">
+                {{ __('Pagar facturas') }}
+            </x-slot>
+
+            <x-slot name="content">
+                <div class="mb-4">
+                    <x-label>{{ __('Facturas') }}:</x-label>
+                    <p class="font-medium">{{ count($pagoLoteIds) }}</p>
+                </div>
+
+                <div>
+                    <x-label for="pagoLoteFecha">{{ __('Fecha de pago') }}:</x-label>
+                    <x-input class="block mt-1 w-full" type="date" id="pagoLoteFecha" wire:model="pagoLoteFecha" />
+                    <x-input-error for="pagoLoteFecha" class="mt-1" />
+                </div>
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button type="button" wire:click="$set('pagoLoteAbierto', false)">
+                    {{ __('Cancelar') }}
+                </x-secondary-button>
+                <x-button type="button" class="ml-2" wire:click="pagarLote">
+                    {{ __('Sí, pagar') }}
+                </x-button>
+            </x-slot>
+        </x-dosl.dialog-modal>
 
         @livewire('facturas.pagar-factura')
         @livewire('facturas.importar-facturas')

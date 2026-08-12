@@ -35,7 +35,7 @@ trait ConHistorialEstadoModal
             ->values()
             ->map(fn ($h, $i) => [
                 'descripcion' => $catalogo[$h->estado_nuevo] ?? '—',
-                'fecha'       => optional($h->created_at)->format('d-m-Y H:i'),
+                'fecha'       => $h->fecha ? $h->fecha->format('d-m-Y') : optional($h->created_at)->format('d-m-Y H:i'),
                 'actual'      => $i === 0,
             ])->all();
 

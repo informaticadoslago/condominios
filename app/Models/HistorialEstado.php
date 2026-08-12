@@ -15,6 +15,11 @@ class HistorialEstado extends Model
         'estado_nuevo',
         'user_id',
         'motivo',
+        'fecha',
+    ];
+
+    protected $casts = [
+        'fecha' => 'date',
     ];
 
     public function estadoable()
