@@ -63,7 +63,7 @@
         wire:keydown.tab ="$set('{{ $rutaItems }}', [])"
         wire:blur ="$set('{{ $rutaItems }}', [])"
         autocomplete="off"
-        class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring focus:ring-indigo-200" />
+        class="w-full rounded-lg border border-gray-300 h-14 px-5 text-xl outline-none focus:ring focus:ring-indigo-200" />
 
 
     @if (!empty($lista))
