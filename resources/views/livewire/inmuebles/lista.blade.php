@@ -100,10 +100,22 @@
                                 <td class="px-6 py-4">{{ $item->coeficiente }}%</td>
                                 <td class="px-6 py-4">
                                     {{ $item->propietarios->map(fn ($p) => $p->persona->nombreCompleto)->join(', ') }}
+                                    @if ($item->propietarios->contains(fn ($p) => $p->correo()?->estaValidado()))
+                                        <i class="fa-solid fa-envelope text-green-600 ml-1" title="{{ __('Algún propietario tiene el correo validado') }}"></i>
+                                    @else
+                                        <i class="fa-solid fa-envelope text-red-600 ml-1" title="{{ __('Ningún propietario tiene el correo validado') }}"></i>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
                                     @if ($item->formaPagoVigente?->formaDePago)
                                         {{ $item->formaPagoVigente->formaDePago->descripcion }}
+                                        @if ($item->formaPagoVigente->forma_de_pago_id === \App\Models\FormaDePago::RECIBO_BANCARIO)
+                                            @if ($item->formaPagoVigente->cuentaBancaria?->mandatoActivo?->documentos->isNotEmpty())
+                                                <i class="fa-solid fa-paperclip text-green-600 ml-1" title="{{ __('Mandato SEPA con documento adjunto') }}"></i>
+                                            @else
+                                                <i class="fa-solid fa-paperclip text-red-600 ml-1" title="{{ __('Sin documento de mandato SEPA adjunto') }}"></i>
+                                            @endif
+                                        @endif
                                     @else
                                         <span class="text-amber-600 dark:text-amber-400">{{ __('Sin asignar') }}</span>
                                     @endif
