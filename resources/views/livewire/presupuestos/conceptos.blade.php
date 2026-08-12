@@ -91,7 +91,7 @@
                 @endunless
             </div>
 
-            <div class="w-80 max-w-[30vw] shrink-0 border border-gray-200 dark:border-zinc-700 rounded-lg p-4">
+            <div class="w-md max-w-[40vw] shrink-0 border border-gray-200 dark:border-zinc-700 rounded-lg p-4">
                 <h2 class="font-medium mb-3">{{ __('Pagos') }}</h2>
 
                 @if ($bloqueado)
@@ -142,7 +142,7 @@
                     <div class="mt-4 pt-3 border-t border-gray-200 dark:border-zinc-700 space-y-3">
                         <div class="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
                             <div class="w-6">{{ __('Nº') }}</div>
-                            <div class="flex-1">{{ __('Fecha') }}</div>
+                            <div class="w-36 shrink-0">{{ __('Fecha') }}</div>
                             <div class="w-16 text-right">{{ __('%') }}</div>
                             <div class="flex-1 text-right">{{ __('Importe') }}</div>
                         </div>
@@ -151,7 +151,7 @@
                                 <div class="w-6 shrink-0">
                                     <span class="whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-400">{{ $index + 1 }}</span>
                                 </div>
-                                <div class="flex-1 min-w-0">
+                                <div class="w-36 shrink-0">
                                     @if ($bloqueado)
                                         <div class="h-12 flex items-center px-2 text-base text-gray-900 dark:text-gray-100">
                                             {{ $pago['fecha']->format('d/m/Y') }}
@@ -192,7 +192,7 @@
                         @endphp
                         <div class="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-zinc-700 text-sm font-semibold">
                             <div class="w-6"></div>
-                            <div class="flex-1">{{ __('Suma') }}</div>
+                            <div class="w-36 shrink-0">{{ __('Suma') }}</div>
                             <div class="w-16 text-right {{ ! $bloqueado && abs($diferenciaPct) >= 0.01 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-200' }}">
                                 {{ number_format($sumaPorcentajes, 2, ',', '.') }}
                             </div>
