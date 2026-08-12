@@ -11,8 +11,24 @@
                     {{ __('Suma de cuotas') }}: {{ number_format($sumaCuotas, 2) }}%
                 </span>
             </div>
-            @if (count($propietarios))
+            @if (count($propietarios) || count($propietariosBorrados))
                 <ul class="border rounded mt-1 divide-y">
+                    {{-- Borrados (quitados en esta sesión, todavía no reales en BD; o ya
+                         cerrados de antes), de la fecha más antigua a la más moderna. Solo lectura. --}}
+                    @foreach ($propietariosBorrados as $index => $borrado)
+                        <li class="px-3 py-2" wire:key="propietario-borrado-{{ $index }}">
+                            <div class="flex items-center gap-2">
+                                <span class="mayusculas flex-1 text-gray-500">{{ $borrado['nombre'] }}</span>
+                                <span class="text-sm text-gray-500">{{ number_format($borrado['cuota_percent'], 2) }}%</span>
+                                <span class="text-sm text-gray-500">{{ $borrado['causa'] }}</span>
+                                <span class="text-sm text-gray-500">
+                                    {{ __('desde') }}
+                                    {{ $borrado['fecha_inicio'] ? \Illuminate\Support\Carbon::parse($borrado['fecha_inicio'])->format('d-m-Y') : '—' }}
+                                    {{ __('hasta') }} {{ \Illuminate\Support\Carbon::parse($borrado['fecha_fin'])->format('d-m-Y') }}
+                                </span>
+                            </div>
+                        </li>
+                    @endforeach
                     @foreach ($propietarios as $propietario)
                         <li class="px-3 py-2" wire:key="propietario-{{ $propietario['ref'] }}">
                             @if ($editandoId === $propietario['ref'])

@@ -31,7 +31,13 @@ class PropietariosStep extends CrearInmuebleStep
     /** [['ref', 'titularidad_id', 'persona_comunidad_id', 'persona_nueva', 'nombre', 'cuota_percent', 'causa', 'fecha_inicio'], …] */
     public array $propietarios = [];
 
-    /** Titularidades reales quitadas en esta sesión, con la fecha_fin elegida: [['titularidad_id', 'fecha_fin'], …] */
+    /**
+     * Titularidades reales quitadas en esta sesión, con la fecha_fin elegida:
+     * [['titularidad_id', 'nombre', 'cuota_percent', 'causa', 'fecha_inicio', 'fecha_fin'], …].
+     * Lleva los mismos datos que tenía la línea en $propietarios (no solo el id) para
+     * poder pintarla como histórico en pantalla sin esperar a "Terminar" ni consultar
+     * la BD — todavía no es real ahí, solo vive en el borrador.
+     */
     public array $propietariosQuitados = [];
     public bool $cargado = false;
 
@@ -377,6 +383,10 @@ class PropietariosStep extends CrearInmuebleStep
         if ($linea) {
             $this->propietariosQuitados[] = [
                 'titularidad_id' => $linea['titularidad_id'],
+                'nombre'         => $linea['nombre'],
+                'cuota_percent'  => $linea['cuota_percent'],
+                'causa'          => $linea['causa'],
+                'fecha_inicio'   => $linea['fecha_inicio'],
                 'fecha_fin'      => $this->quitar_fecha_fin,
             ];
         }
@@ -452,10 +462,48 @@ class PropietariosStep extends CrearInmuebleStep
         $this->nextStep();
     }
 
+    /**
+     * Titularidades ya cerradas de este inmueble (fecha_fin puesta): se enseñan como
+     * histórico, solo lectura. No viven en $propietarios ni en el borrador — si
+     * estuvieran ahí, el bucle de guardado de DatosFinancierosStep::terminar() las
+     * tocaría como si siguieran vigentes.
+     */
+    private function propietariosHistoricos(): array
+    {
+        if (! $this->inmuebleId) {
+            return [];
+        }
+
+        return Titularidad::where('inmueble_id', $this->inmuebleId)
+            ->whereNotNull('fecha_fin')
+            ->with('propietario.persona')
+            ->orderByDesc('fecha_fin')
+            ->get()
+            ->map(fn (Titularidad $t) => [
+                'nombre'        => ($t->propietario->persona->documento_identificativo ?? '').' — '.$t->propietario->persona->nombreCompleto,
+                'cuota_percent' => (float) $t->cuota_percent,
+                'causa'         => $t->causa,
+                // Sin formatear: hace falta en Y-m-d para poder ordenar por fecha junto
+                // con los quitados en esta sesión (ver render()). Se formatea en el blade.
+                'fecha_inicio'  => $t->fecha_inicio?->toDateString(),
+                'fecha_fin'     => $t->fecha_fin?->toDateString(),
+            ])
+            ->all();
+    }
+
     public function render()
     {
+        // Los quitados en esta sesión (todavía no reales en BD) y los ya cerrados de
+        // antes se enseñan juntos, de la fecha más antigua a la más moderna.
+        $propietariosBorrados = collect($this->propietariosQuitados)
+            ->concat($this->propietariosHistoricos())
+            ->sortBy('fecha_fin')
+            ->values()
+            ->all();
+
         return view('livewire.inmuebles.crear.steps.propietarios-step', [
             'causas' => $this->causas(),
+            'propietariosBorrados' => $propietariosBorrados,
         ]);
     }
 }
