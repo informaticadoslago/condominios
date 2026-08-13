@@ -129,7 +129,7 @@
                                 @endif
                                 @if ($this->verColumna('razon_social'))
                                     <td class="px-6 py-4">
-                                        <span class="mayusculas">{{ $item->proveedor->persona->razon_social ?? '' }}</span>
+                                        <span class="mayusculas">{{ $item->proveedor->persona->nombreCompleto ?? '' }}</span>
                                     </td>
                                 @endif
                                 @if ($this->verColumna('fecha_factura'))

@@ -207,6 +207,9 @@ class Lista extends ListaComponent
             'aplicar'  => fn ($query, $valor) => $query->whereHas(
                 'proveedor.persona',
                 fn ($p) => $p->where('razon_social', 'like', "%{$valor}%")
+                    ->orWhere('nombre', 'like', "%{$valor}%")
+                    ->orWhere('apellido1', 'like', "%{$valor}%")
+                    ->orWhere('apellido2', 'like', "%{$valor}%")
             ),
         ];
     }
@@ -372,6 +375,9 @@ class Lista extends ListaComponent
                     $q2->where('numero_factura', 'like', "%{$search}%")
                         ->orWhereHas('proveedor.persona', fn ($p) => $p
                             ->where('razon_social', 'like', "%{$search}%")
+                            ->orWhere('nombre', 'like', "%{$search}%")
+                            ->orWhere('apellido1', 'like', "%{$search}%")
+                            ->orWhere('apellido2', 'like', "%{$search}%")
                             ->orWhere('documento_identificativo', 'like', "%{$search}%"));
                 });
             });
