@@ -9,12 +9,16 @@ use Illuminate\Support\Facades\File;
  * Deja los logos en la carpeta pública desde la que los sirven las vistas, y crea
  * los directorios de storage que necesita la app (por ahora, los de spatie/laravel-backup).
  *
- * Los logos viven versionados en resources/images (viaja en el repo), pero el
- * destino public/storage/images/logo está en .gitignore y NO se despliega: sin
- * este comando, en producción welcome, login y el favicon salen con el logo roto.
+ * Los logos viven versionados en resources/images (viaja en el repo), pero el destino
+ * public/images/logo está en .gitignore y NO se despliega: sin este comando, en
+ * producción welcome, login y el favicon salen con el logo roto.
  * Los directorios de storage tampoco viajan por git (están vacíos) y, si nacen
  * por accidente con otro propietario (p. ej. una ejecución previa como root),
  * bloquean la escritura del usuario real de la app.
+ *
+ * El destino es una carpeta real dentro de public/, NO detrás del symlink
+ * public/storage: un restore de backup (u otra operación que toque storage/app) no debe
+ * poder dejar el logo roto por en medio.
  *
  * No toca la base de datos: seguro ejecutarlo en cualquier momento en un servidor real.
  */
@@ -24,9 +28,9 @@ class InstallResources extends Command
 
     protected $description = 'Copia los logos a public y crea los directorios de storage que necesita la app';
 
-    /** Origen versionado y destino público (el que resuelve asset('storage/images/logo/...')). */
+    /** Origen versionado y destino público (el que resuelve asset('images/logo/...')). */
     const ORIGEN  = 'images';
-    const DESTINO = 'storage/images/logo';
+    const DESTINO = 'images/logo';
 
     public function handle()
     {

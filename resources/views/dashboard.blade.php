@@ -8,7 +8,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-8 sm:p-12 text-center">
-                <img src="{{ asset('storage/images/logo/logo-circulo.png') }}" alt="dosLago"
+                <img src="{{ asset('images/logo/logo-circulo.png') }}" alt="dosLago"
                     class="mx-auto h-24 w-auto mb-6">
 
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">

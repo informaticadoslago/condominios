@@ -138,7 +138,7 @@
     <div class="subtitle">{{ config('app.name') }}</div>
 
     <div class="logo">
-        <img src="{{ asset('storage/images/logo/dosLago.png') }}" alt="dosLago">
+        <img src="{{ asset('images/logo/dosLago.png') }}" alt="dosLago">
     </div>
 
     <button class="enter-button">Pulse para entrar</button>
