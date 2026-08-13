@@ -108,6 +108,11 @@ class AppInstaller extends Command
 
         $this->warn('No se pudo conectar con el usuario de la aplicación. Hace falta un usuario con privilegios para crearlo.');
 
+        if (! $this->confirm('¿Dispones de una cuenta con privilegios de administración de MySQL (no siempre es root en producción)?', true)) {
+            $this->error('Sin una cuenta con privilegios no se puede crear la base de datos automáticamente. Créala manualmente (junto con el usuario del .env) y vuelve a lanzar el instalador.');
+            return false;
+        }
+
         $adminUser = text(label: 'Usuario de administración de la base de datos', default: 'root', required: true);
         $adminPass = password(label: 'Contraseña de administración de la base de datos');
 
@@ -198,40 +203,6 @@ class AppInstaller extends Command
         return $process->isSuccessful();
     }
 
-    /**
-     * Copia los logos de la app (en resources/images) a public, para que
-     * las vistas que los sirven vía asset('storage/images/logo/...') los
-     * encuentren.
-     */
-    protected function copyLogos(): void
-    {
-        $files = [
-            'dosLago.png',
-            'logo-circulo.png',
-            'logo-circulo-blanco.png',
-        ];
-
-        $sourceDir = resource_path('images');
-        $targetDir = public_path('storage/images/logo');
-
-        if (! is_dir($targetDir)) {
-            mkdir($targetDir, 0755, true);
-        }
-
-        foreach ($files as $file) {
-            $source = $sourceDir . '/' . $file;
-            $target = $targetDir . '/' . $file;
-
-            if (! file_exists($source)) {
-                $this->error("Archivo {$file} no encontrado en resources/images.");
-                continue;
-            }
-
-            copy($source, $target);
-            $this->info("Archivo {$file} copiado/sobrescrito en public.");
-        }
-    }
-
     public function handle()
     {
 
@@ -279,10 +250,9 @@ ASCII;
             return Command::FAILURE;
         }
 
-        // Copia de logos a public.
-        if ($this->confirm('¿Deseas copiar los logos a public?', true)) {
-            $this->copyLogos();
-        }
+        // Logos a public y directorios de storage (backups): no toca la BD, mismo
+        // comando que se puede relanzar solo en cualquier momento (doslago:installresources).
+        Artisan::call('doslago:installresources', [], $this->output);
 
         // Paso 2: migraciones y seeders.
         if (! $this->runMigrationsWithSeeders()) {
