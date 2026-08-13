@@ -40,7 +40,7 @@
                         @foreach ($backups as $backup)
                             <tr wire:key="{{ $backup['disco'].'-'.$backup['fichero'] }}">
                                 <td class="px-6 py-4">{{ $backup['disco'] }}</td>
-                                <td class="px-6 py-4">{{ \Carbon\Carbon::createFromTimestamp($backup['fecha'])->format('d/m/Y H:i') }}</td>
+                                <td class="px-6 py-4">{{ \Carbon\Carbon::createFromTimestamp($backup['fecha'], config('app.timezone'))->format('d/m/Y H:i') }}</td>
                                 <td class="px-6 py-4 text-right">{{ round($backup['tamano'] / 1048576, 2) }} MB</td>
                                 <td class="px-6 py-4 text-right whitespace-nowrap">
                                     <a class="btn-editar inline-flex" href="{{ route('sysadmin.backups.download', ['fichero' => $backup['fichero']]) }}"
