@@ -7,26 +7,26 @@ use RuntimeException;
 use Symfony\Component\Process\Process;
 
 /**
- * Deja la base de datos y el .env de una escuela listos: recrea la base de datos (vacía)
- * según el .env de la escuela, sustituye el .env y aplica encima las migraciones de L12.
+ * Deja la base de datos y el .env de una comunidad listos: recrea la base de datos (vacía)
+ * según el .env de la comunidad, sustituye el .env y aplica encima las migraciones de L12.
  * No importa ningún volcado ni toca storage/app: eso queda fuera de este comando.
  *
  * El .env se copia ANTES de migrar, porque las migraciones leen de él los ids de
- * 'tipos_de_tipos' de la escuela (ver config/defines.php: tipos_l9).
+ * 'tipos_de_tipos' de la comunidad (ver config/defines.php: tipos_l9).
  *
- * El env_file de cada escuela viaja por git, así que no debe llevar secretos reales: si la
- * escuela tiene createdatabase=1 (resetdatabase.xml), DB_DATABASE/DB_USERNAME/DB_PASSWORD
+ * El env_file de cada comunidad viaja por git, así que no debe llevar secretos reales: si la
+ * comunidad tiene createdatabase=1 (resetdatabase.xml), DB_DATABASE/DB_USERNAME/DB_PASSWORD
  * del .env resultante salen de ahí (local, en .gitignore) y no del env_file; y el APP_KEY
- * siempre se regenera (nunca el del env_file, que sería el mismo para todas las escuelas).
+ * siempre se regenera (nunca el del env_file, que sería el mismo para todas las comunidades).
  */
 class ResetDatabase extends Command
 {
     protected $signature = 'doslago:db-reset';
 
-    protected $description = 'Recrea la BD de una escuela a partir de su .env y aplica las migraciones de L12';
+    protected $description = 'Recrea la BD de una comunidad a partir de su .env y aplica las migraciones de L12';
 
     /**
-     * Fichero de configuración de las escuelas, junto a este comando. Es local (está en
+     * Fichero de configuración de las comunidades, junto a este comando. Es local (está en
      * .gitignore): se versiona resetdatabase.xml.example como plantilla, igual que el .env.
      */
     const CONFIG = 'resetdatabase.xml';
@@ -50,15 +50,15 @@ class ResetDatabase extends Command
         }
 
         try {
-            $escuelas = $this->escuelas();
+            $comunidades = $this->comunidades();
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
 
             return 1;
         }
 
-        $escuela = $this->choice('Selecciona una opción', array_keys($escuelas), 0);
-        $config  = $escuelas[$escuela];
+        $comunidad = $this->choice('Selecciona una opción', array_keys($comunidades), 0);
+        $config  = $comunidades[$comunidad];
 
         $envFile = $config['ENV_FILE'];
 
@@ -96,7 +96,7 @@ class ResetDatabase extends Command
                 return 1;
             }
 
-            // Cuenta con permisos para crear/borrar la BD. Según la escuela (resetdatabase.xml):
+            // Cuenta con permisos para crear/borrar la BD. Según la comunidad (resetdatabase.xml):
             //  - createaccess=1: basta el propio usuario del .env, ya tiene permisos.
             //  - createaccessname/createaccesspassword: se usa esa cuenta.
             //  - si no hay nada: se piden por pantalla.
@@ -112,7 +112,7 @@ class ResetDatabase extends Command
             }
         }
 
-        $this->warn("Se va a BORRAR y recrear la base de datos '{$dbName}' (escuela {$escuela}).");
+        $this->warn("Se va a BORRAR y recrear la base de datos '{$dbName}' (comunidad {$comunidad}).");
         $this->warn("Se va a sustituir el .env por {$envFile} (el actual se guarda como .env.old).");
 
         if ($config['CREATE_DATABASE']) {
@@ -146,7 +146,7 @@ class ResetDatabase extends Command
                 $this->establecerEnvValor('.env', 'DB_PASSWORD', $dbPass);
             }
 
-            // La key del envFile viaja por git y es la misma para todas las escuelas: no
+            // La key del envFile viaja por git y es la misma para todas las comunidades: no
             // protege nada compartida así (cifra sesiones/cookies). Cada reset se lleva la
             // suya, generada aquí, nunca la del repositorio.
             $this->info('Generando APP_KEY...');
@@ -157,7 +157,7 @@ class ResetDatabase extends Command
             // que a estas alturas están obsoletas): no basta con lanzarlo fuera. Laravel mete
             // las variables del .env en el entorno real (putenv), el hijo las hereda, y dotenv
             // NO pisa una variable de entorno que ya existe: sin esto el hijo migraría la
-            // escuela ANTERIOR y, si ya estaba migrada, diría "Nothing to migrate" y saldría
+            // comunidad ANTERIOR y, si ya estaba migrada, diría "Nothing to migrate" y saldría
             // con 0. Sin un solo error.
             $this->info('Ejecutando migraciones de L12...');
             $variables = $this->variablesDe('.env');
@@ -177,7 +177,7 @@ class ResetDatabase extends Command
                 $this->artisan(['db:seed', '--force', '--class=CreateSuperUserSeeder'], $variables);
             }
 
-            $this->info("Proceso finalizado correctamente para {$escuela} (BD: {$dbName})");
+            $this->info("Proceso finalizado correctamente para {$comunidad} (BD: {$dbName})");
 
             return 0;
         } catch (RuntimeException $e) {
@@ -201,12 +201,12 @@ class ResetDatabase extends Command
     }
 
     /**
-     * Las escuelas se leen de resetdatabase.xml (raíz del proyecto, junto a los
-     * .env.<escuela>), no de una constante: así se añade o cambia una escuela sin tocar el
-     * comando. Devuelve el array indexado por el id de cada <escuela>:
+     * Las comunidades se leen de resetdatabase.xml (raíz del proyecto, junto a los
+     * .env.<comunidad>), no de una constante: así se añade o cambia una comunidad sin tocar el
+     * comando. Devuelve el array indexado por el id de cada <comunidad>:
      * [ id => ['ENV_FILE' => ..., 'CREATE_ACCESS' => ..., ...] ].
      */
-    private function escuelas(): array
+    private function comunidades(): array
     {
         $ruta = __DIR__ . '/' . self::CONFIG;
 
@@ -220,37 +220,37 @@ class ResetDatabase extends Command
             throw new RuntimeException('No se pudo leer ' . self::CONFIG . ' (¿XML mal formado?).');
         }
 
-        $escuelas = [];
+        $comunidades = [];
 
-        foreach ($xml->escuela as $escuela) {
-            $id = trim((string) $escuela['id']);
+        foreach ($xml->comunidad as $comunidad) {
+            $id = trim((string) $comunidad['id']);
 
             if ($id === '') {
-                throw new RuntimeException('Hay una <escuela> sin atributo id en ' . self::CONFIG . '.');
+                throw new RuntimeException('Hay una <comunidad> sin atributo id en ' . self::CONFIG . '.');
             }
 
-            $escuelas[$id] = [
-                'ENV_FILE'               => trim((string) $escuela->env_file),
+            $comunidades[$id] = [
+                'ENV_FILE'               => trim((string) $comunidad->env_file),
                 // Cuenta con permisos para crear/borrar la BD (evita pedir la de root):
                 //  createaccess=1 usa el propio usuario del .env; si no, la cuenta
                 //  createaccessname/createaccesspassword; y si no hay nada, se pide.
-                'CREATE_ACCESS'          => trim((string) $escuela['createaccess']) === '1',
-                'CREATE_ACCESS_NAME'     => trim((string) $escuela->createaccessname),
-                'CREATE_ACCESS_PASSWORD' => (string) $escuela->createaccesspassword,
+                'CREATE_ACCESS'          => trim((string) $comunidad['createaccess']) === '1',
+                'CREATE_ACCESS_NAME'     => trim((string) $comunidad->createaccessname),
+                'CREATE_ACCESS_PASSWORD' => (string) $comunidad->createaccesspassword,
                 // createdatabase=1: el nombre/usuario/contraseña de la BD del .env resultante
                 // NO salen del envFile (que viaja por git), sino de esta misma cuenta
                 // (createaccessname/createaccesspassword) y de createaccessdatabase; lo que
                 // falte se pide por pantalla. Esa cuenta sirve de admin y de conexión de la app.
-                'CREATE_DATABASE'        => trim((string) $escuela['createdatabase']) === '1',
-                'CREATE_ACCESS_DATABASE' => trim((string) $escuela->createaccessdatabase),
+                'CREATE_DATABASE'        => trim((string) $comunidad['createdatabase']) === '1',
+                'CREATE_ACCESS_DATABASE' => trim((string) $comunidad->createaccessdatabase),
             ];
         }
 
-        if ($escuelas === []) {
-            throw new RuntimeException('No hay ninguna <escuela> definida en ' . self::CONFIG . '.');
+        if ($comunidades === []) {
+            throw new RuntimeException('No hay ninguna <comunidad> definida en ' . self::CONFIG . '.');
         }
 
-        return $escuelas;
+        return $comunidades;
     }
 
     /**
@@ -347,7 +347,7 @@ class ResetDatabase extends Command
         return $variables;
     }
 
-    /** Lanza un artisan en proceso aparte con las variables del .env de la escuela. */
+    /** Lanza un artisan en proceso aparte con las variables del .env de la comunidad. */
     private function artisan(array $argumentos, array $variables): void
     {
         $proceso = new Process([PHP_BINARY, base_path('artisan'), ...$argumentos], base_path(), $variables);
