@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Configuración local del comando `doslago:db-restore` (ver
+    app/Console/Commands/BackupRestore.php).
+
+    directory: carpeta donde se guardan los .zip de copia de seguridad que el
+    comando puede elegir para analizar y, si se confirma, restaurar.
+
+    Cópiese como restore.xml (está en .gitignore, es local de cada servidor).
+-->
+<restore-config>
+    <directory>/ruta/absoluta/donde/se/guardan/los/zip</directory>
+</restore-config>

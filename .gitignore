@@ -35,3 +35,4 @@ Thumbs.db
 !/cron/*.example.sh
 !/cron/*.example.txt
 /app/Console/Commands/resetdatabase.xml
+/database/sql_procedures/restore.xml
