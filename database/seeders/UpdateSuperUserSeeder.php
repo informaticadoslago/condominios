@@ -2,32 +2,30 @@
 
 namespace Database\Seeders;
 
-use App\Models\Persona;
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 
 class UpdateSuperUserSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Resetea la contraseña de todos los usuarios con rol super-admin a la
+     * marcada en config('defines.superadmin.password') (SUPERADMIN_PASSWORD en .env).
      *
      * @return void
      */
     public function run()
     {
-        $hoy = \Carbon\Carbon::now();
-        $rol = Role::firstOrCreate(['name' => config('defines.superadmin.nombre_rol')]);
+        $usuarios = User::role(config('defines.superadmin.nombre_rol'))->get();
 
-        $persona = Persona::firstOrCreate(['nombre' => 'Administrador1', 'apellido1' => 'administrador1','nif'=>'36000000D']);
-        $user = $persona->usuario()->updateOrCreate(['email' => config('defines.superadmin.email')],['login' => config('defines.superadmin.login'),
-         'password' => 'Aa123456','email_verified_at'=>$hoy]);
-        $user->syncRoles([config('defines.superadmin.nombre_rol')]);
+        if ($usuarios->isEmpty()) {
+            $this->command->warn('No existe ningún usuario con rol super-admin. Este seeder no crea usuarios.');
 
-        $persona = Persona::firstOrCreate(['nombre' => 'Administrador', 'apellido1' => 'administrador','nif'=>'36000023D']);
-        $user = $persona->usuario()->updateOrCreate(['login' => 'superadmin'], ['email' => 'superadmin@doslago.com', 'password' => 'superadmin','email_verified_at'=>$hoy]);
-        $user->syncRoles([config('defines.superadmin.nombre_rol')]);
+            return;
+        }
 
-        $this->command->info('Autorizado Admin con TODOS los permisos.');
-
+        foreach ($usuarios as $usuario) {
+            $usuario->update(['password' => config('defines.superadmin.password')]);
+            $this->command->info("Contraseña reseteada para {$usuario->login}.");
+        }
     }
 }
