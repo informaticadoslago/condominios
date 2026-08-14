@@ -38,6 +38,7 @@ final class EnlazarPagosContabilidad
         $pagos = PagoFactura::with([
             'cuentaBancaria',
             'factura.proveedor.persona.comunidad',
+            'factura.actividad',
         ])
             ->whereIn('id', $pagoIds)
             ->whereNull('asiento_contable')
@@ -90,6 +91,10 @@ final class EnlazarPagosContabilidad
         // La contabilidad trabaja en céntimos enteros; el pago, en euros con dos decimales.
         $centimos = (int) round((float) $pago->importe * 100);
 
+        // El pago no tiene actividad propia: hereda la de su factura, para que la deuda
+        // y su cancelación queden en el mismo proyecto.
+        $proyectoId = $factura->actividad?->proyecto_contable_id;
+
         $lineas = [
             new DatosApunte(debe: $centimos, tercero: new DatosTercero(
                 tipo: 'proveedor',
@@ -97,8 +102,8 @@ final class EnlazarPagosContabilidad
                 clase: 'acreedor',
                 nif: $persona->documento_identificativo,
                 razonSocial: $persona->razon_social ?: $persona->nombre_completo,
-            )),
-            new DatosApunte(haber: $centimos, cuenta: $cuentaTesoreria),
+            ), proyecto: $proyectoId),
+            new DatosApunte(haber: $centimos, cuenta: $cuentaTesoreria, proyecto: $proyectoId),
         ];
 
         $concepto = trim(sprintf(

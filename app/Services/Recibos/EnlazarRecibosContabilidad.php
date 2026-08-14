@@ -38,7 +38,7 @@ final class EnlazarRecibosContabilidad
      */
     public function ejecutar(array $reciboIds): array
     {
-        $recibos = Recibo::with(['presupuesto.comunidad', 'propietario.persona', 'inmueble'])
+        $recibos = Recibo::with(['presupuesto.comunidad', 'presupuesto.actividad', 'propietario.persona', 'inmueble'])
             ->whereIn('id', $reciboIds)
             ->whereNull('asiento_contable')
             ->get();
@@ -76,6 +76,9 @@ final class EnlazarRecibosContabilidad
         $presupuesto = $primero->presupuesto;
         $empresaId   = $presupuesto->comunidad->empresa_contable_id;
         $fecha       = $primero->fecha_vencimiento->toDateString();
+        // Todo el grupo es del mismo presupuesto, así que todas las líneas del asiento
+        // caen en la misma actividad (o en ninguna, si el presupuesto no tiene).
+        $proyectoId  = $presupuesto->actividad?->proyecto_contable_id;
 
         // El propietario que todavía no tenga subcuenta la estrena aquí: sin ella no hay
         // línea que ponerle al debe. Suele pasar con los que ya existían cuando se enlazó
@@ -100,10 +103,11 @@ final class EnlazarRecibosContabilidad
                 debe: $centimos,
                 cuenta: $recibo->propietario->cuenta_contable,
                 concepto: trim(sprintf('%s %s', $recibo->inmueble?->planta, $recibo->inmueble?->puerta)) ?: null,
+                proyecto: $proyectoId,
             );
         }
 
-        $lineas[] = new DatosApunte(haber: $total, cuenta: $presupuesto->cuenta_contable);
+        $lineas[] = new DatosApunte(haber: $total, cuenta: $presupuesto->cuenta_contable, proyecto: $proyectoId);
 
         $asiento = DB::transaction(fn () => $this->asientos->ejecutar(new DatosAsiento(
             empresaContableId: $empresaId,

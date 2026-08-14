@@ -20,6 +20,7 @@ las mismas reglas.
 | [Dar de alta un tercero](#dar-de-alta-un-tercero) | NIF y devuelve su subcuenta, sin registrar ningún asiento |
 | [La cuenta de un presupuesto o una derrama](#la-cuenta-de-un-presupuesto-o-una-derrama) | Contra qué cuenta de ingresos se cobra |
 | [La cuenta de un banco](#la-cuenta-de-un-banco) | Dónde entra el dinero cobrado. Solo por servicio |
+| [Dar de alta un proyecto](#dar-de-alta-un-proyecto) | La dimensión analítica de una actividad, para poder verla aparte sin salir del libro único |
 | [Registrar un asiento](#registrar-un-asiento) | El endpoint, campos y respuestas |
 | [Las líneas](#las-líneas) | Cuenta directa o tercero |
 | [Importes en céntimos](#importes-en-céntimos) | Nunca euros, nunca decimales |
@@ -48,6 +49,8 @@ Cada operación tiene **una sola lógica**, en un servicio, con dos formas de ll
 | `ResolvedorCuentasService::resolver()` | Igual, desde dentro | | |
 | `POST /api/contabilidad/cuentas-ingreso` | Igual, para el concepto por el que se cobra | | |
 | `ResolverCuentaIngresoService::ejecutar()` | Igual, desde dentro | | |
+| `POST /api/contabilidad/proyectos` | Igual, para dar de alta un proyecto (una actividad) | | |
+| `ResolverProyectoContableService::ejecutar()` | Igual, desde dentro | | |
 
 Las reglas contables están en el servicio, no en el controlador ni en el `FormRequest`.
 Quien entra por HTTP y quien llama al servicio pasan exactamente por las mismas
@@ -334,6 +337,43 @@ libros, y puede haber corregido allí la denominación a propósito.
 
 ---
 
+## Dar de alta un proyecto
+
+Una empresa contable lleva un único libro, un único balance y una única declaración: eso
+no se parte. Pero dentro de ese libro puede haber más de una actividad —dos torres que
+comparten CIF, dos negocios— y para poder ver cada una por separado sin abrir una segunda
+contabilidad, cualquier línea de un asiento puede etiquetarse con un **proyecto**.
+
+Un proyecto no es una cuenta: no cuelga del plan de cuentas, no tiene código de 8 dígitos,
+es solo una etiqueta analítica.
+
+```
+POST /api/contabilidad/proyectos
+```
+
+```json
+{
+  "empresa_contable_id": 3,
+  "nombre": "Torre A",
+  "sujeto": { "tipo": "actividad", "id": "1" }
+}
+```
+
+### Respuesta
+
+```json
+{ "id": 5, "nombre": "Torre A" }
+```
+
+`201` si se ha dado de alta ahora, `200` si ese `sujeto` ya tenía proyecto. **Repetir la
+llamada no crea uno segundo**: devuelve el que ya existía. El `id` que devuelve es el que
+se manda luego como `proyecto` en cada línea de asiento.
+
+`sujeto` es tu etiqueta opaca, igual que en el alta de terceros y de cuentas de ingreso: la
+contabilidad la guarda y la compara, pero no la interpreta.
+
+---
+
 ## Registrar un asiento
 
 ```
@@ -349,8 +389,8 @@ POST /api/contabilidad/asientos
   "concepto": "Recibo enero 2026 - Piso 1A",
   "referencia": { "tipo": "recibo", "id": "1234", "evento": "emision" },
   "lineas": [
-    { "tercero": { "tipo": "propietario", "id": "17" }, "debe": 992 },
-    { "cuenta": "70500001", "haber": 992 }
+    { "tercero": { "tipo": "propietario", "id": "17" }, "debe": 992, "proyecto": 5 },
+    { "cuenta": "70500001", "haber": 992, "proyecto": 5 }
   ]
 }
 ```
@@ -383,8 +423,8 @@ registrada y se devuelve el asiento existente.
   "concepto": "Recibo enero 2026 - Piso 1A",
   "referencia": { "tipo": "recibo", "id": "1234", "evento": "emision" },
   "lineas": [
-    { "cuenta": "43000042", "debe": 992, "haber": 0, "concepto": null },
-    { "cuenta": "70500001", "debe": 0, "haber": 992, "concepto": null }
+    { "cuenta": "43000042", "proyecto": 5, "debe": 992, "haber": 0, "concepto": null },
+    { "cuenta": "70500001", "proyecto": 5, "debe": 0, "haber": 992, "concepto": null }
   ]
 }
 ```
@@ -409,6 +449,18 @@ código:
 ```json
 { "tercero": { "tipo": "propietario", "id": "17" }, "debe": 992 }
 ```
+
+Cada línea admite además, opcional, el `id` de un proyecto (ver
+[Dar de alta un proyecto](#dar-de-alta-un-proyecto)):
+
+```json
+{ "cuenta": "62900001", "debe": 4500, "proyecto": 5 }
+```
+
+Sin él, el apunte queda sin proyecto: es lo correcto para un movimiento del CIF sin base
+de reparto entre actividades, no para un descuido. No hay proyecto a nivel de asiento —
+solo de línea—, así que un mismo asiento puede repartir sus apuntes entre varios
+proyectos a la vez si el hecho contable lo pide.
 
 ### Reglas de las líneas
 
@@ -482,6 +534,24 @@ corriente de la que salió el dinero (`5720xxxx`, la que estrena
 contabilizada —si no, el acreedor quedaría con saldo a favor— y admite pagos parciales:
 cada fila de `pagos_facturas` es su propio asiento.
 
+### El proyecto de cada hecho
+
+Una comunidad puede dividirse en varias **actividades** (dos torres que comparten CIF,
+por ejemplo). `actividades` es una tabla de gestión, ajena a la contabilidad, con su
+propio `proyecto_contable_id` (el `id` que devolvió `POST /api/contabilidad/proyectos` al
+enlazarla — ver [`EnlaceContableActividad`](../app/Services/Actividades/EnlaceContableActividad.php)).
+Cuando la actividad tiene proyecto, todas las líneas del asiento lo llevan:
+
+- **Recibos**: la actividad es la del `presupuesto` (todo el grupo de un vencimiento
+  comparte presupuesto, así que comparte proyecto).
+- **Factura**: la actividad es la de la propia `factura_proveedor` (`actividad_id`,
+  nullable — sin ella, o si la comunidad no tiene actividades, el apunte queda sin
+  proyecto).
+- **Pago**: no tiene actividad propia, hereda la de su factura.
+
+Sin actividad, el hecho se manda igual que siempre, sin `proyecto` en ninguna línea: es
+lo normal en una comunidad que no se divide en varias.
+
 ---
 
 ## Terceros y subcuentas
@@ -546,7 +616,7 @@ Cómo se eligen los códigos de cuenta y qué dice el PGC al respecto está en
 | `401` | Falta el token o no es válido |
 | `403` | El token no es de esa empresa contable, o su dueño ya no tiene acceso a ella |
 | `409` | El ejercicio está cerrado, o se han agotado las 9.999 subcuentas del grupo |
-| `422` | El asiento no cuadra, una línea está mal formada, la fecha cae fuera del ejercicio, la cuenta no existe, el ejercicio no existe, o el tercero no existe y no se autorizó crearlo. En el alta de empresa, falta el CIF o el nombre. En la apertura de ejercicio, falta el nombre o las fechas están del revés |
+| `422` | El asiento no cuadra, una línea está mal formada, la fecha cae fuera del ejercicio, la cuenta no existe, el proyecto no existe, el ejercicio no existe, o el tercero no existe y no se autorizó crearlo. En el alta de empresa, falta el CIF o el nombre. En la apertura de ejercicio, falta el nombre o las fechas están del revés |
 
 Los `422` y `409` del servicio devuelven el motivo en texto:
 
@@ -601,6 +671,7 @@ Las excepciones que puede lanzar el servicio, todas en `App\Exceptions`:
 | `EjercicioCerradoException` | El ejercicio está cerrado |
 | `EjercicioContableDesconocidoException` | No existe ese ejercicio en esa empresa |
 | `CuentaContableDesconocidaException` | Un código de cuenta no existe en esa empresa |
+| `ProyectoContableDesconocidoException` | Un `id` de proyecto no existe en esa empresa |
 | `TerceroContableDesconocidoException` | Tercero sin subcuenta y sin autorización para crearla |
 | `SubcuentasAgotadasException` | Las 9.999 del grupo están usadas |
 | `EmpresaContableInvalidaException` | Alta de empresa sin CIF o sin nombre |

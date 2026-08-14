@@ -112,6 +112,9 @@
                                 </th>
                             @endif
                             <th class="py-3 px-6 text-center">{{ __('Soporte') }}</th>
+                            @if (count($actividades))
+                                <th class="py-3 px-6">{{ __('Actividad') }}</th>
+                            @endif
                             @if (contabilidad_activa())
                                 <th class="py-3 px-6">{{ __('Contabilidad') }}</th>
                             @endif
@@ -182,6 +185,17 @@
                                         </label>
                                     @endif
                                 </td>
+                                @if (count($actividades))
+                                    <td class="px-6 py-4">
+                                        <x-select class="block w-full py-2 text-sm" wire:change="actualizarActividad({{ $item->id }}, $event.target.value)"
+                                            {{ $item->asiento_contable ? 'disabled' : '' }}>
+                                            <option value="" {{ $item->actividad_id === null ? 'selected' : '' }}>{{ __('Sin actividad') }}</option>
+                                            @foreach ($actividades as $id => $nombre)
+                                                <option value="{{ $id }}" {{ $item->actividad_id == $id ? 'selected' : '' }}>{{ $nombre }}</option>
+                                            @endforeach
+                                        </x-select>
+                                    </td>
+                                @endif
                                 {{-- Contabilizar es explícito: el gasto entra cuando quien lleva la
                                      comunidad lo manda, no al teclear la factura. Una vez hecho,
                                      queda el número de asiento y ya no hay botón. --}}

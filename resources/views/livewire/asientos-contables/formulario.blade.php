@@ -32,13 +32,31 @@
                 </div>
             </div>
 
+            @if (count($proyectos))
+                <div class="mt-4 w-1/4">
+                    {{-- Solo un atajo de UI: rellena todas las líneas de golpe, pero no
+                         existe columna de proyecto en el asiento. Cada línea se puede
+                         seguir corrigiendo por separado en su propio selector. --}}
+                    <x-label :value="__('Proyecto (todas las líneas)')" />
+                    <x-select class="block mt-1 w-full py-3" wire:model.live="proyecto_contable_id_cabecera">
+                        <option value="">{{ __('Sin proyecto') }}</option>
+                        @foreach ($proyectos as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </x-select>
+                </div>
+            @endif
+
             <div class="mt-4">
                 <x-input-error for="apuntes" class="mb-2" />
                 <table class="w-full table-fixed text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
-                            <th class="py-2 pr-2 w-[28%]">{{ __('Cuenta') }}</th>
-                            <th class="py-2 pr-2 w-[32%]">{{ __('Concepto línea') }}</th>
+                            <th class="py-2 pr-2 w-[22%]">{{ __('Cuenta') }}</th>
+                            <th class="py-2 pr-2 w-[24%]">{{ __('Concepto línea') }}</th>
+                            @if (count($proyectos))
+                                <th class="py-2 pr-2 w-[16%]">{{ __('Proyecto') }}</th>
+                            @endif
                             <th class="py-2 pr-2 text-right w-36">{{ __('Debe') }}</th>
                             <th class="py-2 pr-2 text-right w-36">{{ __('Haber') }}</th>
                             <th class="py-2 w-8"></th>
@@ -71,6 +89,17 @@
                                 <td class="py-1 pr-2">
                                     <x-input class="block w-full" type="text" wire:model="apuntes.{{ $index }}.concepto" />
                                 </td>
+                                @if (count($proyectos))
+                                    <td class="py-1 pr-2 align-top">
+                                        <x-select class="block w-full py-2 text-sm" wire:model="apuntes.{{ $index }}.proyecto_contable_id">
+                                            <option value="">{{ __('Sin proyecto') }}</option>
+                                            @foreach ($proyectos as $id => $nombre)
+                                                <option value="{{ $id }}">{{ $nombre }}</option>
+                                            @endforeach
+                                        </x-select>
+                                        <x-input-error for="apuntes.{{ $index }}.proyecto_contable_id" class="mt-1" />
+                                    </td>
+                                @endif
                                 <td class="py-1 pr-2">
                                     <x-input class="block w-full text-right" type="number" step="0.01" min="0"
                                         wire:model.live.debounce.400ms="apuntes.{{ $index }}.debe" />
@@ -94,7 +123,7 @@
                     </tbody>
                     <tfoot>
                         <tr class="font-semibold">
-                            <td colspan="2" class="py-2 text-right">{{ __('Totales') }}</td>
+                            <td colspan="{{ count($proyectos) ? 3 : 2 }}" class="py-2 text-right">{{ __('Totales') }}</td>
                             <td class="py-2 pr-2 text-right">{{ number_format($this->totalDebe / 100, 2, ',', '.') }}</td>
                             <td class="py-2 pr-2 text-right">{{ number_format($this->totalHaber / 100, 2, ',', '.') }}</td>
                             <td></td>

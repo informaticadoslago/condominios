@@ -23,6 +23,7 @@ return [
                 ['type' => 'spacer'],
                 ['icon' => 'fa-solid fa-book', 'label' => trans_key('menu.Cuentas contables'), 'route' => 'plan-de-cuentas.index'],
                 ['icon' => 'fa-solid fa-calendar', 'label' => trans_key('menu.Ejercicios contables'), 'route' => 'ejercicios-contables.index'],
+                ['icon' => 'fa-solid fa-diagram-project', 'label' => trans_key('menu.Proyectos'), 'route' => 'proyectos-contables.index'],
             ],
         ],
         ['type' => 'spacer'],

@@ -25,6 +25,21 @@
             </x-select>
             <x-input-error for="tipo_presupuesto_id" class="mt-2" />
         </div>
+        @if (count($actividades))
+            <div class="mt-3">
+                {{-- Solo aparece en comunidades que se dividen en varias actividades
+                     (dos torres, dos negocios bajo el mismo CIF). En blanco, este
+                     presupuesto no separa nada. --}}
+                <x-label for="p-actividad" :value="__('Actividad')" />
+                <x-select id="p-actividad" class="block mt-1 w-full py-3" wire:model="actividad_id">
+                    <option value="">{{ __('Sin actividad') }}</option>
+                    @foreach ($actividades as $id => $nombre)
+                        <option value="{{ $id }}">{{ $nombre }}</option>
+                    @endforeach
+                </x-select>
+                <x-input-error for="actividad_id" class="mt-2" />
+            </div>
+        @endif
     </x-slot>
 
     <x-slot name="footer">

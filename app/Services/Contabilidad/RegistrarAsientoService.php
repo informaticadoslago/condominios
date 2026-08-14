@@ -6,9 +6,11 @@ use App\Exceptions\AsientoInvalidoException;
 use App\Exceptions\CuentaContableDesconocidaException;
 use App\Exceptions\EjercicioCerradoException;
 use App\Exceptions\EjercicioContableDesconocidoException;
+use App\Exceptions\ProyectoContableDesconocidoException;
 use App\Models\AsientoContable;
 use App\Models\CuentaContable;
 use App\Models\EjercicioContable;
+use App\Models\ProyectoContable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -94,6 +96,7 @@ final class RegistrarAsientoService
 
         $ejercicio = $this->ejercicioAbierto($datos);
         $cuentas   = $this->resolverCuentas($datos);
+        $proyectos = $this->resolverProyectos($datos);
 
         $asiento = AsientoContable::create([
             'empresa_contable_id'   => $datos->empresaContableId,
@@ -109,10 +112,11 @@ final class RegistrarAsientoService
 
         foreach ($datos->lineas as $i => $linea) {
             $asiento->apuntesContables()->create([
-                'cuenta_contable_id' => $cuentas[$i]->id,
-                'debe'               => $linea->debe,
-                'haber'              => $linea->haber,
-                'concepto'           => $linea->concepto,
+                'cuenta_contable_id'   => $cuentas[$i]->id,
+                'proyecto_contable_id' => $linea->proyecto !== null ? $proyectos[$linea->proyecto]->id : null,
+                'debe'                 => $linea->debe,
+                'haber'                => $linea->haber,
+                'concepto'             => $linea->concepto,
             ]);
         }
 
@@ -182,6 +186,45 @@ final class RegistrarAsientoService
         }
 
         return $cuentas;
+    }
+
+    /**
+     * Proyectos referenciados por id, indexados por ese mismo id. A diferencia de la
+     * cuenta —que se manda por código porque quien llama no conoce ids internos—, el
+     * proyecto ya lo ha resuelto antes quien llama (con ResolverProyectoContableService
+     * o /api/contabilidad/proyectos) y guarda su id, igual que hace con
+     * `empresa_contable_id`: no es una subcuenta, es una etiqueta que ya tiene en mano.
+     *
+     * @return array<int, ProyectoContable>
+     */
+    private function resolverProyectos(DatosAsiento $datos): array
+    {
+        $ids = [];
+
+        foreach ($datos->lineas as $linea) {
+            if ($linea->proyecto !== null) {
+                $ids[$linea->proyecto] = true;
+            }
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $porId = ProyectoContable::where('empresa_contable_id', $datos->empresaContableId)
+            ->whereIn('id', array_keys($ids))
+            ->get()
+            ->keyBy('id');
+
+        $faltan = array_diff(array_keys($ids), $porId->keys()->all());
+
+        if ($faltan !== []) {
+            throw new ProyectoContableDesconocidoException(
+                'No existen en esa empresa contable los proyectos: '.implode(', ', $faltan).'.'
+            );
+        }
+
+        return $porId->all();
     }
 
     private function siguienteNumero(EjercicioContable $ejercicio): int

@@ -3,6 +3,7 @@
 namespace App\Livewire\Facturas;
 
 use App\Exceptions\FacturaDuplicadaException;
+use App\Models\Actividad;
 use App\Models\Documento;
 use App\Models\Pais;
 use App\Models\PersonaComunidad;
@@ -50,6 +51,13 @@ class Crear extends Component
     public ?string $fecha = null;
 
     public string $importe = '';
+
+    /**
+     * Solo en comunidades con varias actividades. A propósito NO se resetea entre
+     * líneas (ver anadir()): quien teclea un taco de facturas suele hacerlo por torre,
+     * así que lo normal es que las siguientes sean de la misma.
+     */
+    public ?int $actividad_id = null;
 
     /** El papel de la factura de esta línea, si lo hay; opcional, como en el resto del alta. */
     public $fichero = null;
@@ -248,6 +256,7 @@ class Crear extends Component
                 importe: $this->importe,
                 documentoPaisId: $this->documento_pais_id,
                 tipoDocumentoId: $this->tipo_documento_id,
+                actividadId: $this->actividad_id,
             );
         } catch (FacturaDuplicadaException $e) {
             // La línea no se graba, así que su papel tampoco se queda en el disco.
@@ -266,9 +275,12 @@ class Crear extends Component
             'numero'    => trim($this->numero_factura),
             'fecha'     => $this->fecha,
             'importe'   => (float) $this->importe,
+            'actividad' => $this->actividad_id ? Actividad::find($this->actividad_id)?->nombre : null,
             'adjunto'   => $metadatosFichero['nombrelocal'] ?? null,
         ];
 
+        // actividad_id NO se resetea: se queda puesta para la siguiente línea (ver la
+        // propiedad, arriba).
         $this->reset(['documento', 'documentoValido', 'proveedorNombre', 'proveedorId',
             'numero_factura', 'fecha', 'importe', 'fichero']);
         $this->resetValidation();
@@ -302,8 +314,9 @@ class Crear extends Component
     public function render()
     {
         return view('livewire.facturas.crear', [
-            'paises' => Pais::activo()->ordenGrupo()->get(),
-            'tipos'  => TipoDocumentoIdentificativo::porPais($this->documento_pais_id)->get(),
+            'paises'      => Pais::activo()->ordenGrupo()->get(),
+            'tipos'       => TipoDocumentoIdentificativo::porPais($this->documento_pais_id)->get(),
+            'actividades' => Actividad::where('comunidad_id', session('comunidad_actual_id'))->orderBy('nombre')->pluck('nombre', 'id'),
         ]);
     }
 }

@@ -22,6 +22,9 @@
                             <th class="py-3 px-3">{{ __('Número factura') }}</th>
                             <th class="py-3 px-3">{{ __('Fecha') }}</th>
                             <th class="py-3 px-3 text-right">{{ __('Importe') }}</th>
+                            @if (count($actividades))
+                                <th class="py-3 px-3">{{ __('Actividad') }}</th>
+                            @endif
                             <th class="py-3 px-3">{{ __('Adjunto') }}</th>
                             <th class="py-3 px-3"></th>
                         </tr>
@@ -37,6 +40,9 @@
                                 <td class="px-3 py-2">{{ $fila['numero'] }}</td>
                                 <td class="px-3 py-2">{{ \Carbon\Carbon::parse($fila['fecha'])->format('d/m/Y') }}</td>
                                 <td class="px-3 py-2 text-right">{{ number_format($fila['importe'], 2, ',', '.') }} €</td>
+                                @if (count($actividades))
+                                    <td class="px-3 py-2">{{ $fila['actividad'] }}</td>
+                                @endif
                                 <td class="px-3 py-2">
                                     @if ($fila['adjunto'])
                                         <i class="fa-solid fa-paperclip text-green-600"
@@ -105,6 +111,16 @@
                                     wire:keydown.enter="anadir" />
                                 <x-input-error for="importe" class="mt-1" />
                             </td>
+                            @if (count($actividades))
+                                <td class="px-3 py-2">
+                                    <x-select id="cap-actividad" class="block w-36 h-10 py-0 text-sm px-2" wire:model="actividad_id">
+                                        <option value="">{{ __('Sin actividad') }}</option>
+                                        @foreach ($actividades as $id => $nombre)
+                                            <option value="{{ $id }}">{{ $nombre }}</option>
+                                        @endforeach
+                                    </x-select>
+                                </td>
+                            @endif
                             {{-- El papel de esta factura, si está a mano: el clip abre el selector y se
                                  pone verde cuando ya hay fichero. Cambiar de clave en cada vuelta es
                                  lo que deja el input vacío para la línea siguiente. --}}
