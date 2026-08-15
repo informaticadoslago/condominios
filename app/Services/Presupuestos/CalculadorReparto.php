@@ -162,10 +162,14 @@ final class CalculadorReparto
     {
         // 1) La fuente de verdad de una aprobación ya realizada son los recibos.
         if ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
+            // Hay un recibo por inmueble y pago, así que la misma fecha se repite una vez
+            // por inmueble: unique('numero_pago') se queda con una sola fila por pago.
             $fechas = $presupuesto->recibos()
                 ->orderBy('numero_pago')
-                ->get(['fecha_vencimiento'])
+                ->get(['numero_pago', 'fecha_vencimiento'])
+                ->unique('numero_pago')
                 ->map(fn ($recibo) => Carbon::parse($recibo->fecha_vencimiento))
+                ->values()
                 ->all();
 
             if ($fechas !== []) {
