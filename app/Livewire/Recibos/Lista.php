@@ -8,12 +8,14 @@ use App\Livewire\Traits\ConHistorialEstadoModal;
 use App\Livewire\Traits\ConSeleccionMultiple;
 use App\Models\Comunidad;
 use App\Models\FormaDePago;
+use App\Models\Inmueble;
 use App\Models\Recibo;
 use App\Models\TipoEstadoRecibo;
 use App\Services\Recibos\EnlazarCobrosContabilidad;
 use App\Services\Recibos\EnlazarRecibosContabilidad;
 use App\Services\Recibos\EnviarAvisosRecibos;
 use App\Services\Recibos\RegistrarCobro;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Los recibos no se crean ni se borran desde aquí: los vuelca GeneradorRecibos al
@@ -95,6 +97,56 @@ class Lista extends ListaComponent
         ];
     }
 
+    /**
+     * Un propietario puede tener varios inmuebles en la misma planta (el A y el B): el
+     * buscador de texto no distingue entre ellos, así que planta y puerta van aparte.
+     */
+    protected function filtroPlanta(): array
+    {
+        $comunidadId = session('comunidad_actual_id');
+
+        return [
+            'clave'    => 'planta',
+            'etiqueta' => __('Planta'),
+            'tipo'     => 'select',
+            'opciones' => [0 => __('Todas')] + $this->opcionesCacheadas(
+                'recibos-plantas-'.$comunidadId,
+                fn () => Inmueble::where('comunidad_id', $comunidadId)
+                    ->whereNotNull('planta')
+                    ->where('planta', '!=', '')
+                    ->distinct()
+                    ->orderBy('planta')
+                    ->pluck('planta', 'planta')
+                    ->all(),
+            ),
+            'neutro'   => 0,
+            'aplicar'  => fn ($query, $valor) => $query->whereHas('inmueble', fn ($i) => $i->where('planta', $valor)),
+        ];
+    }
+
+    protected function filtroPuerta(): array
+    {
+        $comunidadId = session('comunidad_actual_id');
+
+        return [
+            'clave'    => 'puerta',
+            'etiqueta' => __('Puerta'),
+            'tipo'     => 'select',
+            'opciones' => [0 => __('Todas')] + $this->opcionesCacheadas(
+                'recibos-puertas-'.$comunidadId,
+                fn () => Inmueble::where('comunidad_id', $comunidadId)
+                    ->whereNotNull('puerta')
+                    ->where('puerta', '!=', '')
+                    ->distinct()
+                    ->orderBy('puerta')
+                    ->pluck('puerta', 'puerta')
+                    ->all(),
+            ),
+            'neutro'   => 0,
+            'aplicar'  => fn ($query, $valor) => $query->whereHas('inmueble', fn ($i) => $i->where('puerta', $valor)),
+        ];
+    }
+
     /** La del recibo: la que tenía el inmueble al aprobarse el presupuesto, no la de hoy. */
     protected function filtroFormaDePago(): array
     {
@@ -157,6 +209,8 @@ class Lista extends ListaComponent
             $this->filtroCobro(),
             $this->filtroFormaDePago(),
             $this->filtroEnlaceContable(),
+            $this->filtroPlanta(),
+            $this->filtroPuerta(),
             $this->filtroVencimientoDesde(),
             $this->filtroVencimientoHasta(),
         ];
@@ -376,6 +430,33 @@ class Lista extends ListaComponent
         ]);
     }
 
+    /**
+     * Importe, pagado y saldo a totalizar: de lo marcado si hay selección —venga o no de
+     * la página actual—, y si no de TODO lo filtrado, no solo de la página que se ve.
+     *
+     * @return array{importe: float, importe_pagado: float, saldo: float}
+     */
+    private function totales(): array
+    {
+        $query = $this->seleccionados !== []
+            ? Recibo::whereIn('id', $this->seleccionados)
+            : $this->aplicarSeleccion($this->consultaBase());
+
+        $totales = $query->toBase()
+            ->select([
+                DB::raw('COALESCE(SUM(importe), 0) AS importe'),
+                DB::raw('COALESCE(SUM(importe_pagado), 0) AS importe_pagado'),
+                DB::raw('COALESCE(SUM(saldo), 0) AS saldo'),
+            ])
+            ->first();
+
+        return [
+            'importe'        => (float) $totales->importe,
+            'importe_pagado' => (float) $totales->importe_pagado,
+            'saldo'          => (float) $totales->saldo,
+        ];
+    }
+
     public function render()
     {
         $items = $this->aplicarSeleccion($this->consultaBase())
@@ -394,6 +475,7 @@ class Lista extends ListaComponent
 
         return view('livewire.recibos.lista', compact('items', 'formasDePago') + [
             'avisoTransferenciaActivo' => (bool) config('recibos.enviar_email_transferencias'),
+            'totales'                  => $this->totales(),
         ]);
     }
 }

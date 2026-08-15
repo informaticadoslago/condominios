@@ -222,6 +222,30 @@
                             </tr>
                         @endforeach
                     </tbody>
+                    <tfoot class="font-medium border-t">
+                        @php
+                            // De lo marcado si hay selección, si no de la página que se ve.
+                            $colsAntes   = 1 + count(array_intersect($this->columnas, ['inmueble', 'propietario', 'presupuesto', 'numero_pago', 'vencimiento']));
+                            $colsDespues = count(array_intersect($this->columnas, ['forma_de_pago', 'estado', 'asiento']));
+                        @endphp
+                        <tr>
+                            <td class="px-6 py-3" colspan="{{ $colsAntes }}">
+                                {{ count($seleccionados) ? __('Totales (:count marcados)', ['count' => count($seleccionados)]) : __('Totales') }}
+                            </td>
+                            @if ($this->verColumna('importe'))
+                                <td class="px-6 py-3 text-right">{{ number_format($totales['importe'], 2, ',', '.') }} €</td>
+                            @endif
+                            @if ($this->verColumna('importe_pagado'))
+                                <td class="px-6 py-3 text-right">{{ number_format($totales['importe_pagado'], 2, ',', '.') }} €</td>
+                            @endif
+                            @if ($this->verColumna('saldo'))
+                                <td class="px-6 py-3 text-right">{{ number_format($totales['saldo'], 2, ',', '.') }} €</td>
+                            @endif
+                            @if ($colsDespues)
+                                <td colspan="{{ $colsDespues }}"></td>
+                            @endif
+                        </tr>
+                    </tfoot>
                 </table>
                 @if ($items->hasPages())
                     <div class="px-6 py-3">
