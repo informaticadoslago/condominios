@@ -24,6 +24,8 @@ use App\Livewire\AdministracionSistema\Usuarios\Lista as UsuariosLista;
 use App\Livewire\AsientosContables\Formulario as AsientosContablesFormulario;
 use App\Livewire\AsientosContables\Lista as AsientosContablesLista;
 use App\Livewire\Catalogos\Lista as CatalogosLista;
+use App\Livewire\ComisionesBancarias\Formulario as ComisionesBancariasFormulario;
+use App\Livewire\ComisionesBancarias\Lista as ComisionesBancariasLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
 use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
@@ -137,6 +139,8 @@ Route::middleware([
         Route::get('/mandatos-sepa/plantilla/{personaComunidad}', MandatoSepaPlantillaController::class)->name('mandatos-sepa.plantilla');
         Route::get('/remesas', RemesasLista::class)->name('remesas.index');
         Route::get('/remesas/{remesa}/fichero', RemesaFicheroController::class)->name('remesas.fichero');
+        Route::get('/comisiones-bancarias', ComisionesBancariasLista::class)->name('comisiones-bancarias.index');
+        Route::get('/comisiones-bancarias/nueva', ComisionesBancariasFormulario::class)->name('comisiones-bancarias.crear');
         Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');
         Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
         Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');

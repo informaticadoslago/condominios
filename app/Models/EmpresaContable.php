@@ -53,4 +53,9 @@ class EmpresaContable extends Model
     {
         return $this->hasMany(EjercicioContable::class);
     }
+
+    public function tiposComisionBancaria()
+    {
+        return $this->hasMany(TipoComisionBancaria::class);
+    }
 }

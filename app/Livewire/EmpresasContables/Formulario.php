@@ -87,6 +87,12 @@ class Formulario extends Component
 
     public function render()
     {
-        return view('livewire.empresas-contables.formulario');
+        return view('livewire.empresas-contables.formulario', [
+            // Se resuelven solas al enlazar una comunidad (ver AsegurarTiposComisionBancaria);
+            // aquí solo se enseñan, no se editan.
+            'tiposComisionBancaria' => $this->itemId
+                ? EmpresaContable::find($this->itemId)?->tiposComisionBancaria()->with('cuentaContable')->get()
+                : collect(),
+        ]);
     }
 }

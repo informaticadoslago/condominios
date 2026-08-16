@@ -38,6 +38,7 @@ return [
     'Proveedores' => 'Proveedores',
     'Recibos' => 'Recibos',
     'Remesas' => 'Remesas',
+    'Comisiones bancarias' => 'Comisiones bancarias',
     'Roles' => 'Roles',    
     'Sumas y saldos' => 'Sumas y saldos',
     'Tipos de cuenta contable' => 'Tipos de cuenta contable',
