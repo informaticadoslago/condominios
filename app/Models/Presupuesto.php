@@ -28,12 +28,16 @@ class Presupuesto extends Model
         'periodicidad_id',
         'fechas_pago',
         'porcentajes_pago',
+        'fijado',
+        'reparto_fijado',
     ];
 
     protected $casts = [
         'fecha_primer_pago' => 'date',
         'fechas_pago'       => 'array',
         'porcentajes_pago'  => 'array',
+        'fijado'            => 'boolean',
+        'reparto_fijado'    => 'array',
     ];
 
     public function comunidad()
@@ -195,6 +199,12 @@ class Presupuesto extends Model
     public function recibos()
     {
         return $this->hasMany(Recibo::class);
+    }
+
+    /** Descarta el reparto fijado a mano: vuelve a calcularse en vivo a partir de conceptos y porcentajes. */
+    public function desfijar(): void
+    {
+        $this->update(['fijado' => false, 'reparto_fijado' => null]);
     }
 
     protected static function booted(): void

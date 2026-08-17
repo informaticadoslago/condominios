@@ -170,6 +170,12 @@ class Conceptos extends Component
             ->all();
     }
 
+    /** Normaliza a 2 decimales para comparar porcentajes venidos de sitios distintos (BD vs formulario). */
+    protected function porcentajesNormalizados(?array $porcentajes): array
+    {
+        return array_map(fn ($pct) => number_format((float) $pct, 2, '.', ''), $porcentajes ?? []);
+    }
+
     protected function presupuesto(): Presupuesto
     {
         return Presupuesto::findOrFail($this->presupuesto_id);
@@ -406,6 +412,14 @@ class Conceptos extends Component
             // de cada pago quedan fijos en cuanto se aprueba: los recibos ya generados a
             // partir de ellos no se tocan más.
             if (! $this->bloqueado) {
+                // Si el reparto (pantalla de Reparto) estaba fijado a mano y esto cambia
+                // la base sobre la que se fijó, deja de tener sentido: se desfija sin
+                // preguntar, no se avisa ni se bloquea el guardado de conceptos.
+                $cambiaReparto = $presupuesto->periodicidad_id != $data['periodicidad_id']
+                    || optional($presupuesto->fecha_primer_pago)->toDateString() != $data['fecha_primer_pago']
+                    || $presupuesto->numero_pagos != $data['numero_pagos']
+                    || $this->porcentajesNormalizados($presupuesto->porcentajes_pago) != $this->porcentajesNormalizados($data['porcentajes_pago'] ?? []);
+
                 $presupuesto->update([
                     'periodicidad_id'   => $data['periodicidad_id'],
                     'fecha_primer_pago' => $data['fecha_primer_pago'],
@@ -413,6 +427,10 @@ class Conceptos extends Component
                     'fechas_pago'       => $data['fechas_pago'] ?? [],
                     'porcentajes_pago'  => $data['porcentajes_pago'] ?? [],
                 ]);
+
+                if ($cambiaReparto && $presupuesto->fijado) {
+                    $presupuesto->desfijar();
+                }
             }
 
             if ($this->bloqueado) {
