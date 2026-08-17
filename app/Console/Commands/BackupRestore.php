@@ -20,7 +20,7 @@ use ZipArchive;
  */
 class BackupRestore extends Command
 {
-    protected $signature = 'doslago:db-restore';
+    protected $signature = 'doslago:db-restore {--local : Lee los .zip del propio storage de backups (disco `backups`) y usa BACKUP_ARCHIVE_PASSWORD del .env en vez de restore.xml y preguntar la contraseña}';
 
     protected $description = 'Analiza y, si se confirma, restaura una copia de seguridad completa (BD + storage)';
 
@@ -32,8 +32,10 @@ class BackupRestore extends Command
 
     public function handle(): int
     {
+        $local = (bool) $this->option('local');
+
         try {
-            $directorio = $this->directorioBackups();
+            $directorio = $local ? $this->directorioBackupsLocal() : $this->directorioBackups();
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
 
@@ -56,7 +58,17 @@ class BackupRestore extends Command
         $elegido = $this->choice('Selecciona el backup a analizar', array_values($opciones), 0);
         $rutaZip = array_search($elegido, $opciones, true);
 
-        $password = $this->secret('Contraseña del ZIP (puede no ser la de este .env)');
+        if ($local) {
+            $password = (string) config('backup.backup.password');
+
+            if ($password === '') {
+                $this->error('BACKUP_ARCHIVE_PASSWORD no está definida en el .env.');
+
+                return 1;
+            }
+        } else {
+            $password = $this->secret('Contraseña del ZIP (puede no ser la de este .env)');
+        }
 
         try {
             $informe = $this->analizarZip($rutaZip, $password);
@@ -120,6 +132,36 @@ class BackupRestore extends Command
         }
 
         return $directorio;
+    }
+
+    /**
+     * Con --local: en vez de restore.xml, el propio directorio de destino de `backup:run`
+     * (disco `backups` + nombre del backup), el mismo que restaurarStorage() excluye para no
+     * borrarse a sí mismo. Solo contempla discos locales, como hace calcularExclusion().
+     */
+    private function directorioBackupsLocal(): string
+    {
+        foreach (config('backup.backup.destination.disks', []) as $diskName) {
+            if (config("filesystems.disks.{$diskName}.driver") !== 'local') {
+                continue;
+            }
+
+            $root = rtrim((string) config("filesystems.disks.{$diskName}.root"), '/');
+
+            if ($root === '') {
+                continue;
+            }
+
+            $directorio = $root.'/'.config('backup.backup.name');
+
+            if (! is_dir($directorio) || ! is_readable($directorio)) {
+                throw new RuntimeException("El directorio de backups locales no existe o no se puede leer: {$directorio}");
+            }
+
+            return $directorio;
+        }
+
+        throw new RuntimeException('No hay ningún disco local configurado en backup.backup.destination.disks.');
     }
 
     /**
