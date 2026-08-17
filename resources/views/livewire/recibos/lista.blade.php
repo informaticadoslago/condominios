@@ -200,7 +200,15 @@
                                     </td>
                                 @endif
                                 @if ($this->verColumna('forma_de_pago'))
-                                    <td class="px-6 py-4">{{ $item->formaDePago?->descripcion }}</td>
+                                    <td class="px-6 py-4">
+                                        {{ $item->formaDePago?->descripcion }}
+                                        @if ($item->estado_id === \App\Models\TipoEstadoRecibo::GENERADO)
+                                            <button type="button" wire:click="resincronizarFormaPago({{ $item->id }})"
+                                                class="ml-2 text-gray-500 hover:text-gray-800" title="{{ __('Volver a copiar la forma de pago del inmueble') }}">
+                                                <i class="fa-solid fa-rotate"></i>
+                                            </button>
+                                        @endif
+                                    </td>
                                 @endif
                                 @if ($this->verColumna('estado'))
                                     <td class="px-6 py-4">

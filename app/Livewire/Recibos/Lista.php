@@ -336,6 +336,39 @@ class Lista extends ListaComponent
     }
 
     /**
+     * Vuelve a copiar del inmueble la forma de pago y la cuenta bancaria del recibo: se
+     * congelan al generarlo (ver GeneradorRecibos), así que si se corrigen después en el
+     * inmueble, el recibo ya emitido se queda con las de entonces. Solo tiene sentido
+     * mientras el recibo sigue Generado: uno ya Enviado o Cobrado se presentó o se pagó
+     * con la forma de pago que llevaba en ese momento, y cambiarla ahora la falsearía.
+     */
+    public function resincronizarFormaPago(int $reciboId): void
+    {
+        $recibo = Recibo::where('estado_id', TipoEstadoRecibo::GENERADO)
+            ->whereIn('inmueble_id', Inmueble::where('comunidad_id', session('comunidad_actual_id'))->select('id'))
+            ->find($reciboId);
+
+        if (! $recibo) {
+            return;
+        }
+
+        $formaPago = $recibo->inmueble?->formaPagoVigente;
+
+        if (! $formaPago) {
+            $this->dispatch('toast-error', ['title' => __('El inmueble no tiene forma de pago vigente')]);
+
+            return;
+        }
+
+        $recibo->update([
+            'forma_de_pago_id'   => $formaPago->forma_de_pago_id,
+            'cuenta_bancaria_id' => $formaPago->cuenta_bancaria_id,
+        ]);
+
+        $this->dispatch('toast-success', ['title' => __('Forma de pago actualizada')]);
+    }
+
+    /**
      * Manda a la contabilidad lo que aún no ha entrado en ningún asiento: primero la
      * emisión de los recibos y después el dinero que ya han cobrado. Se hace a mano, y no
      * al aprobar el presupuesto, porque una comunidad puede enlazarse con la contabilidad
