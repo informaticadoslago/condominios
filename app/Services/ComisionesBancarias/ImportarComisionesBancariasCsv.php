@@ -3,15 +3,17 @@
 namespace App\Services\ComisionesBancarias;
 
 use App\Models\ComisionBancaria;
+use App\Models\Comunidad;
 use App\Models\CuentaBancaria;
+use App\Models\EjercicioContable;
 use App\Models\TipoComisionBancaria;
 use App\Models\TipoMovimientoBancario;
 use Illuminate\Support\Str;
 
 /**
- * Lee el extracto de movimientos en CSV que exporta el banco (mismo dato que el Q43) y
- * separa sus filas en tres cajones: candidatas a importar, ya importadas antes, y
- * descartadas porque no son un tipo que nos interesa aquí.
+ * Lee el extracto de movimientos del banco —en CSV o en Q43/Norma 43, el fichero se
+ * reconoce solo— y separa sus filas en tres cajones: candidatas a importar, ya
+ * importadas antes, y descartadas porque no son un tipo que nos interesa aquí.
  *
  * No escribe nada: solo prepara las propuestas. El alta de verdad la hace
  * RegistrarComisionBancariaService, fila a fila, cuando el usuario confirma.
@@ -29,6 +31,10 @@ final class ImportarComisionesBancariasCsv
      */
     public function analizar(string $contenido): array
     {
+        // Los ficheros de banca electrónica suelen llevar BOM UTF-8: sin quitarlo, la
+        // primera línea no empieza "de verdad" por ES ni por 11, aunque se vea igual.
+        $contenido = ltrim($contenido, "\xEF\xBB\xBF");
+
         $lineas = preg_split('/\r\n|\r|\n/', $contenido);
         $lineas = array_values(array_filter($lineas, fn ($l) => trim($l) !== ''));
 
@@ -36,15 +42,26 @@ final class ImportarComisionesBancariasCsv
             return $this->error(__('El fichero está vacío.'));
         }
 
+        $primera = trim($lineas[0]);
+
+        if (Str::startsWith($primera, 'ES') && strlen($primera) >= 20) {
+            return $this->analizarCsv($lineas);
+        }
+
+        if (Str::startsWith($primera, '11') && strlen($primera) >= 20 && ctype_digit(substr($primera, 0, 20))) {
+            return $this->analizarQ43($lineas);
+        }
+
+        return $this->error(__('El fichero no es un CSV ni un Q43/Norma 43 reconocible (primera línea: :linea).', ['linea' => $primera]));
+    }
+
+    private function analizarCsv(array $lineas): array
+    {
         $iban = trim($lineas[0]);
         $cuentaBancaria = CuentaBancaria::where('iban', $iban)->first();
 
         if (! $cuentaBancaria) {
             return $this->error(__('No hay ninguna cuenta bancaria con el IBAN :iban', ['iban' => $iban]));
-        }
-
-        if (! $cuentaBancaria->entidad_bancaria_id) {
-            return $this->error(__('Esa cuenta bancaria no tiene entidad bancaria asignada.'));
         }
 
         $indiceCabecera = null;
@@ -67,6 +84,109 @@ final class ImportarComisionesBancariasCsv
                 continue;
             }
             $filas[] = array_combine($cabecera, array_slice($valores, 0, count($cabecera)));
+        }
+
+        return $this->clasificar($cuentaBancaria, $filas);
+    }
+
+    /**
+     * Registro 11 (cabecera de cuenta): posiciones 3-6 entidad, 7-10 oficina, 11-20
+     * cuenta. No traen dígitos de control, así que se busca el IBAN por coincidencia
+     * de esos tres trozos, dejando los 2+2 dígitos de control como comodín.
+     */
+    private function analizarQ43(array $lineas): array
+    {
+        $cabecera = $lineas[0];
+        $entidad  = substr($cabecera, 2, 4);
+        $oficina  = substr($cabecera, 6, 4);
+        $cuenta   = substr($cabecera, 10, 10);
+
+        $cuentaBancaria = CuentaBancaria::where('iban', 'like', "ES__{$entidad}{$oficina}__{$cuenta}")->first();
+
+        if (! $cuentaBancaria) {
+            return $this->error(__('No hay ninguna cuenta bancaria que case con entidad :entidad, oficina :oficina y cuenta :cuenta.', [
+                'entidad' => $entidad, 'oficina' => $oficina, 'cuenta' => $cuenta,
+            ]));
+        }
+
+        return $this->clasificar($cuentaBancaria, $this->filasDesdeQ43($lineas));
+    }
+
+    /**
+     * Cada línea "22" es un movimiento; las "23xx" que le siguen son continuación de su
+     * texto libre (se concatenan tal cual, sin espacio: una FRA cortada a mitad de
+     * palabra sigue exactamente donde la dejó la línea anterior). Cualquier otro tipo
+     * de registro cierra el movimiento que estuviera abierto.
+     */
+    private function filasDesdeQ43(array $lineas): array
+    {
+        $filas  = [];
+        $actual = null;
+
+        foreach ($lineas as $linea) {
+            $tipoRegistro = substr($linea, 0, 2);
+
+            if ($tipoRegistro === '22') {
+                if ($actual !== null) {
+                    $filas[] = $this->cerrarFilaQ43($actual);
+                }
+
+                $actual = [
+                    'fecha_valor'      => substr($linea, 16, 6),
+                    'signo'            => substr($linea, 27, 1),
+                    'importe_centimos' => (int) substr($linea, 28, 14),
+                    'tipo_operacion'   => trim(substr($linea, 52)),
+                    'descripcion'      => '',
+                ];
+
+                continue;
+            }
+
+            if ($tipoRegistro === '23' && $actual !== null) {
+                $subtipo   = substr($linea, 2, 2);
+                $contenido = substr($linea, 4);
+                $actual['descripcion'] .= $subtipo === '01' ? ltrim($contenido) : $contenido;
+
+                continue;
+            }
+
+            if ($actual !== null) {
+                $filas[] = $this->cerrarFilaQ43($actual);
+                $actual = null;
+            }
+        }
+
+        if ($actual !== null) {
+            $filas[] = $this->cerrarFilaQ43($actual);
+        }
+
+        return $filas;
+    }
+
+    private function cerrarFilaQ43(array $actual): array
+    {
+        $fecha  = '20'.substr($actual['fecha_valor'], 0, 2).'-'.substr($actual['fecha_valor'], 2, 2).'-'.substr($actual['fecha_valor'], 4, 2);
+        $euros  = $actual['importe_centimos'] / 100;
+        $signo  = $actual['signo'] === '1' ? '-' : '';
+
+        return [
+            'F. VALOR'       => $fecha,
+            'TIPO OPERACIÓN' => $actual['tipo_operacion'],
+            'DESCRIPCIÓN'    => rtrim($actual['descripcion']),
+            'IMPORTE'        => $signo.number_format($euros, 2, ',', ''),
+        ];
+    }
+
+    /**
+     * A partir de aquí es indiferente si las filas vinieron de un CSV o de un Q43:
+     * misma clasificación, mismo emparejado por FRA, misma comprobación de duplicados.
+     *
+     * @param  array<int, array{"F. VALOR": string, "TIPO OPERACIÓN": string, "DESCRIPCIÓN": string, "IMPORTE": string}>  $filas
+     */
+    private function clasificar(CuentaBancaria $cuentaBancaria, array $filas): array
+    {
+        if (! $cuentaBancaria->entidad_bancaria_id) {
+            return $this->error(__('Esa cuenta bancaria no tiene entidad bancaria asignada.'));
         }
 
         $tipos = TipoMovimientoBancario::where('entidad_bancaria_id', $cuentaBancaria->entidad_bancaria_id)->get();
@@ -150,6 +270,8 @@ final class ImportarComisionesBancariasCsv
 
         $todasLasCandidatas = [...$candidatasRemesa, ...$candidatasMantenimiento];
 
+        $empresaId = $this->empresaContableId($cuentaBancaria);
+
         $candidatas = [];
         $yaProcesadas = [];
 
@@ -157,6 +279,7 @@ final class ImportarComisionesBancariasCsv
             if ($this->yaProcesada($cuentaBancaria->id, $candidata)) {
                 $yaProcesadas[] = $candidata;
             } else {
+                $candidata['fuera_ejercicio'] = ! $this->enEjercicioAbierto($empresaId, $candidata['fecha']);
                 $candidatas[] = $candidata;
             }
         }
@@ -170,6 +293,31 @@ final class ImportarComisionesBancariasCsv
             'descartadas'    => $descartadas,
             'error'          => null,
         ];
+    }
+
+    private function empresaContableId(CuentaBancaria $cuentaBancaria): ?int
+    {
+        $titular = $cuentaBancaria->titular;
+
+        return $titular instanceof Comunidad ? $titular->empresa_contable_id : null;
+    }
+
+    /**
+     * Si en su día no se importó una fila y hoy cae fuera del ejercicio en curso, lo más
+     * probable es que ya se metiera a mano entonces: se enseña aparte y sin marcar, no
+     * se da por hecho que haya que importarla.
+     */
+    private function enEjercicioAbierto(?int $empresaId, string $fecha): bool
+    {
+        if ($empresaId === null) {
+            return false;
+        }
+
+        return EjercicioContable::where('empresa_contable_id', $empresaId)
+            ->where('fecha_inicio', '<=', $fecha)
+            ->where('fecha_fin', '>=', $fecha)
+            ->where('cerrado', false)
+            ->exists();
     }
 
     private function yaProcesada(int $cuentaBancariaId, array $candidata): bool

@@ -2,6 +2,10 @@
 
 namespace App\Livewire\ComisionesBancarias;
 
+use App\Exceptions\AsientoInvalidoException;
+use App\Exceptions\CuentaContableDesconocidaException;
+use App\Exceptions\EjercicioCerradoException;
+use App\Exceptions\EjercicioContableDesconocidoException;
 use App\Models\Comunidad;
 use App\Models\TipoComisionBancaria;
 use App\Services\ComisionesBancarias\ImportarComisionesBancariasCsv;
@@ -11,9 +15,10 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 
 /**
- * Importa comisiones bancarias desde el extracto CSV del banco: se analiza el fichero,
- * se enseña qué se va a dar de alta (con lo ya importado y lo descartado aparte, para
- * que quede claro por qué no está), y solo al confirmar se escribe algo.
+ * Importa comisiones bancarias desde el extracto del banco (CSV o Q43/Norma 43, el
+ * formato se reconoce solo): se analiza el fichero, se enseña qué se va a dar de alta
+ * (con lo ya importado y lo descartado aparte, para que quede claro por qué no está), y
+ * solo al confirmar se escribe algo.
  */
 class ImportarCsv extends Component
 {
@@ -36,7 +41,10 @@ class ImportarCsv extends Component
 
     protected function rules()
     {
-        return ['fichero' => ['required', 'file', 'mimes:csv,txt', 'max:5120']];
+        // extensions y no mimes: Q43 no tiene un tipo MIME que Symfony reconozca, así
+        // que mimes lo rechazaría siempre pasara lo que pasara; extensions mira el
+        // nombre de fichero tal cual lo mandó el navegador.
+        return ['fichero' => ['required', 'file', 'extensions:csv,txt,q43', 'max:5120']];
     }
 
     #[On('abrir-importar-csv')]
@@ -64,8 +72,15 @@ class ImportarCsv extends Component
         $this->candidatas       = $resultado['candidatas'];
         $this->yaProcesadas     = $resultado['yaProcesadas'];
         $this->descartadas      = $resultado['descartadas'];
-        $this->seleccionadas    = array_map('strval', array_keys($this->candidatas));
-        $this->analizado        = true;
+
+        // Las de fuera del ejercicio en curso no se premarcan: si en su día no se
+        // importó el fichero, lo normal es que ya se metieran a mano entonces.
+        $this->seleccionadas = array_map('strval', array_keys(array_filter(
+            $this->candidatas,
+            fn ($c) => ! $c['fuera_ejercicio'],
+        )));
+
+        $this->analizado = true;
     }
 
     public function importar(RegistrarComisionBancariaService $servicio)
@@ -81,6 +96,7 @@ class ImportarCsv extends Component
         $tipos = TipoComisionBancaria::where('empresa_contable_id', $empresaId)->get()->keyBy('codigo');
 
         $importadas = 0;
+        $sinContabilizar = 0;
 
         foreach ($this->seleccionadas as $indice) {
             $candidata = $this->candidatas[$indice] ?? null;
@@ -90,23 +106,32 @@ class ImportarCsv extends Component
                 continue;
             }
 
-            $servicio->registrar(
-                cuentaBancariaId: $this->cuentaBancariaId,
-                tipoComisionBancariaId: $tipo->id,
-                remesaId: null,
-                fecha: $candidata['fecha'],
-                concepto: $candidata['concepto'],
-                referencia: $candidata['referencia'],
-                lineas: $candidata['lineas'],
-            );
+            try {
+                $servicio->registrar(
+                    cuentaBancariaId: $this->cuentaBancariaId,
+                    tipoComisionBancariaId: $tipo->id,
+                    remesaId: null,
+                    fecha: $candidata['fecha'],
+                    concepto: $candidata['concepto'],
+                    referencia: $candidata['referencia'],
+                    lineas: $candidata['lineas'],
+                );
+            } catch (AsientoInvalidoException|EjercicioCerradoException|EjercicioContableDesconocidoException|CuentaContableDesconocidaException) {
+                // La comisión queda registrada (registrar() ya la creó antes de intentar
+                // el asiento); lo que falta es contabilizarla, luego con "Contabilizar"
+                // en la lista una vez exista el ejercicio o la cuenta que falte.
+                $sinContabilizar++;
+            }
 
             $importadas++;
         }
 
         $this->dispatch($importadas > 0 ? 'toast-success' : 'toast-error', [
-            'title' => $importadas > 0
-                ? __(':count comisiones importadas', ['count' => $importadas])
-                : __('No se ha importado nada: no había ninguna seleccionada'),
+            'title' => match (true) {
+                $importadas === 0 => __('No se ha importado nada: no había ninguna seleccionada'),
+                $sinContabilizar > 0 => __(':total importadas, :sin sin contabilizar (ejercicio o cuenta pendiente)', ['total' => $importadas, 'sin' => $sinContabilizar]),
+                default => __(':count comisiones importadas', ['count' => $importadas]),
+            },
         ]);
 
         $this->cerrar();
