@@ -36,6 +36,9 @@
                                     <i class="fa-solid fa-envelope mr-1"></i>{{ __('Avisar transferencias') }}
                                 </x-dropdown-link>
                             @endif
+                            <x-dropdown-link href="#" wire:click="abrirImportar">
+                                <i class="fa-solid fa-file-import mr-1"></i>{{ __('Importar remesa') }}
+                            </x-dropdown-link>
                         </x-slot>
                     </x-dropdown>
                 </span>
@@ -424,6 +427,110 @@
                 <x-button type="button" class="ml-2 bg-red-600 hover:bg-red-700" wire:click="marcarDevueltos">
                     {{ __('Marcar como devueltos') }}
                 </x-button>
+            </x-slot>
+        </x-dosl.dialog-modal>
+
+        {{-- Alta de una remesa ya presentada por otro programa: se sube el pain.008 real
+             y se casan sus líneas con recibos nuestros por IBAN e importe, para poder
+             casar más tarde su devolución por el EndToEndId original. --}}
+        <x-dosl.dialog-modal wire:model.live="importarAbierto" maxWidth="4xl">
+            <x-slot name="title">
+                {{ __('Importar remesa') }}
+            </x-slot>
+
+            <x-slot name="content">
+                <div class="flex items-end gap-3 mb-4 p-3 border rounded-lg bg-gray-50 dark:bg-zinc-800">
+                    <div class="flex-1">
+                        <x-label for="importarFichero">{{ __('Fichero de la remesa presentada') }} (pain.008):</x-label>
+                        <input class="block mt-1 w-full text-sm" type="file" id="importarFichero"
+                            accept=".xml,text/xml,application/xml" wire:model="importarFichero" />
+                        <x-input-error for="importarFichero" class="mt-1" />
+                    </div>
+                    <x-secondary-button type="button" wire:click="analizarFichero"
+                        wire:loading.attr="disabled" wire:target="importarFichero,analizarFichero">
+                        {{ __('Analizar fichero') }}
+                    </x-secondary-button>
+                </div>
+
+                @if ($importarAnalisis)
+                    <div class="mb-4">
+                        <x-label for="importarFechaCargo">{{ __('Fecha de cargo') }}:</x-label>
+                        <x-input class="block mt-1 w-1/3" type="date" id="importarFechaCargo" wire:model="importarFechaCargo" />
+                        <x-input-error for="importarFechaCargo" class="mt-1" />
+                    </div>
+
+                    @if ($importarAnalisis['yaImportadas'])
+                        <div class="mb-4 p-3 border rounded-lg text-sm text-gray-500">
+                            {{ __('Ya estaban importadas (mismo EndToEndId): :count', ['count' => count($importarAnalisis['yaImportadas'])]) }}
+                        </div>
+                    @endif
+
+                    @if ($importarAnalisis['sinCasar'])
+                        <div class="mb-4 p-3 border border-amber-400 rounded-lg text-sm">
+                            <p class="font-medium text-amber-700 dark:text-amber-400">
+                                {{ __('No se han podido casar con ningún recibo:') }}
+                            </p>
+                            <ul class="mt-1 list-disc list-inside">
+                                @foreach ($importarAnalisis['sinCasar'] as $suelta)
+                                    <li>
+                                        <span class="mayusculas">{{ $suelta['deudor'] }}</span>
+                                        — {{ number_format((float) $suelta['importe'], 2, ',', '.') }} €
+                                        <span class="text-gray-500">({{ $suelta['motivo'] }})</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div class="max-h-96 overflow-y-auto border rounded-lg">
+                        <table class="table-striped w-full table-auto text-sm text-left">
+                            <thead class="font-medium border-b">
+                                <tr>
+                                    <th class="py-2 px-3 w-px"></th>
+                                    <th class="py-2 px-3">{{ __('Inmueble') }}</th>
+                                    <th class="py-2 px-3">{{ __('Deudor') }}</th>
+                                    <th class="py-2 px-3">{{ __('IBAN') }}</th>
+                                    <th class="py-2 px-3 text-right">{{ __('Importe') }}</th>
+                                    <th class="py-2 px-3">{{ __('Estado del recibo') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach ($importarAnalisis['candidatas'] as $indice => $candidata)
+                                    <tr wire:key="importar-{{ $indice }}">
+                                        <td class="py-2 px-3">
+                                            <input type="checkbox" wire:model.live="importarSeleccion" value="{{ $indice }}" />
+                                        </td>
+                                        <td class="py-2 px-3 whitespace-nowrap">{{ $candidata['inmueble'] }}</td>
+                                        <td class="py-2 px-3 mayusculas">{{ $candidata['deudor'] }}</td>
+                                        <td class="py-2 px-3">{{ $candidata['iban'] }}</td>
+                                        <td class="py-2 px-3 text-right">{{ number_format((float) $candidata['importe'], 2, ',', '.') }}</td>
+                                        <td class="py-2 px-3">
+                                            @if ($candidata['estado'] === \App\Models\TipoEstadoRecibo::COBRADO)
+                                                <span class="text-amber-600 dark:text-amber-400">{{ __('Ya cobrado') }}</span>
+                                            @else
+                                                {{ __('Generado') }}
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <x-input-error for="importarSeleccion" class="mt-2" />
+                    <p class="mt-3 font-medium">{{ __('Marcados') }}: {{ count($importarSeleccion) }}</p>
+                @endif
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button type="button" wire:click="$set('importarAbierto', false)">
+                    {{ __('Cancelar') }}
+                </x-secondary-button>
+                @if ($importarAnalisis && $importarAnalisis['candidatas'])
+                    <x-button type="button" class="ml-2" wire:click="confirmarImportar">
+                        {{ __('Importar remesa') }}
+                    </x-button>
+                @endif
             </x-slot>
         </x-dosl.dialog-modal>
 

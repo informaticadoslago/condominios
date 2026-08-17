@@ -15,6 +15,7 @@ use App\Models\Recibo;
 use App\Models\Remesa;
 use App\Services\Recibos\EnviarAvisosRecibos;
 use App\Services\Recibos\GeneradorRemesa;
+use App\Services\Recibos\ImportadorRemesaSepa;
 use App\Services\Recibos\LeerDevolucionesSepa;
 use App\Services\Recibos\RegistrarCobro;
 use App\Services\Recibos\RegistrarDevolucion;
@@ -77,6 +78,19 @@ class Lista extends ListaComponent
     public bool $detalleAbierto = false;
 
     public ?int $detalleRemesaId = null;
+
+    /** Alta de una remesa que se presentó al banco por otro programa, a partir de su pain.008. */
+    public bool $importarAbierto = false;
+
+    public $importarFichero = null;
+
+    /** Resultado de ImportadorRemesaSepa::analizar(), a la espera de confirmar. */
+    public ?array $importarAnalisis = null;
+
+    public ?string $importarFechaCargo = null;
+
+    /** Índices (dentro de candidatas) marcados para importar; empiezan todos marcados. */
+    public array $importarSeleccion = [];
 
     public bool $avisoTransferenciaAbierto = false;
 
@@ -416,6 +430,102 @@ class Lista extends ListaComponent
                 ? __(':count recibos dados por cobrados', ['count' => $cobrados])
                 : __('No había ningún recibo pendiente de cobro'),
         ]);
+    }
+
+    /**
+     * Alta de una remesa ya presentada por otro programa: se sube el pain.008 que se
+     * mandó al banco y se casan sus líneas con recibos nuestros por IBAN e importe.
+     */
+    public function abrirImportar(): void
+    {
+        $this->importarFichero    = null;
+        $this->importarAnalisis   = null;
+        $this->importarFechaCargo = null;
+        $this->importarSeleccion  = [];
+        $this->importarAbierto    = true;
+    }
+
+    public function analizarFichero(ImportadorRemesaSepa $servicio): void
+    {
+        $this->validate(
+            ['importarFichero' => ['required', 'file', 'max:2048']],
+            attributes: ['importarFichero' => __('fichero de la remesa')]
+        );
+
+        $comunidad = $this->comunidad();
+
+        if (! $comunidad) {
+            return;
+        }
+
+        $this->importarAnalisis = $servicio->analizar($comunidad, $this->importarFichero->get());
+
+        if ($this->importarAnalisis['error']) {
+            $this->dispatch('toast-error', ['title' => $this->importarAnalisis['error']]);
+
+            return;
+        }
+
+        $this->importarFechaCargo = $this->importarAnalisis['fechaCargo'] ?? now()->toDateString();
+        $this->importarSeleccion  = array_map('strval', array_keys($this->importarAnalisis['candidatas']));
+
+        $this->dispatch($this->importarAnalisis['candidatas'] ? 'toast-success' : 'toast-error', [
+            'title' => $this->importarAnalisis['candidatas']
+                ? __(':count líneas casadas con recibos', ['count' => count($this->importarAnalisis['candidatas'])])
+                : __('El fichero no trae ninguna línea que case con un recibo'),
+        ]);
+    }
+
+    public function confirmarImportar(ImportadorRemesaSepa $servicio): void
+    {
+        $this->validate([
+            'importarFechaCargo' => ['required', 'date'],
+            'importarSeleccion'  => ['required', 'array', 'min:1'],
+        ], attributes: [
+            'importarFechaCargo' => __('Fecha de cargo'),
+            'importarSeleccion'  => __('líneas a importar'),
+        ]);
+
+        $comunidad = $this->comunidad();
+
+        if (! $comunidad || ! $this->importarAnalisis) {
+            return;
+        }
+
+        $indices = array_map('intval', $this->importarSeleccion);
+        $lineas  = array_values(array_intersect_key(
+            $this->importarAnalisis['candidatas'],
+            array_flip($indices),
+        ));
+
+        try {
+            $resultado = $servicio->importar(
+                $comunidad,
+                $lineas,
+                $this->importarFechaCargo,
+                $this->importarAnalisis['referenciaOriginal'] ?? null,
+            );
+        } catch (RemesaNoGenerableException $e) {
+            $this->dispatch('toast-error', ['title' => $e->getMessage()]);
+
+            return;
+        }
+
+        $this->importarAbierto  = false;
+        $this->importarAnalisis = null;
+
+        $mensaje = __('Remesa :referencia importada con :count líneas', [
+            'referencia' => $resultado['remesa']->referencia,
+            'count'      => count($lineas),
+        ]);
+
+        if ($resultado['sinEnlazar'] > 0) {
+            $mensaje .= ' — '.__(':count recibos ya cobrados no se han podido enlazar solos, tenían más de un cobro suelto: revísalos a mano', [
+                'count' => $resultado['sinEnlazar'],
+            ]);
+        }
+
+        $this->dispatch('toast-success', ['title' => $mensaje]);
     }
 
     /** Qué recibos entraron en la remesa. Solo mirar: lo presentado ya no se toca. */
