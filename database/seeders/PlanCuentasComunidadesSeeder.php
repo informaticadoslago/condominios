@@ -63,6 +63,17 @@ class PlanCuentasComunidadesSeeder extends Seeder
             // Los honorarios del administrador de fincas, y cualquier otro profesional
             // que facture a la comunidad (abogado, arquitecto…).
             ['codigo' => '62300000', 'nombre' => 'Servicios de profesionales independientes', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
+            // Comisiones y gastos que carga el banco al liquidar una remesa. La de
+            // devolución no entra aquí: se repercute al propietario, no es gasto propio.
+            // La 62600001 viene siempre creada: es la que se asigna de fábrica a
+            // cuenta_gasto_comisiones_bancarias al enlazar una comunidad nueva (ver
+            // Comunidades\Lista::ejecutarEnlace).
+            ['codigo' => '62600000', 'nombre' => 'Servicios bancarios', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
+            ['codigo' => '62600001', 'nombre' => 'Comisiones bancarias', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
+            // Gasto periódico de la cuenta, ajeno a las remesas (mantenimiento, custodia
+            // de valores…). No se asigna a cuenta_gasto_comisiones_bancarias: esa sigue
+            // siendo la 62600001.
+            ['codigo' => '62600002', 'nombre' => 'Comisiones de mantenimiento y administración de cuenta', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             ['codigo' => '62800000', 'nombre' => 'Suministros', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             ['codigo' => '62900000', 'nombre' => 'Servicios de limpieza', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             // Subgrupo 75 «Otros ingresos de gestión»: el PGC llega hasta 3 dígitos y deja

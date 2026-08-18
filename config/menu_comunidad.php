@@ -21,6 +21,7 @@ return [
                 ['icon' => 'fa-solid fa-file-invoice-dollar', 'label' => trans_key('menu.Presupuestos'), 'route' => 'presupuestos.index'],
                 ['icon' => 'fa-solid fa-receipt', 'label' => trans_key('menu.Recibos'), 'route' => 'recibos.index'],
                 ['icon' => 'fa-solid fa-building-columns', 'label' => trans_key('menu.Remesas'), 'route' => 'remesas.index'],
+                ['icon' => 'fa-solid fa-money-check-dollar', 'label' => trans_key('menu.Comisiones bancarias'), 'route' => 'comisiones-bancarias.index'],
                 ['type' => 'spacer'],
                 ['icon' => 'fa-solid fa-people-roof', 'label' => trans_key('menu.Grupos de reparto'), 'route' => 'grupos-de-reparto.index'],
                 ['icon' => 'fa-solid fa-diagram-project', 'label' => trans_key('menu.Actividades'), 'route' => 'actividades.index'],

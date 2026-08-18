@@ -10,6 +10,7 @@ use App\Livewire\Traits\ConFichaInicio;
 use App\Models\AccesoDirecto;
 use App\Models\Comunidad;
 use App\Services\Actividades\EnlaceContableActividad;
+use App\Services\ComisionesBancarias\AsegurarTiposComisionBancaria;
 use App\Services\Comunidades\EnlaceContableComunidad;
 use App\Services\Contabilidad\AbrirEjercicioContableService;
 use App\Services\Contabilidad\ResolverEmpresaContableService;
@@ -186,6 +187,11 @@ class Lista extends ListaComponent
                 app(AbrirEjercicioContableService::class)
                     ->ejecutar($empresa->id, (string) $anho, "$anho-01-01", "$anho-12-31");
 
+                // Deja listas las dos filas de tipo_comisiones_bancarias (remesa y
+                // mantenimiento) con su cuenta ya resuelta. Si ya existían (empresa
+                // enlazada antes por el mismo CIF), no se tocan.
+                app(AsegurarTiposComisionBancaria::class)->ejecutar($empresa);
+
                 $comunidad->update(['empresa_contable_id' => $empresa->id]);
 
                 return $empresa;
@@ -194,6 +200,16 @@ class Lista extends ListaComponent
             $this->dispatch('toast-error', ['title' => $e->getMessage()]);
 
             return;
+        }
+
+        // Que quede la fila no basta: comprobamos que cada una acabó con una cuenta de
+        // verdad asignada, no a medias.
+        $sinCuenta = $empresa->tiposComisionBancaria()->whereNull('cuenta_contable_id')->exists();
+
+        if ($sinCuenta) {
+            $this->dispatch('toast-error', [
+                'title' => __('La empresa se enlazó, pero no se pudo asignar cuenta de comisiones bancarias. Revísela en Empresas contables.'),
+            ]);
         }
 
         // Ya hay empresa: cada cuenta de la comunidad estrena su subcuenta de bancos.

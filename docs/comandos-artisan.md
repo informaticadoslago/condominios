@@ -13,6 +13,7 @@ php artisan <comando>
 |---|---|---|
 | [`condominios:install`](#condominiosinstall) | Instalación completa desde cero (guiada) | Vacía la base de datos actual |
 | [`doslago:db-reset`](#doslagodb-reset) | Recrea la BD de una "comunidad" y migra | Borra la BD de esa comunidad |
+| [`doslago:db-restore`](#doslagodb-restore) | Analiza y restaura un backup completo (BD + storage) | **Irreversible** |
 | [`doslago:installresources`](#doslagoinstallresources) | Copia los logos a `public/` | Ninguno (solo copia ficheros) |
 | [`condominios:fakeseed`](#condominiosfakeseed) | Genera datos ficticios de demo | Solo en modo debug |
 | [`condominios:comunidades-listar`](#condominioscomunidades-listar) | Lista comunidades con `id` y nombre, una por línea | Ninguno (solo lectura) |
@@ -76,6 +77,42 @@ no existe ningún `.env` (primer arranque).
 
 ⚠️ **Borra por completo la base de datos de la comunidad elegida.** Comando de
 desarrollo, oculto fuera de `APP_DEBUG=true`.
+
+---
+
+## `doslago:db-restore`
+
+```bash
+php artisan doslago:db-restore [--local]
+```
+
+Analiza un `.zip` de copia de seguridad (Spatie: `db-dumps/*.sql` + `storage/...`) sin
+tocar nada y, solo si se confirma, restaura por completo la base de datos y `storage/`
+con ese contenido. A diferencia de `doslago:db-reset`, SÍ está disponible en producción:
+es la herramienta de recuperación para ese entorno.
+
+1. Lista los `.zip` disponibles y pide elegir uno.
+2. Descifra solo el `.sql` para mostrar un informe (tablas y registros, ficheros y
+   tamaño de `storage/` por carpeta) sin tocar la BD ni el disco.
+3. Si se confirma, hace `DROP` de todas las tablas actuales, carga el `.sql`, borra y
+   repone el mismo árbol de `storage/` que cubre `backup:run`, vacía las colas
+   pendientes y cierra la sesión de todos los usuarios.
+
+Por defecto, de dónde salen los `.zip` y la contraseña para descifrarlos depende de
+`database/sql_procedures/restore.xml` (local, no versionado; plantilla en
+`restore.xml.example`): un `<directory>` con la ruta a la carpeta de backups, y la
+contraseña se pregunta por consola en cada ejecución (puede no coincidir con la de
+este `.env`, por ejemplo al restaurar un backup traído de otro servidor).
+
+Con `--local`, en vez de `restore.xml`: lee los `.zip` directamente del propio
+directorio de destino de `backup:run` (disco `backups`, ver `BACKUPS_ROOT` en
+[variables de entorno](variables-entorno.md)) y usa `BACKUP_ARCHIVE_PASSWORD` del
+`.env` sin preguntar. Pensado para restaurar sobre el mismo servidor que generó el
+backup, sin tener que crear `restore.xml` ni teclear la contraseña.
+
+⚠️ **Irreversible.** Borra por completo la base de datos actual y el árbol de
+`storage/` que cubre el backup. No hay confirmación adicional tras la de "¿Continuar
+con la importación?".
 
 ---
 

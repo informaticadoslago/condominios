@@ -25,6 +25,16 @@
                 @unless ($aprobado)
                     {{-- :disabled y no @disabled: la directiva dentro de la etiqueta de
                          un componente Blade descuadra la plantilla al compilarla. --}}
+                    @if ($fijado)
+                        <x-secondary-button type="button" wire:click="confirmarDesfijar" title="{{ __('Desfijar y volver a calcular en vivo') }}">
+                            <i class="fa-solid fa-lock-open mr-1"></i>{{ __('Desfijar') }}
+                        </x-secondary-button>
+                    @else
+                        <x-secondary-button type="button" wire:click="confirmarFijar" title="{{ __('Fijar') }}"
+                            :disabled="! $puedeFijar">
+                            <i class="fa-solid fa-lock mr-1"></i>{{ __('Fijar') }}
+                        </x-secondary-button>
+                    @endif
                     <x-secondary-button type="button" wire:click="confirmarAprobar" title="{{ __('Aprobar') }}"
                         :disabled="! $puedeAprobar">
                         <i class="fa-solid fa-circle-check mr-1"></i>{{ __('Aprobar') }}
@@ -108,17 +118,41 @@
                                         </th>
                                     @endforeach
                                 @endif
+                                @if ($editable)
+                                    <th class="py-2 px-6 text-right">{{ __('Diferencia') }}</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody class="divide-y">
                             @foreach ($global as $fila)
-                                <tr wire:key="global-{{ $fila['inmueble']->id }}">
+                                @php
+                                    $inmuebleId = $fila['inmueble']->id;
+                                    $diferencia = $editable
+                                        ? round(array_sum(array_map('floatval', $pagosEditados[$inmuebleId] ?? [])) - $fila['total'], 2)
+                                        : 0;
+                                @endphp
+                                <tr wire:key="global-{{ $inmuebleId }}">
                                     <td class="py-2 px-6">{{ $fila['inmueble']->planta }} / {{ $fila['inmueble']->puerta }}</td>
                                     <td class="py-2 px-6 text-right">{{ number_format($fila['total'], 2, ',', '.') }}</td>
                                     @if ($datosPagoCompletos)
-                                        @foreach ($fila['pagos'] as $importePago)
-                                            <td class="py-2 px-6 text-right">{{ number_format($importePago, 2, ',', '.') }}</td>
+                                        @foreach ($fila['pagos'] as $i => $importePago)
+                                            <td class="py-2 px-6 text-right">
+                                                @if ($editable)
+                                                    <x-input type="number" step="0.01"
+                                                        class="w-28 h-10 text-sm px-1 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        wire:model.live="pagosEditados.{{ $inmuebleId }}.{{ $i }}" />
+                                                @else
+                                                    {{ number_format($importePago, 2, ',', '.') }}
+                                                @endif
+                                            </td>
                                         @endforeach
+                                    @endif
+                                    @if ($editable)
+                                        <td class="py-2 px-6 text-right @if ($diferencia != 0) text-red-700 dark:text-red-400 font-semibold @endif">
+                                            @if ($diferencia != 0)
+                                                {{ $diferencia > 0 ? '+' : '' }}{{ number_format($diferencia, 2, ',', '.') }}
+                                            @endif
+                                        </td>
                                     @endif
                                 </tr>
                             @endforeach
@@ -130,9 +164,23 @@
                                 @if ($datosPagoCompletos)
                                     @foreach ($fechasPagos as $i => $fecha)
                                         <td class="py-2 px-6 text-right">
-                                            {{ number_format($global->sum(fn ($f) => $f['pagos'][$i] ?? 0), 2, ',', '.') }}
+                                            @if ($editable)
+                                                {{ number_format(collect($pagosEditados)->sum(fn ($pagos) => (float) ($pagos[$i] ?? 0)), 2, ',', '.') }}
+                                            @else
+                                                {{ number_format($global->sum(fn ($f) => $f['pagos'][$i] ?? 0), 2, ',', '.') }}
+                                            @endif
                                         </td>
                                     @endforeach
+                                @endif
+                                @if ($editable)
+                                    @php
+                                        $diferenciaTotal = round(collect($pagosEditados)->sum(fn ($pagos) => array_sum(array_map('floatval', $pagos))) - $global->sum('total'), 2);
+                                    @endphp
+                                    <td class="py-2 px-6 text-right @if ($diferenciaTotal != 0) text-red-700 dark:text-red-400 @endif">
+                                        @if ($diferenciaTotal != 0)
+                                            {{ $diferenciaTotal > 0 ? '+' : '' }}{{ number_format($diferenciaTotal, 2, ',', '.') }}
+                                        @endif
+                                    </td>
                                 @endif
                             </tr>
                         </tfoot>
@@ -140,6 +188,13 @@
                 </div>
             @else
                 <div class="py-3 px-6">{{ __('No se encontraron resultados.') }}</div>
+            @endif
+            @if ($editable)
+                <div class="py-3 px-6 flex justify-end border-t">
+                    <x-secondary-button type="button" wire:click="guardarReparto" title="{{ __('Guardar reparto') }}">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i>{{ __('Guardar reparto') }}
+                    </x-secondary-button>
+                </div>
             @endif
         </x-dosl.tabla>
         </div>

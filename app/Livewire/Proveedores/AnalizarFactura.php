@@ -8,6 +8,7 @@ use App\Models\PlantillaFactura;
 use App\Models\TipoCampoPlantillaFactura;
 use App\Services\Facturas\ExtractorDatosFactura;
 use App\Services\Facturas\LectorPdf;
+use App\Services\Facturas\Plantillas\ExtractorPorCoordenadas;
 use App\Services\Facturas\Plantillas\ExtractorPosicional;
 use App\Services\Facturas\VerifactuQrLector;
 use Livewire\Attributes\On;
@@ -93,7 +94,7 @@ class AnalizarFactura extends Component
                     ],
                 ]);
             } else {
-                $resultados[] = array_merge($base, $this->datosDePlantilla($texto, $datos['cif'], $datos['fecha']));
+                $resultados[] = array_merge($base, $this->datosDePlantilla($texto, $datos['cif'], $datos['fecha'], $rutaAbsoluta));
             }
         }
 
@@ -108,18 +109,25 @@ class AnalizarFactura extends Component
     }
 
     /** Si el CIF detectado ya tiene plantilla, resuelve nº factura/fecha/importe por posición. */
-    protected function datosDePlantilla(string $texto, ?string $cif, ?string $fechaGenerica = null): array
+    protected function datosDePlantilla(string $texto, ?string $cif, ?string $fechaGenerica = null, ?string $rutaAbsoluta = null): array
     {
-        if (! $cif) {
-            return [];
+        $plantilla = $cif ? PlantillaFactura::with('campos')->where('cif', $cif)->first() : null;
+
+        // Sin CIF en el texto (proveedores cuya cabecera está "quemada" en una imagen, ver
+        // ExtractorPorCoordenadas): se reconoce el proveedor por la huella de esa misma imagen,
+        // idéntica en todas sus facturas.
+        if (! $plantilla && $rutaAbsoluta) {
+            $hash = $this->hashImagenCabecera($rutaAbsoluta);
+            $plantilla = $hash ? PlantillaFactura::with('campos')->where('hash_imagen', $hash)->first() : null;
         }
 
-        $plantilla = PlantillaFactura::with('campos')->where('cif', $cif)->first();
         if (! $plantilla) {
             return [];
         }
 
         $extractor = new ExtractorPosicional();
+        $extractorPosicion = new ExtractorPorCoordenadas();
+        $bloques   = null;
         $valores   = [];
 
         // Fecha/nº factura/importe cambian de una factura a otra: la etiqueta la eligió el
@@ -133,6 +141,17 @@ class AnalizarFactura extends Component
         ];
 
         foreach ($plantilla->campos as $campo) {
+            // Sin etiqueta de texto (ver ExtractorPorCoordenadas): se ancló por posición en la
+            // página en vez de por texto.
+            if ($campo->pos_x !== null && $rutaAbsoluta) {
+                $bloques ??= LectorPdf::aBloquesConPosicion($rutaAbsoluta);
+                $valores[$campo->tipo_campo_plantilla_factura_id] = $extractorPosicion->buscarPorPosicion(
+                    $bloques, (float) $campo->pos_x, (float) $campo->pos_y, (float) $campo->pos_ancho, (int) $campo->pagina
+                );
+
+                continue;
+            }
+
             // Campos marcados antes de este cambio no tienen delta guardado: se tratan como
             // el mecanismo antiguo en vez de reventar.
             $valores[$campo->tipo_campo_plantilla_factura_id] = (in_array($campo->tipo_campo_plantilla_factura_id, $camposConEtiquetaValor, true) && $campo->delta_columna !== null)
@@ -152,6 +171,13 @@ class AnalizarFactura extends Component
                 'importe'        => $valores[TipoCampoPlantillaFactura::IMPORTE] ?? null,
             ],
         ];
+    }
+
+    protected function hashImagenCabecera(string $rutaAbsoluta): ?string
+    {
+        $bytes = LectorPdf::extraerImagenPrincipal($rutaAbsoluta);
+
+        return $bytes ? hash('sha256', $bytes) : null;
     }
 
     public function render()

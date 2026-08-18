@@ -74,7 +74,9 @@ class RegistrarDevolucion
                 ? __('Devuelto (:motivo)', ['motivo' => $motivo])
                 : __('Devuelto por el banco');
 
-            $recibo->estado_id = TipoEstadoRecibo::DEVUELTO;
+            // El hecho ocurrió el día que dice el banco, no el día que se teclea aquí.
+            $recibo->fechaCambioEstado = $fecha;
+            $recibo->estado_id         = TipoEstadoRecibo::DEVUELTO;
             $recibo->save();
 
             return true;

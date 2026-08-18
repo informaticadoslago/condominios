@@ -52,7 +52,7 @@
                                  marcado avisa únicamente a los de transferencia: los
                                  domiciliados tienen su propio aviso desde la remesa. --}}
                             @if ($avisoTransferenciaActivo)
-                                <x-dropdown-link href="#" wire:click="avisarTransferencias">
+                                <x-dropdown-link href="#" wire:click="abrirAvisoTransferencia">
                                     <i class="fa-solid fa-envelope mr-1"></i>{{ __('Avisar envío transferencia') }}
                                     @if (count($seleccionados))
                                         ({{ count($seleccionados) }})
@@ -200,7 +200,15 @@
                                     </td>
                                 @endif
                                 @if ($this->verColumna('forma_de_pago'))
-                                    <td class="px-6 py-4">{{ $item->formaDePago?->descripcion }}</td>
+                                    <td class="px-6 py-4">
+                                        {{ $item->formaDePago?->descripcion }}
+                                        @if ($item->estado_id === \App\Models\TipoEstadoRecibo::GENERADO)
+                                            <button type="button" wire:click="resincronizarFormaPago({{ $item->id }})"
+                                                class="ml-2 text-gray-500 hover:text-gray-800" title="{{ __('Volver a copiar la forma de pago del inmueble') }}">
+                                                <i class="fa-solid fa-rotate"></i>
+                                            </button>
+                                        @endif
+                                    </td>
                                 @endif
                                 @if ($this->verColumna('estado'))
                                     <td class="px-6 py-4">
@@ -222,6 +230,30 @@
                             </tr>
                         @endforeach
                     </tbody>
+                    <tfoot class="font-medium border-t">
+                        @php
+                            // De lo marcado si hay selección, si no de la página que se ve.
+                            $colsAntes   = 1 + count(array_intersect($this->columnas, ['inmueble', 'propietario', 'presupuesto', 'numero_pago', 'vencimiento']));
+                            $colsDespues = count(array_intersect($this->columnas, ['forma_de_pago', 'estado', 'asiento']));
+                        @endphp
+                        <tr>
+                            <td class="px-6 py-3" colspan="{{ $colsAntes }}">
+                                {{ count($seleccionados) ? __('Totales (:count marcados)', ['count' => count($seleccionados)]) : __('Totales') }}
+                            </td>
+                            @if ($this->verColumna('importe'))
+                                <td class="px-6 py-3 text-right">{{ number_format($totales['importe'], 2, ',', '.') }} €</td>
+                            @endif
+                            @if ($this->verColumna('importe_pagado'))
+                                <td class="px-6 py-3 text-right">{{ number_format($totales['importe_pagado'], 2, ',', '.') }} €</td>
+                            @endif
+                            @if ($this->verColumna('saldo'))
+                                <td class="px-6 py-3 text-right">{{ number_format($totales['saldo'], 2, ',', '.') }} €</td>
+                            @endif
+                            @if ($colsDespues)
+                                <td colspan="{{ $colsDespues }}"></td>
+                            @endif
+                        </tr>
+                    </tfoot>
                 </table>
                 @if ($items->hasPages())
                     <div class="px-6 py-3">
@@ -254,7 +286,7 @@
                     <x-input-error for="cobroFecha" class="mt-1" />
                 </div>
 
-                <div>
+                <div class="mb-4">
                     <x-label for="cobroFormaDePagoId">{{ __('Forma de pago') }}:</x-label>
                     <x-select id="cobroFormaDePagoId" class="block mt-1 w-full py-3" wire:model="cobroFormaDePagoId">
                         @foreach ($formasDePago as $id => $descripcion)
@@ -262,6 +294,22 @@
                         @endforeach
                     </x-select>
                     <x-input-error for="cobroFormaDePagoId" class="mt-1" />
+                </div>
+
+                <div>
+                    <x-label for="cobroImporte">{{ __('Importe recibido (opcional, para comprobar)') }}:</x-label>
+                    <x-input class="block mt-1 w-full" type="number" step="0.01" id="cobroImporte"
+                        wire:model.live="cobroImporte" placeholder="0,00" />
+                    <p class="text-xs text-gray-500 mt-1">
+                        {{ __('Pendiente marcado') }}: {{ number_format((float) $cobroPendiente, 2, ',', '.') }} €
+                    </p>
+                    @if ($cobroImporte !== null && $cobroImporte !== '' && round((float) $cobroImporte, 2) !== round((float) $cobroPendiente, 2))
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                            {{ __('No cuadra: diferencia de :diferencia €. Se cobrará igual el pendiente de cada recibo.', [
+                                'diferencia' => number_format((float) $cobroImporte - (float) $cobroPendiente, 2, ',', '.'),
+                            ]) }}
+                        </p>
+                    @endif
                 </div>
             </x-slot>
 
@@ -271,6 +319,98 @@
                 </x-secondary-button>
                 <x-button type="button" class="ml-2" wire:click="cobrar">
                     {{ __('Sí, cobrar') }}
+                </x-button>
+            </x-slot>
+        </x-dosl.dialog-modal>
+
+        {{-- Avisar por transferencia: destinatario, correo (con sobre rojo si no está
+             validado), saldo y CC/CCO opcionales. Nada se envía hasta pulsar "Enviar
+             avisos". --}}
+        <x-dosl.dialog-modal wire:model.live="avisoTransferenciaAbierto" maxWidth="2xl">
+            <x-slot name="title">
+                {{ __('Avisar por transferencia') }}
+            </x-slot>
+
+            <x-slot name="content">
+                <div class="max-h-96 overflow-y-auto border rounded-lg">
+                    <table class="table-striped w-full table-auto text-sm text-left">
+                        <thead class="font-medium border-b">
+                            <tr>
+                                <th class="py-2 px-3 w-px">
+                                    <input type="checkbox"
+                                        wire:click="toggleTodosAvisoTransferencia({{ json_encode(array_column($avisoTransferenciaRecibos, 'id')) }})"
+                                        @checked(count($avisoTransferenciaRecibos) > 0 && count($avisoTransferenciaSeleccion) === count($avisoTransferenciaRecibos)) />
+                                </th>
+                                <th class="py-2 px-3">{{ __('Inmueble') }}</th>
+                                <th class="py-2 px-3">{{ __('Propietario') }}</th>
+                                <th class="py-2 px-3">{{ __('Correo') }}</th>
+                                <th class="py-2 px-3 text-right">{{ __('Saldo') }}</th>
+                                <th class="py-2 px-3 w-px"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            @foreach ($avisoTransferenciaRecibos as $recibo)
+                                <tr wire:key="avisar-transf-{{ $recibo['id'] }}">
+                                    <td class="py-2 px-3">
+                                        <input type="checkbox" wire:model.live="avisoTransferenciaSeleccion" value="{{ $recibo['id'] }}" />
+                                    </td>
+                                    <td class="py-2 px-3 whitespace-nowrap">{{ $recibo['inmueble'] }}</td>
+                                    <td class="py-2 px-3 mayusculas">{{ $recibo['propietario'] }}</td>
+                                    <td class="py-2 px-3">
+                                        @if ($recibo['correo'])
+                                            {{ $recibo['correo'] }}
+                                            @unless ($recibo['validado'])
+                                                <i class="fa-solid fa-envelope text-red-500 ml-1"
+                                                    title="{{ __('No validado') }}"></i>
+                                            @endunless
+                                        @else
+                                            <span class="text-amber-600">{{ __('sin correo') }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-2 px-3 text-right">{{ number_format($recibo['saldo'], 2, ',', '.') }}</td>
+                                    <td class="py-2 px-3">
+                                        <button type="button" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                            wire:click="toggleConCopiaTransferencia({{ $recibo['id'] }})"
+                                            title="{{ __('Añadir CC/CCO') }}">
+                                            <i class="fa-solid fa-plus"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @if (in_array($recibo['id'], $avisoTransferenciaConCopia))
+                                    <tr wire:key="avisar-transf-copia-{{ $recibo['id'] }}">
+                                        <td></td>
+                                        <td colspan="5" class="pb-2 px-3">
+                                            <div class="flex gap-2">
+                                                <div class="flex-1">
+                                                    <x-input class="block w-full text-xs" type="email" placeholder="CC"
+                                                        wire:model.blur="avisoTransferenciaCc.{{ $recibo['id'] }}" />
+                                                    <x-input-error for="avisoTransferenciaCc.{{ $recibo['id'] }}" class="mt-1" />
+                                                </div>
+                                                <div class="flex-1">
+                                                    <x-input class="block w-full text-xs" type="email" placeholder="CCO"
+                                                        wire:model.blur="avisoTransferenciaCco.{{ $recibo['id'] }}" />
+                                                    <x-input-error for="avisoTransferenciaCco.{{ $recibo['id'] }}" class="mt-1" />
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endif
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="mt-3 font-medium">
+                    {{ __('Marcados') }}: {{ count($avisoTransferenciaSeleccion) }} {{ __('de') }} {{ count($avisoTransferenciaRecibos) }}
+                </p>
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button type="button" wire:click="$set('avisoTransferenciaAbierto', false)">
+                    {{ __('Cancelar') }}
+                </x-secondary-button>
+                <x-button type="button" class="ml-2" wire:click="enviarAvisoTransferencia">
+                    {{ __('Enviar avisos') }}
                 </x-button>
             </x-slot>
         </x-dosl.dialog-modal>

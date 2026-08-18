@@ -29,6 +29,14 @@ final class CalculadorReparto
     {
         $reparto = $this->calcularEnVivo($presupuesto);
 
+        // El orden importa: si está fijado, sus importes son la base — incluso en el
+        // instante de aprobar, cuando el estado ya es APROBADO pero los recibos todavía
+        // no existen (ver GeneradorRecibos::generar()). Si además ya hay recibos, son
+        // ellos los que mandan por encima de lo fijado (fuente de verdad definitiva).
+        if ($presupuesto->fijado) {
+            $reparto = $this->aplicarRepartoFijado($presupuesto, $reparto);
+        }
+
         if ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
             $reparto = $this->aplicarRecibosExistentes($presupuesto, $reparto);
         }
@@ -140,6 +148,33 @@ final class CalculadorReparto
     }
 
     /**
+     * Superpone al reparto en vivo los importes fijados a mano en `reparto_fijado`
+     * (ver Reparto::fijar()): a partir de ahí dejan de recalcularse aunque cambien
+     * conceptos o grupos, hasta que se apruebe (momento en que los recibos pasan a ser
+     * la fuente de verdad, ver aplicarRecibosExistentes()). El total de cada inmueble
+     * (`total`) NO se sobrescribe: sigue siendo el cálculo en vivo, que es contra lo
+     * que la pantalla valida los importes fijados.
+     */
+    private function aplicarRepartoFijado(Presupuesto $presupuesto, array $reparto): array
+    {
+        $fijado = $presupuesto->reparto_fijado ?? [];
+        if ($fijado === []) {
+            return $reparto;
+        }
+
+        $reparto['global'] = $reparto['global']->map(function ($fila) use ($fijado) {
+            $pagos = $fijado[$fila['inmueble']->id] ?? null;
+            if ($pagos !== null) {
+                $fila['pagos'] = array_map(fn ($v) => (float) $v, $pagos);
+            }
+
+            return $fila;
+        });
+
+        return $reparto;
+    }
+
+    /**
      * Peso relativo de cada pago dentro del total del presupuesto: el porcentaje que el
      * usuario le dio a cada uno en la pantalla del presupuesto (un pago del 40% se lleva
      * el 40% de cada inmueble). Si no hay nada editado, o el número no cuadra con
@@ -162,10 +197,14 @@ final class CalculadorReparto
     {
         // 1) La fuente de verdad de una aprobación ya realizada son los recibos.
         if ($presupuesto->estado_id == TipoEstadoPresupuesto::APROBADO) {
+            // Hay un recibo por inmueble y pago, así que la misma fecha se repite una vez
+            // por inmueble: unique('numero_pago') se queda con una sola fila por pago.
             $fechas = $presupuesto->recibos()
                 ->orderBy('numero_pago')
-                ->get(['fecha_vencimiento'])
+                ->get(['numero_pago', 'fecha_vencimiento'])
+                ->unique('numero_pago')
                 ->map(fn ($recibo) => Carbon::parse($recibo->fecha_vencimiento))
+                ->values()
                 ->all();
 
             if ($fechas !== []) {

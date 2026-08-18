@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Remesas;
 
+use App\Exceptions\DevolucionNoAnulableException;
 use App\Exceptions\RemesaNoAnulableException;
 use App\Exceptions\RemesaNoGenerableException;
 use App\Livewire\ListaComponent;
+use App\Services\Recibos\DeshacerDevolucionesRemesa;
 use App\Services\Recibos\DeshacerRemesa;
 use Livewire\Attributes\On;
 use App\Models\Comunidad;
@@ -13,8 +15,12 @@ use App\Models\Inmueble;
 use App\Models\LineaRemesa;
 use App\Models\Recibo;
 use App\Models\Remesa;
+use App\Models\TipoComisionBancaria;
+use App\Services\Recibos\EnlazarCobrosContabilidad;
+use App\Services\Recibos\EnlazarRecibosContabilidad;
 use App\Services\Recibos\EnviarAvisosRecibos;
 use App\Services\Recibos\GeneradorRemesa;
+use App\Services\Recibos\ImportadorRemesaSepa;
 use App\Services\Recibos\LeerDevolucionesSepa;
 use App\Services\Recibos\RegistrarCobro;
 use App\Services\Recibos\RegistrarDevolucion;
@@ -78,12 +84,51 @@ class Lista extends ListaComponent
 
     public ?int $detalleRemesaId = null;
 
+    /** Alta de una remesa que se presentó al banco por otro programa, a partir de su pain.008. */
+    public bool $importarAbierto = false;
+
+    public $importarFichero = null;
+
+    /** Resultado de ImportadorRemesaSepa::analizar(), a la espera de confirmar. */
+    public ?array $importarAnalisis = null;
+
+    public ?string $importarFechaCargo = null;
+
+    /** Índices (dentro de candidatas) marcados para importar; empiezan todos marcados. */
+    public array $importarSeleccion = [];
+
     public bool $avisoTransferenciaAbierto = false;
 
     public ?string $avisoVencimiento = null;
 
     /** Recibos por transferencia marcados para avisar; se pueden desmarcar. */
     public array $avisoSeleccion = [];
+
+    /** Ids de recibo con el "+" de CC/CCO abierto, en el aviso de transferencia. */
+    public array $avisoConCopia = [];
+
+    /** CC y CCO sueltos por id de recibo; no van ligados a ningún contacto guardado. */
+    public array $avisoCc = [];
+
+    public array $avisoCco = [];
+
+    public bool $avisoDevolucionAbierto = false;
+
+    public ?int $avisoDevolucionRemesaId = null;
+
+    /** Un grupo por destinatario (ver EnviarAvisosRecibos::gruposDevolucion). */
+    public array $avisoDevolucionGrupos = [];
+
+    /** Índices (dentro de avisoDevolucionGrupos) marcados para avisar; empiezan todos marcados. */
+    public array $avisoDevolucionSeleccion = [];
+
+    /** Índices con el "+" de CC/CCO abierto. */
+    public array $avisoDevolucionConCopia = [];
+
+    /** CC y CCO sueltos por índice de grupo; no van ligados a ningún contacto guardado. */
+    public array $avisoDevolucionCc = [];
+
+    public array $avisoDevolucionCco = [];
 
     public function mount()
     {
@@ -144,8 +189,22 @@ class Lista extends ListaComponent
                 // no se ha dado por cobrado no puede rebotar, no hay dinero que deshacer.
                 'lineas as lineas_devolvibles_count' => fn ($q) => $q->whereNull('fecha_devolucion')
                     ->whereHas('cobros'),
+                // Emisión o cobros/devoluciones que todavía no tienen asiento: si no hay
+                // ninguna, "Enlazar contabilidad" no aporta nada y se oculta.
+                'lineas as lineas_pendientes_enlazar_count' => fn ($q) => $q->where(
+                    fn ($q2) => $q2->whereHas('recibo', fn ($r) => $r->whereNull('asiento_contable'))
+                        ->orWhereHas('recibo.cobros', fn ($c) => $c->whereNull('asiento_contable'))
+                ),
             ])
             ->withSum('lineas', 'importe')
+            ->withSum(['lineas as lineas_devueltas_importe_sum' => fn ($q) => $q->whereNotNull('fecha_devolucion')], 'importe')
+            // Lo que de verdad cobró el banco por las devoluciones (comisión + IVA de la
+            // ComisionBancaria tipo "devolucion" asociada), no lo que se repercute a los
+            // propietarios en gestión.
+            ->withSum(['lineasComisionesBancarias as comision_devolucion_sum' => fn ($q) => $q->whereHas(
+                'comisionBancaria.tipoComisionBancaria',
+                fn ($q2) => $q2->where('codigo', TipoComisionBancaria::DEVOLUCION),
+            )], 'importe')
             ->where('comunidad_id', session('comunidad_actual_id'))
             ->when($search, fn ($q) => $q->where('referencia', 'like', "%{$search}%"));
     }
@@ -418,6 +477,102 @@ class Lista extends ListaComponent
         ]);
     }
 
+    /**
+     * Alta de una remesa ya presentada por otro programa: se sube el pain.008 que se
+     * mandó al banco y se casan sus líneas con recibos nuestros por IBAN e importe.
+     */
+    public function abrirImportar(): void
+    {
+        $this->importarFichero    = null;
+        $this->importarAnalisis   = null;
+        $this->importarFechaCargo = null;
+        $this->importarSeleccion  = [];
+        $this->importarAbierto    = true;
+    }
+
+    public function analizarFichero(ImportadorRemesaSepa $servicio): void
+    {
+        $this->validate(
+            ['importarFichero' => ['required', 'file', 'max:2048']],
+            attributes: ['importarFichero' => __('fichero de la remesa')]
+        );
+
+        $comunidad = $this->comunidad();
+
+        if (! $comunidad) {
+            return;
+        }
+
+        $this->importarAnalisis = $servicio->analizar($comunidad, $this->importarFichero->get());
+
+        if ($this->importarAnalisis['error']) {
+            $this->dispatch('toast-error', ['title' => $this->importarAnalisis['error']]);
+
+            return;
+        }
+
+        $this->importarFechaCargo = $this->importarAnalisis['fechaCargo'] ?? now()->toDateString();
+        $this->importarSeleccion  = array_map('strval', array_keys($this->importarAnalisis['candidatas']));
+
+        $this->dispatch($this->importarAnalisis['candidatas'] ? 'toast-success' : 'toast-error', [
+            'title' => $this->importarAnalisis['candidatas']
+                ? __(':count líneas casadas con recibos', ['count' => count($this->importarAnalisis['candidatas'])])
+                : __('El fichero no trae ninguna línea que case con un recibo'),
+        ]);
+    }
+
+    public function confirmarImportar(ImportadorRemesaSepa $servicio): void
+    {
+        $this->validate([
+            'importarFechaCargo' => ['required', 'date'],
+            'importarSeleccion'  => ['required', 'array', 'min:1'],
+        ], attributes: [
+            'importarFechaCargo' => __('Fecha de cargo'),
+            'importarSeleccion'  => __('líneas a importar'),
+        ]);
+
+        $comunidad = $this->comunidad();
+
+        if (! $comunidad || ! $this->importarAnalisis) {
+            return;
+        }
+
+        $indices = array_map('intval', $this->importarSeleccion);
+        $lineas  = array_values(array_intersect_key(
+            $this->importarAnalisis['candidatas'],
+            array_flip($indices),
+        ));
+
+        try {
+            $resultado = $servicio->importar(
+                $comunidad,
+                $lineas,
+                $this->importarFechaCargo,
+                $this->importarAnalisis['referenciaOriginal'] ?? null,
+            );
+        } catch (RemesaNoGenerableException $e) {
+            $this->dispatch('toast-error', ['title' => $e->getMessage()]);
+
+            return;
+        }
+
+        $this->importarAbierto  = false;
+        $this->importarAnalisis = null;
+
+        $mensaje = __('Remesa :referencia importada con :count líneas', [
+            'referencia' => $resultado['remesa']->referencia,
+            'count'      => count($lineas),
+        ]);
+
+        if ($resultado['sinEnlazar'] > 0) {
+            $mensaje .= ' — '.__(':count recibos ya cobrados no se han podido enlazar solos, tenían más de un cobro suelto: revísalos a mano', [
+                'count' => $resultado['sinEnlazar'],
+            ]);
+        }
+
+        $this->dispatch('toast-success', ['title' => $mensaje]);
+    }
+
     /** Qué recibos entraron en la remesa. Solo mirar: lo presentado ya no se toca. */
     public function verDetalle(int $remesaId): void
     {
@@ -476,6 +631,9 @@ class Lista extends ListaComponent
         }
 
         $this->avisoSeleccion            = $recibos->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->avisoConCopia             = [];
+        $this->avisoCc                   = [];
+        $this->avisoCco                  = [];
         $this->avisoTransferenciaAbierto = true;
     }
 
@@ -484,6 +642,16 @@ class Lista extends ListaComponent
     {
         $this->avisoSeleccion = $this->recibosPorTransferencia($this->avisoVencimiento)
             ->pluck('id')->map(fn ($id) => (string) $id)->all();
+    }
+
+    /** Abre o cierra los campos de CC/CCO de un recibo, en el aviso de transferencia. */
+    public function toggleConCopiaTransferencia(int $reciboId): void
+    {
+        if (in_array($reciboId, $this->avisoConCopia, true)) {
+            $this->avisoConCopia = array_values(array_diff($this->avisoConCopia, [$reciboId]));
+        } else {
+            $this->avisoConCopia[] = $reciboId;
+        }
     }
 
     public function enviarAvisosTransferencia(EnviarAvisosRecibos $servicio): void
@@ -500,19 +668,42 @@ class Lista extends ListaComponent
             return;
         }
 
+        $this->validate([
+            'avisoCc.*'  => ['nullable', 'email'],
+            'avisoCco.*' => ['nullable', 'email'],
+        ], [], [
+            'avisoCc.*'  => __('CC'),
+            'avisoCco.*' => __('CCO'),
+        ]);
+
         // Solo los que siguen saliendo en la lista: entre abrir el modal y confirmar,
         // alguno puede haberse cobrado ya.
-        $ids = $this->recibosPorTransferencia($this->avisoVencimiento)
-            ->whereIn('id', array_map('intval', $this->avisoSeleccion))
-            ->pluck('id')
-            ->all();
+        $recibos = $this->recibosPorTransferencia($this->avisoVencimiento)
+            ->whereIn('id', array_map('intval', $this->avisoSeleccion));
 
-        $resultado = $servicio->deTransferencia($ids, $comunidad);
+        $avisados  = 0;
+        $sinCorreo = 0;
+
+        foreach ($recibos as $recibo) {
+            if ($servicio->enviarTransferencia(
+                $recibo,
+                $comunidad,
+                cc: $this->avisoCc[$recibo->id] ?? null,
+                cco: $this->avisoCco[$recibo->id] ?? null,
+            )) {
+                $avisados++;
+            } else {
+                $sinCorreo++;
+            }
+        }
 
         $this->avisoTransferenciaAbierto = false;
         $this->avisoSeleccion            = [];
+        $this->avisoConCopia             = [];
+        $this->avisoCc                   = [];
+        $this->avisoCco                  = [];
 
-        $this->avisar($resultado);
+        $this->avisar(['avisados' => $avisados, 'sin_correo' => $sinCorreo]);
     }
 
     /** Mensaje común de los dos avisos: cuántos han salido y a cuántos no se ha podido. */
@@ -601,6 +792,214 @@ class Lista extends ListaComponent
                 'count'      => $recibos,
             ]),
         ]);
+    }
+
+    /**
+     * Abre el importador de comisiones bancarias (comisiones-bancarias.importar-csv, en
+     * otra pantalla) asociado a esta remesa: las comisiones de devolución que se den de
+     * alta en esa sesión llevan su remesa_id, para poder repartirlas luego entre sus
+     * recibos devueltos.
+     */
+    /**
+     * El importador de comisiones vive en otro componente Livewire; sin esto, la
+     * columna "Devueltos" se queda con los gastos en blanco hasta recargar la página.
+     */
+    #[On('comision-bancaria-importada')]
+    public function refrescarComisiones(): void
+    {
+        // el evento fuerza el re-render de la lista
+    }
+
+    /**
+     * Enlaza a contabilidad lo pendiente de los recibos de esta remesa (emisión, cobros
+     * y devoluciones) sin tener que ir a Recibos y filtrar por remesa: el botón está
+     * aquí porque es justo después de marcar una devolución cuando hace falta.
+     */
+    public function enlazarContabilidadRemesa(
+        int $remesaId,
+        EnlazarRecibosContabilidad $enlazador,
+        EnlazarCobrosContabilidad $enlazadorCobros,
+    ): void {
+        $remesa = Remesa::where('comunidad_id', session('comunidad_actual_id'))->find($remesaId);
+
+        if (! $remesa) {
+            return;
+        }
+
+        $ids = $remesa->lineas()->pluck('recibo_id')->all();
+
+        $recibos = $enlazador->ejecutar($ids);
+        $cobros  = $enlazadorCobros->ejecutar($ids);
+
+        if ($recibos['enlazados'] === 0 && $cobros['enlazados'] === 0) {
+            $this->dispatch('toast-error', ['title' => __('No había nada pendiente de enlazar en esta remesa')]);
+
+            return;
+        }
+
+        $this->dispatch('toast-success', [
+            'title' => __(':recibos recibos y :cobros cobros enlazados', [
+                'recibos' => $recibos['enlazados'],
+                'cobros'  => $cobros['enlazados'],
+            ]),
+        ]);
+    }
+
+    /**
+     * Abre la vista previa de a quién se va a avisar de la devolución y cuánto, todos
+     * marcados, para poder dejar fuera a quien no toque antes de mandar nada.
+     */
+    public function abrirAvisoDevolucion(int $remesaId, EnviarAvisosRecibos $servicio): void
+    {
+        $remesa = Remesa::where('comunidad_id', session('comunidad_actual_id'))->find($remesaId);
+
+        if (! $remesa) {
+            return;
+        }
+
+        ['grupos' => $grupos, 'sin_correo' => $sinCorreo] = $servicio->gruposDevolucion($remesa);
+
+        if ($grupos->isEmpty()) {
+            $this->dispatch('toast-error', [
+                'title' => $sinCorreo > 0
+                    ? __('No se puede avisar: nadie tiene dirección de correo')
+                    : __('No hay ninguna devolución que avisar'),
+            ]);
+
+            return;
+        }
+
+        $this->avisoDevolucionRemesaId  = $remesa->id;
+        $this->avisoDevolucionGrupos    = $grupos->all();
+        $this->avisoDevolucionSeleccion = array_map('strval', array_keys($grupos->all()));
+        $this->avisoDevolucionConCopia  = [];
+        $this->avisoDevolucionCc        = [];
+        $this->avisoDevolucionCco       = [];
+        $this->avisoDevolucionAbierto   = true;
+    }
+
+    /** Abre o cierra los campos de CC/CCO de un destinatario del modal de devolución. */
+    public function toggleConCopiaDevolucion(int $indice): void
+    {
+        if (in_array($indice, $this->avisoDevolucionConCopia, true)) {
+            $this->avisoDevolucionConCopia = array_values(array_diff($this->avisoDevolucionConCopia, [$indice]));
+        } else {
+            $this->avisoDevolucionConCopia[] = $indice;
+        }
+    }
+
+    public function enviarAvisoDevolucion(EnviarAvisosRecibos $servicio): void
+    {
+        $remesa = Remesa::where('comunidad_id', session('comunidad_actual_id'))->find($this->avisoDevolucionRemesaId);
+
+        if (! $remesa) {
+            return;
+        }
+
+        if ($this->avisoDevolucionSeleccion === []) {
+            $this->dispatch('toast-error', ['title' => __('No queda ningún destinatario marcado')]);
+
+            return;
+        }
+
+        $this->validate([
+            'avisoDevolucionCc.*'  => ['nullable', 'email'],
+            'avisoDevolucionCco.*' => ['nullable', 'email'],
+        ], [], [
+            'avisoDevolucionCc.*'  => __('CC'),
+            'avisoDevolucionCco.*' => __('CCO'),
+        ]);
+
+        $avisados = 0;
+
+        foreach (array_map('intval', $this->avisoDevolucionSeleccion) as $indice) {
+            $grupo = $this->avisoDevolucionGrupos[$indice] ?? null;
+
+            if (! $grupo) {
+                continue;
+            }
+
+            $servicio->enviarGrupoDevolucion(
+                $grupo['recibo_ids'],
+                $grupo['fecha'],
+                $grupo['correo'],
+                $remesa->comunidad,
+                cc: $this->avisoDevolucionCc[$indice] ?? null,
+                cco: $this->avisoDevolucionCco[$indice] ?? null,
+            );
+            // Un aviso por destinatario, no por recibo: si el grupo lleva dos inmuebles,
+            // sigue siendo un solo correo. Contar recibo_ids diría "2 avisados" habiendo
+            // mandado uno.
+            $avisados++;
+        }
+
+        $this->avisoDevolucionAbierto   = false;
+        $this->avisoDevolucionGrupos    = [];
+        $this->avisoDevolucionSeleccion = [];
+        $this->avisoDevolucionConCopia  = [];
+        $this->avisoDevolucionCc        = [];
+        $this->avisoDevolucionCco       = [];
+
+        $this->avisar(['avisados' => $avisados, 'sin_correo' => 0]);
+    }
+
+    public function abrirImportarComisionDevolucion(int $remesaId): void
+    {
+        $remesa = Remesa::where('comunidad_id', session('comunidad_actual_id'))->find($remesaId);
+
+        if (! $remesa) {
+            return;
+        }
+
+        $this->dispatch('abrir-importar-csv', remesaId: $remesa->id);
+    }
+
+    public function confirmarDeshacerDevoluciones(int $remesaId): void
+    {
+        $this->dispatch('swalConfirm', [
+            'title'              => __('¿Deshacer las devoluciones?'),
+            'text'               => __('Se desmarca todo lo devuelto de esta remesa: los recibos vuelven a Cobrado y se borra el asiento contable de cada devolución. Úsalo para corregir una tanda mal tecleada (fecha, motivo o comisión) y repetirla bien.'),
+            'icon'               => 'warning',
+            'showCancelButton'   => true,
+            'confirmButtonColor' => '#d33',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, deshacer'),
+            'cancelButtonText'   => __('Cancelar'),
+            'confirmCallback'    => 'ejecutarDeshacerDevoluciones',
+            'cancelCallback'     => 'deshacerDevolucionesCancelado',
+            'id'                 => $remesaId,
+        ]);
+    }
+
+    #[On('ejecutarDeshacerDevoluciones')]
+    public function ejecutarDeshacerDevoluciones($id, DeshacerDevolucionesRemesa $servicio): void
+    {
+        $remesa = Remesa::where('comunidad_id', session('comunidad_actual_id'))->find($id);
+
+        if (! $remesa) {
+            return;
+        }
+
+        try {
+            $count = $servicio->ejecutar($remesa);
+        } catch (DevolucionNoAnulableException $e) {
+            $this->dispatch('toast-error', ['title' => $e->getMessage()]);
+
+            return;
+        }
+
+        $this->dispatch('toast-success', [
+            'title' => __(':count devoluciones deshechas en la remesa :referencia', [
+                'count'      => $count,
+                'referencia' => $remesa->referencia,
+            ]),
+        ]);
+    }
+
+    #[On('deshacerDevolucionesCancelado')]
+    public function deshacerDevolucionesCancelado($id = null): void
+    {
+        // el usuario canceló; no hacemos nada
     }
 
     #[On('deshacerCancelado')]

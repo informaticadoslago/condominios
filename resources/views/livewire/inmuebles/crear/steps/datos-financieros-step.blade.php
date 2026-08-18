@@ -102,7 +102,7 @@
                     </p>
                 @else
                     <p class="mt-2 text-sm text-gray-500">
-                        {{ __('Déjalo en blanco si todavía no está firmado. Si lo rellenas, hacen falta los dos datos.') }}
+                        {{ __('Obligatorio para poder remesar: hacen falta los dos datos.') }}
                     </p>
                     <div class="flex w-full mt-2">
                         <div class="w-1/2">

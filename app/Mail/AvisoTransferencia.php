@@ -48,9 +48,15 @@ class AvisoTransferencia extends Mailable implements ShouldQueue
                 'inmueble'    => $this->nombreInmueble(),
                 // Aquí sí va el IBAN entero: es el de la comunidad y es lo que necesita
                 // para poder hacer la transferencia.
-                'iban'     => $this->comunidadDestino->cuentasBancarias()->first()?->iban,
+                'iban'     => $this->formatearIban($this->comunidadDestino->cuentasBancarias()->first()?->iban),
                 'concepto' => $this->concepto(),
             ]);
+    }
+
+    /** El IBAN en grupos de 4, como se ve normalmente, para que sea más fácil de leer y copiar. */
+    private function formatearIban(?string $iban): ?string
+    {
+        return $iban ? trim(chunk_split($iban, 4, ' ')) : null;
     }
 
     private function nombreInmueble(): string
@@ -71,9 +77,13 @@ class AvisoTransferencia extends Mailable implements ShouldQueue
      */
     private function concepto(): string
     {
-        return trim(__('Cuota :numero de :anho', [
-            'numero' => $this->recibo->numero_pago,
-            'anho'   => $this->recibo->presupuesto?->anho,
-        ]).' '.$this->nombreInmueble());
+        return implode(' — ', array_filter([
+            $this->nombreInmueble(),
+            $this->recibo->presupuesto?->nombre,
+            trim(__('Cuota :numero de :anho', [
+                'numero' => $this->recibo->numero_pago,
+                'anho'   => $this->recibo->presupuesto?->anho,
+            ])),
+        ]));
     }
 }

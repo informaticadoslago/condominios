@@ -16,6 +16,7 @@ use App\Http\Controllers\EmpresaContableContextoController;
 use App\Livewire\AdministracionSistema\Backups\Lista as BackupsLista;
 use App\Livewire\AdministracionSistema\Comunidades\Importar as ComunidadesImportar;
 use App\Livewire\AdministracionSistema\Empresa\Editar as EmpresaEditar;
+use App\Livewire\AdministracionSistema\Jobs\Lista as JobsLista;
 use App\Livewire\AdministracionSistema\Permisos\Lista as PermisosLista;
 use App\Livewire\AdministracionSistema\Personas\Lista as PersonasLista;
 use App\Livewire\AdministracionSistema\Roles\Lista as RolesLista;
@@ -25,6 +26,8 @@ use App\Livewire\AsientosContables\Formulario as AsientosContablesFormulario;
 use App\Livewire\AsientosContables\Lista as AsientosContablesLista;
 use App\Livewire\Catalogos\Lista as CatalogosLista;
 use App\Livewire\Actividades\Lista as ActividadesLista;
+use App\Livewire\ComisionesBancarias\Formulario as ComisionesBancariasFormulario;
+use App\Livewire\ComisionesBancarias\Lista as ComisionesBancariasLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
 use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
@@ -110,6 +113,7 @@ Route::middleware([
         Route::get('/tokens-api', AdminTokensApiLista::class)
             ->can('configuracion-token')
             ->name('tokens-api.index');
+        Route::get('/jobs', JobsLista::class)->name('jobs.index');
         Route::get('/backups', BackupsLista::class)->name('backups.index');
         Route::get('/backups/{fichero}/descargar', BackupDescargaController::class)
             ->where('fichero', '.*')
@@ -139,6 +143,8 @@ Route::middleware([
         Route::get('/mandatos-sepa/plantilla/{personaComunidad}', MandatoSepaPlantillaController::class)->name('mandatos-sepa.plantilla');
         Route::get('/remesas', RemesasLista::class)->name('remesas.index');
         Route::get('/remesas/{remesa}/fichero', RemesaFicheroController::class)->name('remesas.fichero');
+        Route::get('/comisiones-bancarias', ComisionesBancariasLista::class)->name('comisiones-bancarias.index');
+        Route::get('/comisiones-bancarias/nueva', ComisionesBancariasFormulario::class)->name('comisiones-bancarias.crear');
         Route::get('/inmuebles', InmueblesLista::class)->name('inmuebles.index');
         Route::get('/inmuebles/nuevo', InmueblesFormulario::class)->name('inmuebles.crear');
         Route::get('/inmuebles/{inmueble}/editar', InmueblesFormulario::class)->name('inmuebles.editar');

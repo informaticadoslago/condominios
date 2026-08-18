@@ -20,6 +20,7 @@ class LineaRemesa extends Model
         'recibo_id',
         'importe',
         'iban',
+        'referencia_externa',
         'fecha_devolucion',
         'motivo_devolucion',
         'gastos_devolucion',

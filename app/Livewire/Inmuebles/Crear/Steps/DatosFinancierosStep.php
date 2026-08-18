@@ -322,16 +322,17 @@ class DatosFinancierosStep extends CrearInmuebleStep
     {
         $esReciboBancario = (int) $this->forma_de_pago_id === FormaDePago::RECIBO_BANCARIO;
 
-        // El mandato es opcional (se registra cuando vuelve firmado), pero no a medias:
-        // un número sin fecha no sirve para remesar, y una fecha sin número tampoco.
-        $conMandato = filled($this->mandato_referencia) || filled($this->mandato_fecha_firma);
+        // Si la cuenta ya tiene un mandato ACTIVO no hace falta pedirlo otra vez (se
+        // enseña el que hay); si no lo tiene, es obligatorio: sin mandato no se puede
+        // remesar (ver FicheroRemesaSepa::comprobarMandatos()).
+        $mandatoObligatorio = $esReciboBancario && ! $this->mandatoVigente();
 
         return [
             'forma_de_pago_id'          => ['required', 'exists:formas_de_pago,id'],
             'persona_comunidad_id_pago' => ['required', 'exists:personas_comunidad,id'],
             'cuenta_bancaria_id'        => [$esReciboBancario ? 'required' : 'nullable', 'exists:cuentas_bancarias,id'],
-            'mandato_referencia'        => [$conMandato ? 'required' : 'nullable', 'string', 'max:35'],
-            'mandato_fecha_firma'       => [$conMandato ? 'required' : 'nullable', 'date', 'before_or_equal:today'],
+            'mandato_referencia'        => [$mandatoObligatorio ? 'required' : 'nullable', 'string', 'max:35'],
+            'mandato_fecha_firma'       => [$mandatoObligatorio ? 'required' : 'nullable', 'date', 'before_or_equal:today'],
             'mandato_documento'         => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:8192'],
         ];
     }

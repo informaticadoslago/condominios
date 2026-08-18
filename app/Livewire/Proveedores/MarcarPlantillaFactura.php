@@ -4,6 +4,8 @@ namespace App\Livewire\Proveedores;
 
 use App\Models\PlantillaFactura;
 use App\Models\TipoCampoPlantillaFactura;
+use App\Services\Facturas\LectorPdf;
+use App\Services\Facturas\Plantillas\ExtractorPorCoordenadas;
 use App\Services\Facturas\Plantillas\ExtractorPosicional;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -13,8 +15,25 @@ class MarcarPlantillaFactura extends Component
     public bool $abrir = false;
 
     public string $texto = '';
+    public ?string $rutaAbsoluta = null;
     public ?int $indiceResultado = null;
     public ?string $cifPlantilla = null;
+
+    /** Activado con el botón "no hay etiqueta": el siguiente marcado ancla por posición en la página, no por texto. */
+    public bool $usarPosicion = false;
+
+    /** Bloques con posición del PDF actual (pdftotext -bbox-layout), cargados solo si hace falta. */
+    protected ?array $bloquesConPosicion = null;
+
+    /**
+     * Imagen de cabecera del PDF (data URI) y su huella, por si la razón social/CIF solo están
+     * "quemados" en una imagen (ver LectorPdf::extraerImagenPrincipal). Públicas a propósito:
+     * Livewire solo conserva entre peticiones las propiedades públicas, y guardarPlantilla()
+     * necesita $hashImagenCabecera en una petición posterior a la que la calculó.
+     */
+    public ?string $imagenCabecera = null;
+    public ?string $hashImagenCabecera = null;
+    public bool $imagenCabeceraCargada = false;
 
     public array $campos = [];
     public int $indiceCampo = 0;
@@ -66,9 +85,15 @@ class MarcarPlantillaFactura extends Component
 
     /** Proveedor nuevo (sin plantilla todavía): se marcan los 5 campos en secuencia. */
     #[On('abrir-marcar-plantilla-factura')]
-    public function mostrar($texto, $cif, $razonSocial, $indice, $fecha = null)
+    public function mostrar($texto, $cif, $razonSocial, $indice, $fecha = null, $rutaAbsoluta = null)
     {
-        $this->texto             = $texto;
+        $this->texto              = $texto;
+        $this->rutaAbsoluta       = $rutaAbsoluta;
+        $this->bloquesConPosicion = null;
+        $this->imagenCabecera        = null;
+        $this->imagenCabeceraCargada = false;
+        $this->hashImagenCabecera    = null;
+        $this->usarPosicion       = false;
         $this->indiceResultado   = $indice;
         $this->cifPlantilla      = null;
         $this->valores           = [];
@@ -88,15 +113,22 @@ class MarcarPlantillaFactura extends Component
             TipoCampoPlantillaFactura::IMPORTE,
         ];
 
+        $this->cargarImagenCabecera();
         $this->iniciarSubEtapaCampoActual();
         $this->abrir = true;
     }
 
     /** Proveedor con plantilla ya existente, pero un campo concreto salió mal: se corrige solo ese. */
     #[On('abrir-corregir-campo-plantilla')]
-    public function corregirCampo($texto, $cif, $tipoCampo, $indice)
+    public function corregirCampo($texto, $cif, $tipoCampo, $indice, $rutaAbsoluta = null)
     {
-        $this->texto             = $texto;
+        $this->texto              = $texto;
+        $this->rutaAbsoluta       = $rutaAbsoluta;
+        $this->bloquesConPosicion = null;
+        $this->imagenCabecera        = null;
+        $this->imagenCabeceraCargada = false;
+        $this->hashImagenCabecera    = null;
+        $this->usarPosicion       = false;
         $this->indiceResultado   = $indice;
         $this->cifPlantilla      = $cif;
         $this->valores           = [];
@@ -105,6 +137,7 @@ class MarcarPlantillaFactura extends Component
         $this->valoresDetectados = [];
         $this->campos            = [(int) $tipoCampo];
 
+        $this->cargarImagenCabecera();
         $this->iniciarSubEtapaCampoActual();
         $this->abrir = true;
     }
@@ -144,10 +177,24 @@ class MarcarPlantillaFactura extends Component
         $this->avanzar();
     }
 
+    /** No hay ninguna etiqueta de texto cerca del valor (está quemada en una imagen): ancla por posición en la página. */
+    public function activarPosicion()
+    {
+        $this->usarPosicion = true;
+        $this->etiquetaPendiente = null;
+        $this->subEtapa = null;
+    }
+
     public function marcar($inicio, $fin)
     {
         $tipo = $this->campos[$this->indiceCampo] ?? null;
         if ($tipo === null || $fin <= $inicio) {
+            return;
+        }
+
+        if ($this->usarPosicion) {
+            $this->marcarPorPosicion($tipo, (int) $inicio, (int) $fin);
+
             return;
         }
 
@@ -211,6 +258,50 @@ class MarcarPlantillaFactura extends Component
         $this->avanzar();
     }
 
+    protected function marcarPorPosicion(int $tipo, int $inicio, int $fin)
+    {
+        if (! $this->rutaAbsoluta) {
+            $this->dispatch('toast-error', ['title' => __('No se puede anclar por posición: no se encontró el PDF original.')]);
+
+            return;
+        }
+
+        $ancla = (new ExtractorPorCoordenadas())->construirAncla($this->texto, $inicio, $fin, $this->bloques());
+
+        if ($ancla === null) {
+            $this->dispatch('toast-error', ['title' => __('No se pudo anclar por posición esa selección: prueba a seleccionar solo el valor exacto.')]);
+
+            return;
+        }
+
+        $this->valores[$tipo] = $ancla + ['ancla' => null];
+        $this->usarPosicion = false;
+        $this->avanzar();
+    }
+
+    /** Bloques con posición del PDF actual, cargados una sola vez por apertura del modal. */
+    protected function bloques(): array
+    {
+        if ($this->bloquesConPosicion === null) {
+            $this->bloquesConPosicion = LectorPdf::aBloquesConPosicion($this->rutaAbsoluta);
+        }
+
+        return $this->bloquesConPosicion;
+    }
+
+    /** Imagen de cabecera del PDF (si tiene alguna embebida), para leer a ojo razón social/CIF que solo están ahí. */
+    protected function cargarImagenCabecera(): void
+    {
+        if ($this->imagenCabeceraCargada || ! $this->rutaAbsoluta) {
+            return;
+        }
+
+        $this->imagenCabeceraCargada = true;
+        $bytes = LectorPdf::extraerImagenPrincipal($this->rutaAbsoluta);
+        $this->imagenCabecera     = $bytes ? 'data:image/png;base64,' . base64_encode($bytes) : null;
+        $this->hashImagenCabecera = $bytes ? hash('sha256', $bytes) : null;
+    }
+
     protected function avanzar()
     {
         $this->indiceCampo++;
@@ -230,6 +321,7 @@ class MarcarPlantillaFactura extends Component
         $tipo = $this->campos[$this->indiceCampo] ?? null;
         $this->subEtapa = ($tipo !== null && in_array($tipo, $this->camposConEtiquetaValor, true)) ? 'etiqueta' : null;
         $this->etiquetaPendiente = null;
+        $this->usarPosicion = false;
     }
 
     protected function guardarPlantilla()
@@ -252,7 +344,8 @@ class MarcarPlantillaFactura extends Component
         PlantillaFactura::guardarDesdeCampos(
             $cif,
             $this->valores[TipoCampoPlantillaFactura::RAZON_SOCIAL]['valor'] ?? null,
-            $campos
+            $campos,
+            $this->hashImagenCabecera
         );
 
         // Solo mandamos de vuelta lo que se ha marcado en esta sesión (para no pisar, al
@@ -281,6 +374,8 @@ class MarcarPlantillaFactura extends Component
             'valorDetectadoActual' => $campoActual ? ($this->valoresDetectados[$campoActual] ?? null) : null,
             'etiquetas'            => array_map(fn ($e) => __($e), $this->etiquetas),
             'esRazonSocial'        => $campoActual === TipoCampoPlantillaFactura::RAZON_SOCIAL,
+            'permiteValorManual'   => in_array($campoActual, [TipoCampoPlantillaFactura::RAZON_SOCIAL, TipoCampoPlantillaFactura::CIF], true),
+            'puedeAnclarPorPosicion' => $campoActual !== null && $campoActual !== TipoCampoPlantillaFactura::RAZON_SOCIAL && ! $this->usarPosicion,
             'pidiendoEtiqueta'     => $campoActual !== null && in_array($campoActual, $this->camposConEtiquetaValor, true) && $this->subEtapa === 'etiqueta',
             'pidiendoValorConEtiqueta' => $this->subEtapa === 'valor',
             'textoEtiquetaMarcada' => $this->etiquetaPendiente

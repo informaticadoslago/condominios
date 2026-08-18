@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\MandatoSepaFaltanteException;
 use App\Models\Remesa;
 use App\Services\Recibos\FicheroRemesaSepa;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -20,7 +21,12 @@ class RemesaFicheroController extends Controller
     {
         abort_unless($remesa->comunidad_id == session('comunidad_actual_id'), 404);
 
-        $xml    = $fichero->generar($remesa);
+        try {
+            $xml = $fichero->generar($remesa);
+        } catch (MandatoSepaFaltanteException $e) {
+            abort(422, $e->getMessage());
+        }
+
         $nombre = $remesa->referencia.'.xml';
 
         return response()->streamDownload(

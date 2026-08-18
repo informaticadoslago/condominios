@@ -16,6 +16,10 @@ class CampoPlantillaFactura extends Model
         'delta_columna',
         'delta_lineas',
         'longitud_valor',
+        'pagina',
+        'pos_x',
+        'pos_y',
+        'pos_ancho',
     ];
 
     public function plantillaFactura()

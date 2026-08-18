@@ -8,12 +8,14 @@ use App\Livewire\Traits\ConHistorialEstadoModal;
 use App\Livewire\Traits\ConSeleccionMultiple;
 use App\Models\Comunidad;
 use App\Models\FormaDePago;
+use App\Models\Inmueble;
 use App\Models\Recibo;
 use App\Models\TipoEstadoRecibo;
 use App\Services\Recibos\EnlazarCobrosContabilidad;
 use App\Services\Recibos\EnlazarRecibosContabilidad;
 use App\Services\Recibos\EnviarAvisosRecibos;
 use App\Services\Recibos\RegistrarCobro;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Los recibos no se crean ni se borran desde aquí: los vuelca GeneradorRecibos al
@@ -38,6 +40,28 @@ class Lista extends ListaComponent
 
     /** Recibos sobre los que va a actuar el modal, congelados al abrirlo. */
     public array $cobroIds = [];
+
+    /**
+     * Lo que de verdad ingresó el banco, para comparar con la suma de lo marcado. Es
+     * solo informativo: si no cuadra (p. ej. un recibo de la transferencia ya estaba
+     * cobrado por domiciliación y queda sobrante), se avisa pero se deja cobrar igual.
+     */
+    public ?string $cobroImporte = null;
+
+    public bool $avisoTransferenciaAbierto = false;
+
+    /** [['id','inmueble','propietario','correo','validado','saldo'], ...], congelado al abrir. */
+    public array $avisoTransferenciaRecibos = [];
+
+    /** Ids marcados para avisar; se pueden desmarcar. */
+    public array $avisoTransferenciaSeleccion = [];
+
+    public array $avisoTransferenciaConCopia = [];
+
+    /** CC y CCO sueltos por id de recibo; no van ligados a ningún contacto guardado. */
+    public array $avisoTransferenciaCc = [];
+
+    public array $avisoTransferenciaCco = [];
 
     public function mount()
     {
@@ -92,6 +116,56 @@ class Lista extends ListaComponent
             'aplicar'  => fn ($query, $valor) => (int) $valor === 1
                 ? $query->where('saldo', '>', 0)
                 : $query->where('saldo', '<=', 0),
+        ];
+    }
+
+    /**
+     * Un propietario puede tener varios inmuebles en la misma planta (el A y el B): el
+     * buscador de texto no distingue entre ellos, así que planta y puerta van aparte.
+     */
+    protected function filtroPlanta(): array
+    {
+        $comunidadId = session('comunidad_actual_id');
+
+        return [
+            'clave'    => 'planta',
+            'etiqueta' => __('Planta'),
+            'tipo'     => 'select',
+            'opciones' => [0 => __('Todas')] + $this->opcionesCacheadas(
+                'recibos-plantas-'.$comunidadId,
+                fn () => Inmueble::where('comunidad_id', $comunidadId)
+                    ->whereNotNull('planta')
+                    ->where('planta', '!=', '')
+                    ->distinct()
+                    ->orderBy('planta')
+                    ->pluck('planta', 'planta')
+                    ->all(),
+            ),
+            'neutro'   => 0,
+            'aplicar'  => fn ($query, $valor) => $query->whereHas('inmueble', fn ($i) => $i->where('planta', $valor)),
+        ];
+    }
+
+    protected function filtroPuerta(): array
+    {
+        $comunidadId = session('comunidad_actual_id');
+
+        return [
+            'clave'    => 'puerta',
+            'etiqueta' => __('Puerta'),
+            'tipo'     => 'select',
+            'opciones' => [0 => __('Todas')] + $this->opcionesCacheadas(
+                'recibos-puertas-'.$comunidadId,
+                fn () => Inmueble::where('comunidad_id', $comunidadId)
+                    ->whereNotNull('puerta')
+                    ->where('puerta', '!=', '')
+                    ->distinct()
+                    ->orderBy('puerta')
+                    ->pluck('puerta', 'puerta')
+                    ->all(),
+            ),
+            'neutro'   => 0,
+            'aplicar'  => fn ($query, $valor) => $query->whereHas('inmueble', fn ($i) => $i->where('puerta', $valor)),
         ];
     }
 
@@ -157,6 +231,8 @@ class Lista extends ListaComponent
             $this->filtroCobro(),
             $this->filtroFormaDePago(),
             $this->filtroEnlaceContable(),
+            $this->filtroPlanta(),
+            $this->filtroPuerta(),
             $this->filtroVencimientoDesde(),
             $this->filtroVencimientoHasta(),
         ];
@@ -249,8 +325,9 @@ class Lista extends ListaComponent
             return;
         }
 
-        $this->cobroFecha   = now()->toDateString();
-        $this->cobroAbierto = true;
+        $this->cobroFecha    = now()->toDateString();
+        $this->cobroImporte  = null;
+        $this->cobroAbierto  = true;
     }
 
     /** Cobra el pendiente completo de cada recibo; los ya pagados se quedan como están. */
@@ -259,19 +336,35 @@ class Lista extends ListaComponent
         $this->validate([
             'cobroFecha'         => ['required', 'date'],
             'cobroFormaDePagoId' => ['required', 'exists:formas_de_pago,id'],
+            'cobroImporte'       => ['nullable', 'numeric', 'min:0'],
         ], attributes: [
             'cobroFecha'         => __('Fecha del cobro'),
             'cobroFormaDePagoId' => __('Forma de pago'),
+            'cobroImporte'       => __('Importe recibido'),
         ]);
 
-        $cobrados = $registrarCobro->registrarVarios(
-            $this->cobroIds,
-            $this->cobroFecha,
-            $this->cobroFormaDePagoId,
-        );
+        // Un solo recibo con importe tecleado: se registra ese importe tal cual, aunque
+        // supere (o el recibo ya esté cobrado del todo) — es la vía para meter un pago
+        // de más, que deja el saldo en negativo (a favor del propietario).
+        if (count($this->cobroIds) === 1 && $this->cobroImporte !== null && $this->cobroImporte !== '') {
+            $cobro    = $registrarCobro->registrar(
+                (int) $this->cobroIds[0],
+                $this->cobroFecha,
+                $this->cobroFormaDePagoId,
+                (float) $this->cobroImporte,
+            );
+            $cobrados = $cobro ? 1 : 0;
+        } else {
+            $cobrados = $registrarCobro->registrarVarios(
+                $this->cobroIds,
+                $this->cobroFecha,
+                $this->cobroFormaDePagoId,
+            );
+        }
 
         $this->cobroAbierto = false;
         $this->cobroIds     = [];
+        $this->cobroImporte = null;
         $this->limpiarSeleccion();
 
         $this->dispatch('toast-success', [
@@ -279,6 +372,39 @@ class Lista extends ListaComponent
                 ? __(':count recibos cobrados', ['count' => $cobrados])
                 : __('No había ningún recibo pendiente de cobro'),
         ]);
+    }
+
+    /**
+     * Vuelve a copiar del inmueble la forma de pago y la cuenta bancaria del recibo: se
+     * congelan al generarlo (ver GeneradorRecibos), así que si se corrigen después en el
+     * inmueble, el recibo ya emitido se queda con las de entonces. Solo tiene sentido
+     * mientras el recibo sigue Generado: uno ya Enviado o Cobrado se presentó o se pagó
+     * con la forma de pago que llevaba en ese momento, y cambiarla ahora la falsearía.
+     */
+    public function resincronizarFormaPago(int $reciboId): void
+    {
+        $recibo = Recibo::where('estado_id', TipoEstadoRecibo::GENERADO)
+            ->whereIn('inmueble_id', Inmueble::where('comunidad_id', session('comunidad_actual_id'))->select('id'))
+            ->find($reciboId);
+
+        if (! $recibo) {
+            return;
+        }
+
+        $formaPago = $recibo->inmueble?->formaPagoVigente;
+
+        if (! $formaPago) {
+            $this->dispatch('toast-error', ['title' => __('El inmueble no tiene forma de pago vigente')]);
+
+            return;
+        }
+
+        $recibo->update([
+            'forma_de_pago_id'   => $formaPago->forma_de_pago_id,
+            'cuenta_bancaria_id' => $formaPago->cuenta_bancaria_id,
+        ]);
+
+        $this->dispatch('toast-success', ['title' => __('Forma de pago actualizada')]);
     }
 
     /**
@@ -317,32 +443,28 @@ class Lista extends ListaComponent
     }
 
     /**
-     * Avisa por correo a los que pagan por transferencia de que les toca ingresar.
+     * Abre la vista previa de a quién se va a avisar por transferencia, todos marcados,
+     * para poder dejar fuera a quien no toque antes de mandar nada.
      *
-     * De la selección solo se avisa a los de transferencia y con saldo pendiente: los
+     * De la selección solo entran los de transferencia y con saldo pendiente: los
      * domiciliados se cobran solos y su aviso es otro (el del cargo, desde la remesa).
      * Los que se quedan fuera se cuentan y se dicen, para que no parezca que se avisó a
      * todo lo marcado.
      */
-    public function avisarTransferencias(EnviarAvisosRecibos $servicio): void
+    public function abrirAvisoTransferencia(): void
     {
         if (! config('recibos.enviar_email_transferencias')) {
             return;
         }
 
-        $comunidad = Comunidad::find(session('comunidad_actual_id'));
-
-        if (! $comunidad) {
-            return;
-        }
-
         $porTransferencia = Recibo::whereIn('id', $this->idsParaAccion())
             ->where('forma_de_pago_id', FormaDePago::TRANSFERENCIA)
-            ->get(['id', 'saldo']);
+            ->with(['propietario.persona', 'inmueble'])
+            ->get();
 
-        $ids = $porTransferencia->where('saldo', '>', 0)->pluck('id')->all();
+        $recibos = $porTransferencia->where('saldo', '>', 0);
 
-        if ($ids === []) {
+        if ($recibos->isEmpty()) {
             // Los dos motivos se dicen por separado: con el filtro puesto en
             // Transferencia, un «ninguno paga por transferencia» contradice lo que se
             // está viendo en pantalla y parece un fallo.
@@ -357,11 +479,98 @@ class Lista extends ListaComponent
             return;
         }
 
-        $resultado = $servicio->deTransferencia($ids, $comunidad);
+        $this->avisoTransferenciaRecibos = $recibos->map(function (Recibo $recibo) {
+            $correo = $recibo->propietario?->correo();
+
+            return [
+                'id'          => $recibo->id,
+                'inmueble'    => trim(($recibo->inmueble?->planta ?? '').' '.($recibo->inmueble?->puerta ?? '')),
+                'propietario' => $recibo->propietario?->persona?->nombreCompleto,
+                'correo'      => $correo?->valor,
+                'validado'    => $correo?->estaValidado() ?? false,
+                'saldo'       => (float) $recibo->saldo,
+            ];
+        })->values()->all();
+
+        $this->avisoTransferenciaSeleccion = array_map('strval', $recibos->pluck('id')->all());
+        $this->avisoTransferenciaConCopia  = [];
+        $this->avisoTransferenciaCc        = [];
+        $this->avisoTransferenciaCco       = [];
+        $this->avisoTransferenciaAbierto   = true;
+    }
+
+    /** Casilla de la cabecera: marca todos los del aviso de transferencia, o los desmarca si ya estaban todos. */
+    public function toggleTodosAvisoTransferencia(array $ids): void
+    {
+        $ids = array_map('strval', $ids);
+        sort($ids);
+
+        $actuales = $this->avisoTransferenciaSeleccion;
+        sort($actuales);
+
+        $this->avisoTransferenciaSeleccion = $actuales === $ids ? [] : $ids;
+    }
+
+    /** Abre o cierra los campos de CC/CCO de un recibo, en el aviso de transferencia. */
+    public function toggleConCopiaTransferencia(int $reciboId): void
+    {
+        if (in_array($reciboId, $this->avisoTransferenciaConCopia, true)) {
+            $this->avisoTransferenciaConCopia = array_values(array_diff($this->avisoTransferenciaConCopia, [$reciboId]));
+        } else {
+            $this->avisoTransferenciaConCopia[] = $reciboId;
+        }
+    }
+
+    public function enviarAvisoTransferencia(EnviarAvisosRecibos $servicio): void
+    {
+        $comunidad = Comunidad::find(session('comunidad_actual_id'));
+
+        if (! $comunidad) {
+            return;
+        }
+
+        if ($this->avisoTransferenciaSeleccion === []) {
+            $this->dispatch('toast-error', ['title' => __('No queda ningún recibo marcado')]);
+
+            return;
+        }
+
+        $this->validate([
+            'avisoTransferenciaCc.*'  => ['nullable', 'email'],
+            'avisoTransferenciaCco.*' => ['nullable', 'email'],
+        ], [], [
+            'avisoTransferenciaCc.*'  => __('CC'),
+            'avisoTransferenciaCco.*' => __('CCO'),
+        ]);
+
+        $ids = array_map('intval', $this->avisoTransferenciaSeleccion);
+
+        $avisados  = 0;
+        $sinCorreo = 0;
+
+        foreach (Recibo::whereIn('id', $ids)->get() as $recibo) {
+            if ($servicio->enviarTransferencia(
+                $recibo,
+                $comunidad,
+                cc: $this->avisoTransferenciaCc[$recibo->id] ?? null,
+                cco: $this->avisoTransferenciaCco[$recibo->id] ?? null,
+            )) {
+                $avisados++;
+            } else {
+                $sinCorreo++;
+            }
+        }
+
+        $this->avisoTransferenciaAbierto   = false;
+        $this->avisoTransferenciaRecibos   = [];
+        $this->avisoTransferenciaSeleccion = [];
+        $this->avisoTransferenciaConCopia  = [];
+        $this->avisoTransferenciaCc        = [];
+        $this->avisoTransferenciaCco       = [];
 
         $this->limpiarSeleccion();
 
-        if ($resultado['avisados'] === 0) {
+        if ($avisados === 0) {
             $this->dispatch('toast-error', [
                 'title' => __('No se ha avisado a nadie: ninguno tiene dirección de correo'),
             ]);
@@ -370,10 +579,37 @@ class Lista extends ListaComponent
         }
 
         $this->dispatch('toast-success', [
-            'title' => $resultado['sin_correo'] > 0
-                ? __(':avisados avisados; :sin_correo sin dirección de correo', $resultado)
-                : __(':avisados avisados por correo', $resultado),
+            'title' => $sinCorreo > 0
+                ? __(':avisados avisados; :sinCorreo sin dirección de correo', ['avisados' => $avisados, 'sinCorreo' => $sinCorreo])
+                : __(':avisados avisados por correo', ['avisados' => $avisados]),
         ]);
+    }
+
+    /**
+     * Importe, pagado y saldo a totalizar: de lo marcado si hay selección —venga o no de
+     * la página actual—, y si no de TODO lo filtrado, no solo de la página que se ve.
+     *
+     * @return array{importe: float, importe_pagado: float, saldo: float}
+     */
+    private function totales(): array
+    {
+        $query = $this->seleccionados !== []
+            ? Recibo::whereIn('id', $this->seleccionados)
+            : $this->aplicarSeleccion($this->consultaBase());
+
+        $totales = $query->toBase()
+            ->select([
+                DB::raw('COALESCE(SUM(importe), 0) AS importe'),
+                DB::raw('COALESCE(SUM(importe_pagado), 0) AS importe_pagado'),
+                DB::raw('COALESCE(SUM(saldo), 0) AS saldo'),
+            ])
+            ->first();
+
+        return [
+            'importe'        => (float) $totales->importe,
+            'importe_pagado' => (float) $totales->importe_pagado,
+            'saldo'          => (float) $totales->saldo,
+        ];
     }
 
     public function render()
@@ -394,6 +630,8 @@ class Lista extends ListaComponent
 
         return view('livewire.recibos.lista', compact('items', 'formasDePago') + [
             'avisoTransferenciaActivo' => (bool) config('recibos.enviar_email_transferencias'),
+            'totales'                  => $this->totales(),
+            'cobroPendiente'           => Recibo::whereIn('id', $this->cobroIds)->sum('saldo'),
         ]);
     }
 }

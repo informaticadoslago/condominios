@@ -39,4 +39,21 @@ class Remesa extends Model
     {
         return $this->belongsToMany(Recibo::class, 'lineas_remesas');
     }
+
+    /** Comisiones bancarias asociadas: liquidación de la remesa o devolución de sus recibos. */
+    public function comisionesBancarias()
+    {
+        return $this->hasMany(ComisionBancaria::class);
+    }
+
+    /** Sus líneas de comisión (comisión + IVA), para sumarlas con withSum sin N+1. */
+    public function lineasComisionesBancarias()
+    {
+        return $this->hasManyThrough(
+            LineaComisionBancaria::class,
+            ComisionBancaria::class,
+            'remesa_id',
+            'comision_bancaria_id',
+        );
+    }
 }
