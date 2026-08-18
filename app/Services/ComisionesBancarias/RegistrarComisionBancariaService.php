@@ -38,7 +38,9 @@ final class RegistrarComisionBancariaService
                 'tipo_comision_bancaria_id' => $tipo->id,
                 // El mantenimiento no viene de ninguna remesa: aunque llegara marcada,
                 // no pertenece a este tipo.
-                'remesa_id'                 => $tipo->codigo === TipoComisionBancaria::REMESA ? $remesaId : null,
+                'remesa_id' => in_array($tipo->codigo, [TipoComisionBancaria::REMESA, TipoComisionBancaria::DEVOLUCION], true)
+                    ? $remesaId
+                    : null,
                 'fecha'                     => $fecha,
                 'concepto'                  => $concepto,
                 'referencia'                => $referencia,

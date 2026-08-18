@@ -1,6 +1,8 @@
 <x-dosl.dialog-modal wire:model.live="abrir" class="backdrop-blur" maxWidth="4xl">
     <x-slot name="title">
-        {{ __('Importar comisiones bancarias') }}
+        {{ $this->remesa
+            ? __('Importar comisiones bancarias · remesa :referencia', ['referencia' => $this->remesa->referencia])
+            : __('Importar comisiones bancarias') }}
     </x-slot>
 
     <x-slot name="content">

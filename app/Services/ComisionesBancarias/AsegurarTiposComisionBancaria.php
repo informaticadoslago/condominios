@@ -8,8 +8,9 @@ use App\Models\TipoComisionBancaria;
 use App\Models\TipoCuentaContable;
 
 /**
- * Da a una empresa contable sus dos filas de tipo_comisiones_bancarias (remesa y
- * mantenimiento) con su cuenta ya resuelta, dando de alta lo que falte del grupo 626.
+ * Da a una empresa contable sus filas de tipo_comisiones_bancarias (remesa,
+ * mantenimiento y devolución) con su cuenta ya resuelta, dando de alta lo que falte del
+ * grupo 626.
  *
  * Se llama al enlazar una comunidad nueva y, con las que ya existían, desde la
  * migración que dio de alta esto. Repetirlo no duplica ni pisa: la fila que ya exista
@@ -19,8 +20,20 @@ final class AsegurarTiposComisionBancaria
 {
     public function ejecutar(EmpresaContable $empresa): void
     {
-        $this->asegurarTipo($empresa, TipoComisionBancaria::REMESA, 'Comisión de remesa');
+        $remesa = $this->asegurarTipo($empresa, TipoComisionBancaria::REMESA, 'Comisión de remesa');
         $this->asegurarTipo($empresa, TipoComisionBancaria::MANTENIMIENTO, 'Mantenimiento y administración de cuenta');
+
+        // Misma cuenta que la de remesa: es donde también se abona lo que se repercute
+        // a los propietarios (ver EnlazarCobrosContabilidad::cuentaGastosBancarios), así
+        // que ahí queda neteado lo repercutido contra lo que cobra el banco de verdad.
+        if (! TipoComisionBancaria::where('empresa_contable_id', $empresa->id)->where('codigo', TipoComisionBancaria::DEVOLUCION)->exists()) {
+            TipoComisionBancaria::create([
+                'empresa_contable_id' => $empresa->id,
+                'codigo'              => TipoComisionBancaria::DEVOLUCION,
+                'descripcion'         => 'Comisión de devolución',
+                'cuenta_contable_id'  => $remesa->cuenta_contable_id,
+            ]);
+        }
     }
 
     private function asegurarTipo(EmpresaContable $empresa, string $codigo, string $descripcion): TipoComisionBancaria

@@ -5,6 +5,7 @@ namespace App\Services\Recibos;
 use App\Models\Cobro;
 use App\Models\CuentaBancaria;
 use App\Models\EjercicioContable;
+use App\Models\TipoComisionBancaria;
 use App\Services\Contabilidad\DatosApunte;
 use App\Services\Contabilidad\DatosAsiento;
 use App\Services\Contabilidad\RegistrarAsientoService;
@@ -20,10 +21,13 @@ use Illuminate\Support\Facades\DB;
  * transferencia suelta es el suyo. Al debe la cuenta corriente por el total, al haber la
  * de cada propietario por lo suyo, que es lo que cancela la deuda que dejó la emisión.
  *
- * Una devolución es un cobro en negativo y va sola en su asiento, con la comisión que se
- * le repercute al propietario dentro: al debe el propietario por lo devuelto más la
- * comisión, al haber el banco por lo mismo. La comisión no pasa por ninguna cuenta de
- * gasto porque la comunidad no la soporta, solo la adelanta.
+ * Una devolución es un cobro en negativo y va sola en su asiento. Lo devuelto vuelve al
+ * debe del propietario con el banco de contrapartida, que es el único movimiento real
+ * que hace el banco. La comisión que la comunidad decide repercutir es otra cosa: no la
+ * carga el banco en ese momento (ver EnlazarComisionesBancariasContabilidad para el
+ * cargo real, con su factura), así que su contrapartida es la cuenta de gastos bancarios,
+ * no el banco: se debe al propietario y se abona esa cuenta de gasto, para que cuando
+ * entre el cargo real de la comisión quede neteado con lo ya repercutido.
  *
  * Se puede volver a lanzar sin miedo: los cobros ya enlazados se saltan, y si aun así
  * llegara dos veces el mismo grupo, la contabilidad reconoce la referencia y devuelve el
@@ -78,11 +82,40 @@ final class EnlazarCobrosContabilidad
      */
     private function esEnlazable(Cobro $cobro): bool
     {
-        return (float) $cobro->importe != 0
-            && $cobro->recibo?->asiento_contable !== null
-            && $cobro->recibo?->propietario?->cuenta_contable !== null
-            && $cobro->recibo?->presupuesto?->comunidad?->empresa_contable_id !== null
-            && $this->cuentaTesoreria($cobro)?->cuenta_contable !== null;
+        $empresaId = $cobro->recibo?->presupuesto?->comunidad?->empresa_contable_id;
+
+        if ((float) $cobro->importe == 0
+            || $cobro->recibo?->asiento_contable === null
+            || $cobro->recibo?->propietario?->cuenta_contable === null
+            || $empresaId === null
+            || $this->cuentaTesoreria($cobro)?->cuenta_contable === null) {
+            return false;
+        }
+
+        $comision = (float) ($cobro->lineaRemesa?->gastos_devolucion ?? 0);
+
+        // Sin cuenta de gastos bancarios configurada no se puede repercutir: se omite en
+        // vez de reventar la tanda entera por una comisión que no tiene dónde ir.
+        if ($cobro->esDevolucion() && $comision > 0 && $this->cuentaGastosBancarios($empresaId) === null) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * La cuenta donde va la comisión de devolución que la comunidad repercute, y donde
+     * más tarde entra el cargo real del banco (ver EnlazarComisionesBancariasContabilidad):
+     * la misma que ya usa la comisión de liquidar una remesa, no una nueva.
+     */
+    private function cuentaGastosBancarios(int $empresaId): ?string
+    {
+        return TipoComisionBancaria::with('cuentaContable')
+            ->where('empresa_contable_id', $empresaId)
+            ->where('codigo', TipoComisionBancaria::REMESA)
+            ->first()
+            ?->cuentaContable
+            ?->codigo;
     }
 
     /**
@@ -163,11 +196,12 @@ final class EnlazarCobrosContabilidad
 
     /**
      * El banco devuelve el adeudo: se deshace el cobro y el propietario vuelve a deber lo
-     * suyo, más la comisión que se le repercute.
+     * suyo, más la comisión que la comunidad decide repercutirle.
      *
-     * La comisión va en su propia línea, no sumada al importe devuelto, para que en el
-     * mayor del propietario se lea cuánto es cuota y cuánto le costó el impago. No pasa
-     * por cuenta de gasto: la comunidad no lo soporta, solo lo adelanta.
+     * Son dos hechos distintos con contrapartidas distintas: lo devuelto es dinero real
+     * que el banco mueve ahora mismo (contrapartida el banco); la comisión es un importe
+     * que la comunidad se inventa, no lo que cobra el banco en este momento, así que su
+     * contrapartida es la cuenta de gastos bancarios, no el banco.
      */
     private function enlazarDevolucion(Cobro $cobro, int $empresaId, string $fecha): int
     {
@@ -181,13 +215,13 @@ final class EnlazarCobrosContabilidad
                 cuenta: $cuenta,
                 concepto: trim(sprintf('%s %s', $cobro->recibo->inmueble?->planta, $cobro->recibo->inmueble?->puerta)) ?: null,
             ),
+            new DatosApunte(haber: $devuelto, cuenta: $this->cuentaTesoreria($cobro)->cuenta_contable),
         ];
 
         if ($comision > 0) {
             $lineas[] = new DatosApunte(debe: $comision, cuenta: $cuenta, concepto: __('Comisión de devolución'));
+            $lineas[] = new DatosApunte(haber: $comision, cuenta: $this->cuentaGastosBancarios($empresaId));
         }
-
-        $lineas[] = new DatosApunte(haber: $devuelto + $comision, cuenta: $this->cuentaTesoreria($cobro)->cuenta_contable);
 
         $asiento = DB::transaction(fn () => $this->asientos->ejecutar(new DatosAsiento(
             empresaContableId: $empresaId,

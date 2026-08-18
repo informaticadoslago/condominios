@@ -216,7 +216,9 @@ final class ImportarComisionesBancariasCsv
             $fecha   = trim($fila['F. VALOR'] ?? '');
             $importe = abs($this->aImporte($fila['IMPORTE'] ?? '0'));
 
-            if ($tipo->codigo === TipoComisionBancaria::REMESA) {
+            // Remesa y devolución llevan FRA y se agrupan igual (comisión + IVA); el
+            // mantenimiento no trae FRA en el extracto y va suelto.
+            if (in_array($tipo->codigo, [TipoComisionBancaria::REMESA, TipoComisionBancaria::DEVOLUCION], true)) {
                 $fra = $this->extraerFra($descripcion);
 
                 if (! $fra) {
@@ -226,6 +228,7 @@ final class ImportarComisionesBancariasCsv
                 }
 
                 $porFra[$fra]['fecha'] ??= $fecha;
+                $porFra[$fra]['codigo'] ??= $tipo->codigo;
                 $porFra[$fra]['filas'][] = $fila;
 
                 if (Str::contains($tipoOperacion, 'I.V.A.')) {
@@ -245,7 +248,7 @@ final class ImportarComisionesBancariasCsv
             }
         }
 
-        $candidatasRemesa = [];
+        $candidatasPorFra = [];
         foreach ($porFra as $fra => $grupo) {
             if (! isset($grupo['comision']) || ! isset($grupo['iva'])) {
                 foreach ($grupo['filas'] as $fila) {
@@ -255,12 +258,14 @@ final class ImportarComisionesBancariasCsv
                 continue;
             }
 
-            $candidatasRemesa[] = [
+            $candidatasPorFra[] = [
                 'fecha'      => $grupo['fecha'],
                 'referencia' => $fra,
-                'codigo'     => TipoComisionBancaria::REMESA,
-                'concepto'   => __('Liquidación remesa :fecha', ['fecha' => $grupo['fecha']]),
-                'lineas'     => [
+                'codigo'     => $grupo['codigo'],
+                'concepto'   => $grupo['codigo'] === TipoComisionBancaria::DEVOLUCION
+                    ? __('Comisión de devolución :fecha', ['fecha' => $grupo['fecha']])
+                    : __('Liquidación remesa :fecha', ['fecha' => $grupo['fecha']]),
+                'lineas' => [
                     ['concepto' => __('Comisión'), 'importe' => $grupo['comision']],
                     ['concepto' => __('IVA comisión'), 'importe' => $grupo['iva']],
                 ],
@@ -268,7 +273,7 @@ final class ImportarComisionesBancariasCsv
             ];
         }
 
-        $todasLasCandidatas = [...$candidatasRemesa, ...$candidatasMantenimiento];
+        $todasLasCandidatas = [...$candidatasPorFra, ...$candidatasMantenimiento];
 
         $empresaId = $this->empresaContableId($cuentaBancaria);
 

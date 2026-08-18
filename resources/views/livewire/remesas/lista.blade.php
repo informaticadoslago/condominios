@@ -113,6 +113,14 @@
                                     <td class="px-6 py-4 text-right">
                                         @if ($item->lineas_devueltas_count)
                                             <span class="text-red-700 dark:text-red-400">{{ $item->lineas_devueltas_count }}</span>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                {{ number_format((float) $item->lineas_devueltas_importe_sum, 2, ',', '.') }} €
+                                            </div>
+                                            @if ((float) $item->comision_devolucion_sum > 0)
+                                                <div class="text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                                                    {{ number_format((float) $item->comision_devolucion_sum, 2, ',', '.') }} € {{ __('gastos') }}
+                                                </div>
+                                            @endif
                                         @else
                                             —
                                         @endif
@@ -155,6 +163,44 @@
                                             wire:click="abrirDevolucion({{ $item->id }})"
                                             title="{{ __('Marcar devoluciones') }}">
                                             <i class="fa-solid fa-rotate-left"> </i>
+                                        </x-button>
+                                    @endif
+                                    {{-- Avisa por correo de lo devuelto: un correo por
+                                         destinatario, juntando varios inmuebles si comparten
+                                         mandato y se devolvieron en la misma tanda. --}}
+                                    @if ($item->lineas_devueltas_count)
+                                        <x-button type="button" class="bg-gray-600 hover:bg-gray-700 text-white ml-1"
+                                            wire:click="abrirAvisoDevolucion({{ $item->id }})"
+                                            title="{{ __('Avisar por correo de la devolución') }}">
+                                            <i class="fa-solid fa-envelope text-red-500"> </i>
+                                        </x-button>
+                                    @endif
+                                    {{-- Deshace TODA la tanda de devoluciones de la remesa,
+                                         para corregir fecha/motivo/comisión mal tecleados. --}}
+                                    @if ($item->lineas_devueltas_count)
+                                        <x-button type="button" class="bg-gray-600 hover:bg-gray-700 text-white ml-1"
+                                            wire:click="confirmarDeshacerDevoluciones({{ $item->id }})"
+                                            title="{{ __('Deshacer las devoluciones') }}">
+                                            <i class="fa-solid fa-clock-rotate-left"> </i>
+                                        </x-button>
+                                    @endif
+                                    {{-- Comisión real que carga el banco por cada devolución,
+                                         con su FRA e IVA: se lee del extracto y queda
+                                         asociada a esta remesa para repartirla luego. --}}
+                                    @if ($item->lineas_devueltas_count)
+                                        <x-button type="button" class="bg-yellow-600 hover:bg-yellow-700 text-white ml-1"
+                                            wire:click="abrirImportarComisionDevolucion({{ $item->id }})"
+                                            title="{{ __('Importar comisión bancaria de devolución') }}">
+                                            <i class="fa-solid fa-file-invoice-dollar"> </i>
+                                        </x-button>
+                                    @endif
+                                    {{-- Emisión, cobros y devoluciones de esta remesa que
+                                         sigan sin enlazar, sin tener que ir a Recibos. --}}
+                                    @if ($item->lineas_pendientes_enlazar_count)
+                                        <x-button type="button" class="bg-teal-600 hover:bg-teal-700 text-white ml-1"
+                                            wire:click="enlazarContabilidadRemesa({{ $item->id }})"
+                                            title="{{ __('Enlazar contabilidad') }}">
+                                            <i class="fa-solid fa-link"> </i>
                                         </x-button>
                                     @endif
                                     {{-- Solo mientras no haya ningún cobro: la remesa que se
@@ -629,6 +675,7 @@
                                     <th class="py-2 px-3">{{ __('Correo') }}</th>
                                     <th class="py-2 px-3">{{ __('Último aviso') }}</th>
                                     <th class="py-2 px-3 text-right">{{ __('Pendiente') }}</th>
+                                    <th class="py-2 px-3 w-px"></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y">
@@ -645,6 +692,10 @@
                                         <td class="py-2 px-3">
                                             @if ($correoRecibo)
                                                 {{ $correoRecibo->valor }}
+                                                @unless ($correoRecibo->estaValidado())
+                                                    <i class="fa-solid fa-envelope text-red-500 ml-1"
+                                                        title="{{ __('No validado') }}"></i>
+                                                @endunless
                                             @else
                                                 {{-- Sin dirección no se le puede avisar; se ve
                                                      aquí para no contarlo como enviado. --}}
@@ -655,7 +706,33 @@
                                             {{ $recibo->avisos->first()?->enviado_at?->format('d/m/Y') ?? '—' }}
                                         </td>
                                         <td class="py-2 px-3 text-right">{{ number_format((float) $recibo->saldo, 2, ',', '.') }}</td>
+                                        <td class="py-2 px-3">
+                                            <button type="button" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                                wire:click="toggleConCopiaTransferencia({{ $recibo->id }})"
+                                                title="{{ __('Añadir CC/CCO') }}">
+                                                <i class="fa-solid fa-plus"></i>
+                                            </button>
+                                        </td>
                                     </tr>
+                                    @if (in_array($recibo->id, $avisoConCopia))
+                                        <tr wire:key="avisar-copia-{{ $recibo->id }}">
+                                            <td></td>
+                                            <td colspan="6" class="pb-2 px-3">
+                                                <div class="flex gap-2">
+                                                    <div class="flex-1">
+                                                        <x-input class="block w-full text-xs" type="email" placeholder="CC"
+                                                            wire:model.blur="avisoCc.{{ $recibo->id }}" />
+                                                        <x-input-error for="avisoCc.{{ $recibo->id }}" class="mt-1" />
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <x-input class="block w-full text-xs" type="email" placeholder="CCO"
+                                                            wire:model.blur="avisoCco.{{ $recibo->id }}" />
+                                                        <x-input-error for="avisoCco.{{ $recibo->id }}" class="mt-1" />
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endif
                                 @endforeach
                             </tbody>
                         </table>
@@ -680,5 +757,89 @@
                 </x-button>
             </x-slot>
         </x-dosl.dialog-modal>
+
+        {{-- Avisar de las devoluciones: un correo por destinatario (varios inmuebles del
+             mismo propietario devueltos en la misma tanda van juntos), con su importe
+             total y casilla para dejar a alguien fuera antes de mandar nada. --}}
+        <x-dosl.dialog-modal wire:model.live="avisoDevolucionAbierto" maxWidth="2xl">
+            <x-slot name="title">
+                {{ __('Avisar de las devoluciones') }}
+            </x-slot>
+
+            <x-slot name="content">
+                <div class="max-h-96 overflow-y-auto border rounded-lg">
+                    <table class="table-striped w-full table-auto text-sm text-left">
+                        <thead class="font-medium border-b">
+                            <tr>
+                                <th class="py-2 px-3 w-px"></th>
+                                <th class="py-2 px-3">{{ __('Destinatario') }}</th>
+                                <th class="py-2 px-3">{{ __('Correo') }}</th>
+                                <th class="py-2 px-3 text-right">{{ __('Importe') }}</th>
+                                <th class="py-2 px-3 w-px"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            @foreach ($avisoDevolucionGrupos as $indice => $grupo)
+                                <tr wire:key="aviso-devolucion-{{ $indice }}">
+                                    <td class="py-2 px-3">
+                                        <input type="checkbox" wire:model.live="avisoDevolucionSeleccion" value="{{ $indice }}" />
+                                    </td>
+                                    <td class="py-2 px-3 mayusculas">{{ $grupo['nombre'] }}</td>
+                                    <td class="py-2 px-3">
+                                        {{ $grupo['correo'] }}
+                                        @unless ($grupo['validado'])
+                                            <i class="fa-solid fa-envelope text-red-500 ml-1"
+                                                title="{{ __('No validado') }}"></i>
+                                        @endunless
+                                    </td>
+                                    <td class="py-2 px-3 text-right">{{ number_format((float) $grupo['importe'], 2, ',', '.') }}</td>
+                                    <td class="py-2 px-3">
+                                        <button type="button" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                            wire:click="toggleConCopiaDevolucion({{ $indice }})"
+                                            title="{{ __('Añadir CC/CCO') }}">
+                                            <i class="fa-solid fa-plus"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @if (in_array($indice, $avisoDevolucionConCopia))
+                                    <tr wire:key="aviso-devolucion-copia-{{ $indice }}">
+                                        <td></td>
+                                        <td colspan="4" class="pb-2 px-3">
+                                            <div class="flex gap-2">
+                                                <div class="flex-1">
+                                                    <x-input class="block w-full text-xs" type="email" placeholder="CC"
+                                                        wire:model.blur="avisoDevolucionCc.{{ $indice }}" />
+                                                    <x-input-error for="avisoDevolucionCc.{{ $indice }}" class="mt-1" />
+                                                </div>
+                                                <div class="flex-1">
+                                                    <x-input class="block w-full text-xs" type="email" placeholder="CCO"
+                                                        wire:model.blur="avisoDevolucionCco.{{ $indice }}" />
+                                                    <x-input-error for="avisoDevolucionCco.{{ $indice }}" class="mt-1" />
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endif
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="mt-3 font-medium">
+                    {{ __('Marcados') }}: {{ count($avisoDevolucionSeleccion) }} {{ __('de') }} {{ count($avisoDevolucionGrupos) }}
+                </p>
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button type="button" wire:click="$set('avisoDevolucionAbierto', false)">
+                    {{ __('Cancelar') }}
+                </x-secondary-button>
+                <x-button type="button" class="ml-2" wire:click="enviarAvisoDevolucion">
+                    {{ __('Enviar') }}
+                </x-button>
+            </x-slot>
+        </x-dosl.dialog-modal>
+
+        @livewire('comisiones-bancarias.importar-csv')
     </x-slot>
 </x-botonera-page>

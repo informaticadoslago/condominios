@@ -13,7 +13,8 @@ class TipoComisionBancaria extends Model
 {
     const
         REMESA = 'remesa',
-        MANTENIMIENTO = 'mantenimiento';
+        MANTENIMIENTO = 'mantenimiento',
+        DEVOLUCION = 'devolucion';
 
     protected $table = 'tipo_comisiones_bancarias';
 

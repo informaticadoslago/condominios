@@ -7,9 +7,11 @@ use App\Exceptions\CuentaContableDesconocidaException;
 use App\Exceptions\EjercicioCerradoException;
 use App\Exceptions\EjercicioContableDesconocidoException;
 use App\Models\Comunidad;
+use App\Models\Remesa;
 use App\Models\TipoComisionBancaria;
 use App\Services\ComisionesBancarias\ImportarComisionesBancariasCsv;
 use App\Services\ComisionesBancarias\RegistrarComisionBancariaService;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -31,6 +33,10 @@ class ImportarCsv extends Component
 
     public ?int $cuentaBancariaId = null;
 
+    /** Si se abre desde una remesa (comisión de devolución), sus comisiones quedan
+     *  asociadas a ella; si se abre de forma general, va sin remesa. */
+    public ?int $remesaId = null;
+
     /** [['fecha','referencia','codigo','concepto','lineas' => [...]], ...] */
     public array $candidatas = [];
     public array $yaProcesadas = [];
@@ -48,10 +54,11 @@ class ImportarCsv extends Component
     }
 
     #[On('abrir-importar-csv')]
-    public function mostrar()
+    public function mostrar($remesaId = null)
     {
         $this->reset(['fichero', 'analizado', 'error', 'cuentaBancariaId', 'candidatas', 'yaProcesadas', 'descartadas', 'seleccionadas']);
         $this->resetErrorBag();
+        $this->remesaId = $remesaId ? (int) $remesaId : null;
         $this->abrir = true;
     }
 
@@ -74,10 +81,14 @@ class ImportarCsv extends Component
         $this->descartadas      = $resultado['descartadas'];
 
         // Las de fuera del ejercicio en curso no se premarcan: si en su día no se
-        // importó el fichero, lo normal es que ya se metieran a mano entonces.
+        // importó el fichero, lo normal es que ya se metieran a mano entonces. Si se
+        // abrió desde una remesa, el fichero puede traer también la liquidación normal
+        // u otras comisiones sueltas: aquí solo interesa la de devolución, así que las
+        // demás se enseñan pero sin marcar, para no importarlas de rebote.
         $this->seleccionadas = array_map('strval', array_keys(array_filter(
             $this->candidatas,
-            fn ($c) => ! $c['fuera_ejercicio'],
+            fn ($c) => ! $c['fuera_ejercicio']
+                && (! $this->remesaId || $c['codigo'] === TipoComisionBancaria::DEVOLUCION),
         )));
 
         $this->analizado = true;
@@ -110,7 +121,7 @@ class ImportarCsv extends Component
                 $servicio->registrar(
                     cuentaBancariaId: $this->cuentaBancariaId,
                     tipoComisionBancariaId: $tipo->id,
-                    remesaId: null,
+                    remesaId: $this->remesaId,
                     fecha: $candidata['fecha'],
                     concepto: $candidata['concepto'],
                     referencia: $candidata['referencia'],
@@ -141,6 +152,12 @@ class ImportarCsv extends Component
     public function cerrar()
     {
         $this->abrir = false;
+    }
+
+    #[Computed]
+    public function remesa(): ?Remesa
+    {
+        return $this->remesaId ? Remesa::find($this->remesaId) : null;
     }
 
     public function render()
