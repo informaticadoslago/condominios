@@ -2,8 +2,10 @@
 
 namespace App\Services\Recibos;
 
+use App\Exceptions\MandatoSepaFaltanteException;
 use App\Models\MandatoSepa;
 use App\Models\Remesa;
+use Digitick\Sepa\GroupHeader;
 use Digitick\Sepa\PaymentInformation;
 use Digitick\Sepa\TransferFile\Factory\TransferFileFacadeFactory;
 
@@ -24,12 +26,19 @@ final class FicheroRemesaSepa
             'cuentaBancaria.entidadBancaria',
             'lineas.recibo.inmueble',
             'lineas.recibo.cuentaBancaria.entidadBancaria',
+            'lineas.recibo.propietario.persona',
         ]);
 
         $comunidad = $remesa->comunidad;
         $acreedor  = mb_substr((string) $comunidad->nombre, 0, 70);
 
-        $fichero = TransferFileFacadeFactory::createDirectDebit($remesa->referencia, $acreedor, 'pain.008.001.02');
+        // Sin esto el banco rechaza el fichero («7001: La identificación del
+        // presentador»): InitgPty necesita su <Id>, no solo el nombre. El presentador
+        // es la propia comunidad, así que se reutiliza su identificador de acreedor.
+        $cabecera = new GroupHeader($remesa->referencia, $acreedor);
+        $cabecera->setInitiatingPartyId($this->limpiar($comunidad->identificador_acreedor_sepa));
+
+        $fichero = TransferFileFacadeFactory::createDirectDebitWithGroupHeader($cabecera, 'pain.008.001.02');
 
         $pago = [
             'id'                  => $remesa->referencia,
@@ -48,6 +57,8 @@ final class FicheroRemesaSepa
         $fichero->addPaymentInfo($remesa->referencia, $pago);
 
         $mandatos = $this->mandatosPorCuenta($remesa);
+
+        $this->comprobarMandatos($remesa, $mandatos);
 
         foreach ($remesa->lineas as $linea) {
             $recibo  = $linea->recibo;
@@ -87,6 +98,36 @@ final class FicheroRemesaSepa
             ->get()
             ->keyBy('cuenta_bancaria_id')
             ->all();
+    }
+
+    /**
+     * Antes de montar el XML: si algún recibo de la remesa se quedó sin mandato ACTIVO
+     * (se permite domiciliar sin él, a la espera del papel firmado, o el mandato se
+     * canceló después de generar el recibo), se avisa con nombres en vez de romper con
+     * un "Undefined array key" al buscarlo en el bucle principal.
+     *
+     * @param array<int, MandatoSepa> $mandatos
+     */
+    private function comprobarMandatos(Remesa $remesa, array $mandatos): void
+    {
+        $faltan = $remesa->lineas
+            ->reject(fn ($linea) => isset($mandatos[$linea->recibo->cuenta_bancaria_id]))
+            ->map(function ($linea) {
+                $recibo   = $linea->recibo;
+                $inmueble = trim(($recibo->inmueble?->planta ?? '').' '.($recibo->inmueble?->puerta ?? ''));
+
+                return trim($inmueble.' ('.$recibo->propietario?->persona?->nombreCompleto.')');
+            })
+            ->unique()
+            ->values();
+
+        if ($faltan->isNotEmpty()) {
+            throw new MandatoSepaFaltanteException(
+                __('No se puede generar el fichero: falta el mandato SEPA de :inmuebles.', [
+                    'inmuebles' => $faltan->implode(', '),
+                ])
+            );
+        }
     }
 
     /** Lo que verá el propietario en su extracto. */
