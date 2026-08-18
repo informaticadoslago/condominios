@@ -35,6 +35,9 @@
 
     <p class="aviso">
         {{ __('Si los datos no son correctos o la cuenta ya no es la tuya, dínoslo antes de la fecha del cargo.') }}
+        @if ($correoContacto)
+            {{ __('Por favor, envíanos un correo lo antes posible a :correo.', ['correo' => $correoContacto]) }}
+        @endif
     </p>
 
     <x-slot name="pie">

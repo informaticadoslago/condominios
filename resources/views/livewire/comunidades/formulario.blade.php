@@ -16,6 +16,11 @@
                     x-bind:class="pestaña === 'financieros' ? 'border-indigo-600 text-indigo-700 dark:text-indigo-300' : 'border-transparent text-gray-500'">
                     {{ __('Datos financieros') }}
                 </button>
+                <button type="button" @click="pestaña = 'contacto'"
+                    class="px-2 py-2 font-semibold border-b-2"
+                    x-bind:class="pestaña === 'contacto' ? 'border-indigo-600 text-indigo-700 dark:text-indigo-300' : 'border-transparent text-gray-500'">
+                    {{ __('Contacto') }}
+                </button>
             </div>
 
             <div x-show="pestaña === 'generales'">
@@ -30,6 +35,18 @@
                     <x-input id="com-cif" class="block mt-1 w-full mayusculas" type="text" wire:model="formulario.cif"
                         forzar-may />
                     <x-input-error for="formulario.cif" class="mt-2" />
+                </div>
+            </div>
+
+            <div x-show="pestaña === 'contacto'" x-cloak>
+                <div class="mt-1">
+                    <x-label for="com-correo-contacto" :value="__('Correo de contacto')" />
+                    <x-input id="com-correo-contacto" class="block mt-1 w-full" type="email"
+                        wire:model="formulario.correo_contacto" />
+                    <x-input-error for="formulario.correo_contacto" class="mt-2" />
+                    <p class="text-xs text-gray-500 mt-1">
+                        {{ __('Al que se pide escribir en los avisos por correo (cargo, transferencia, devolución) si algo no cuadra.') }}
+                    </p>
                 </div>
             </div>
 

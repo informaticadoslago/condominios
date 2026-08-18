@@ -54,6 +54,7 @@ class AvisoRemesa extends Mailable implements ShouldQueue
                 'cuenta'    => $this->ultimosDigitos($this->linea->iban),
                 'inmueble'  => $this->nombreInmueble($recibo),
                 'concepto'  => $this->concepto($recibo),
+                'correoContacto' => $this->linea->remesa?->comunidad?->correo_contacto,
             ]);
     }
 
@@ -79,9 +80,10 @@ class AvisoRemesa extends Mailable implements ShouldQueue
             return '';
         }
 
-        return __('Cuota :numero de :anho', [
-            'numero' => $recibo->numero_pago,
-            'anho'   => $recibo->presupuesto?->anho,
-        ]);
+        return trim(__(':presupuesto — Cuota :numero de :anho', [
+            'presupuesto' => $recibo->presupuesto?->nombre,
+            'numero'      => $recibo->numero_pago,
+            'anho'        => $recibo->presupuesto?->anho,
+        ]));
     }
 }

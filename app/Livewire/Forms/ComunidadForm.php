@@ -27,6 +27,7 @@ class ComunidadForm extends Form
 
     public $nombre;
     public $cif;
+    public ?string $correo_contacto = null;
 
     public int $persona_id = 0;
 
@@ -56,6 +57,7 @@ class ComunidadForm extends Form
                 new IsCifComunidadRule(),
                 Rule::unique('personas', 'documento_identificativo')->ignore($this->persona_id),
             ],
+            'correo_contacto'             => ['nullable', 'email', 'max:150'],
             'iban'                        => ['nullable', 'string', new IsIBANRule()],
             'entidad_bancaria_id'         => ['nullable', 'exists:entidades_bancarias,id', 'required_with:iban'],
             'nombre_contable'             => ['nullable', 'string', 'max:150'],
@@ -101,6 +103,7 @@ class ComunidadForm extends Form
 
         $this->sufijo                      = $this->comunidad->sufijo;
         $this->identificador_acreedor_sepa = $this->comunidad->identificador_acreedor_sepa;
+        $this->correo_contacto             = $this->comunidad->correo_contacto;
 
         $cuenta = $this->comunidad->cuentasBancarias->first();
         $this->iban                   = $cuenta?->iban;
@@ -119,6 +122,7 @@ class ComunidadForm extends Form
                 'persona_id'                  => $persona->id,
                 'sufijo'                      => $this->sufijo,
                 'identificador_acreedor_sepa' => $this->identificador_acreedor_sepa,
+                'correo_contacto'             => $this->correo_contacto,
             ]);
             $comunidad->setRelation('persona', $persona);
 
@@ -139,6 +143,7 @@ class ComunidadForm extends Form
             $this->comunidad->update([
                 'sufijo'                      => $this->sufijo,
                 'identificador_acreedor_sepa' => $this->identificador_acreedor_sepa,
+                'correo_contacto'             => $this->correo_contacto,
             ]);
 
             $this->guardarCuentaBancaria();
@@ -184,11 +189,12 @@ class ComunidadForm extends Form
 
     public function resetForm()
     {
-        $this->nombre      = '';
-        $this->cif         = '';
-        $this->persona_id  = 0;
-        $this->comunidad   = null;
-        $this->persona     = null;
+        $this->nombre           = '';
+        $this->cif              = '';
+        $this->correo_contacto  = null;
+        $this->persona_id       = 0;
+        $this->comunidad        = null;
+        $this->persona          = null;
 
         $this->iban                        = null;
         $this->entidad_bancaria_id         = null;

@@ -18,6 +18,7 @@ class Comunidad extends Model
         'persona_id',
         'estado_id',
         'identificador_acreedor_sepa',
+        'correo_contacto',
         'sufijo',
         'empresa_contable_id',
     ];
