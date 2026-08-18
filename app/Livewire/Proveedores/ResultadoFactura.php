@@ -6,6 +6,7 @@ use App\Exceptions\DocumentoInvalidoException;
 use App\Exceptions\FacturaDuplicadaException;
 use App\Exceptions\GeneracionPlantillaIAException;
 use App\Models\Comunidad;
+use App\Models\Documento;
 use App\Models\PlantillaFactura;
 use App\Models\TipoCampoPlantillaFactura;
 use App\Models\TipoProveedor;
@@ -43,7 +44,14 @@ class ResultadoFactura extends Component
             razonSocial: $resultado['datos']['razon_social'] ?? null,
             fecha: $resultado['datos']['fecha'] ?? null,
             indice: $indice,
+            rutaAbsoluta: $this->rutaAbsolutaDe($resultado),
         );
+    }
+
+    /** El PDF original, para el anclaje por posición (ExtractorPorCoordenadas) cuando no hay etiqueta de texto. */
+    protected function rutaAbsolutaDe(array $resultado): ?string
+    {
+        return isset($resultado['ruta']) ? Documento::disco()->path($resultado['ruta']) : null;
     }
 
     /**
@@ -162,6 +170,7 @@ class ResultadoFactura extends Component
             cif: $cif,
             tipoCampo: $tipoCampo,
             indice: $indice,
+            rutaAbsoluta: $this->rutaAbsolutaDe($resultado),
         );
     }
 

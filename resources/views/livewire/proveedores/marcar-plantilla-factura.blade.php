@@ -17,7 +17,11 @@
                 </div>
             @endif
 
-            @if ($pidiendoValorConEtiqueta)
+            @if ($usarPosicion)
+                <p class="mb-2">
+                    {!! __('No hay etiqueta: selecciona con el ratón el VALOR de <strong>:campo</strong> en el texto de abajo. Se anclará por su posición en la página, no por texto.', ['campo' => mb_strtoupper($etiquetaCampoActual)]) !!}
+                </p>
+            @elseif ($pidiendoValorConEtiqueta)
                 <p class="mb-2">
                     {{ __('Etiqueta marcada:') }} <strong class="mayusculas">{{ $textoEtiquetaMarcada }}</strong>.
                     {!! __('Ahora selecciona con el ratón el VALOR de <strong>:campo</strong> en el texto de abajo.', ['campo' => mb_strtoupper($etiquetaCampoActual)]) !!}
@@ -45,7 +49,13 @@
                     sel.removeAllRanges();
                 " class="border rounded p-3 text-xs whitespace-pre overflow-auto select-text bg-gray-50 dark:bg-gray-900" style="max-height: 50vh;">{{ $texto }}</pre>
 
-            @if ($esRazonSocial)
+            @if ($permiteValorManual)
+                @if ($imagenCabecera)
+                    <div class="mt-3">
+                        <img src="{{ $imagenCabecera }}" alt="{{ __('Cabecera del PDF') }}" class="border rounded max-w-full" style="max-height: 30vh;" />
+                    </div>
+                @endif
+
                 <div class="mt-3 flex items-end gap-2">
                     <div class="flex-1">
                         <x-label :value="__('¿No está en el texto (solo aparece en un logo/imagen)? Escríbela a mano:')" />
@@ -54,6 +64,14 @@
                     <x-button type="button" class="btn" wire:click="marcarManual">
                         {{ __('Guardar') }}
                     </x-button>
+                </div>
+            @endif
+
+            @if ($puedeAnclarPorPosicion)
+                <div class="mt-3">
+                    <button type="button" class="btn text-sm" wire:click="activarPosicion">
+                        {{ __('No hay ninguna etiqueta de texto cerca: anclar por posición en la página') }}
+                    </button>
                 </div>
             @endif
         @endif

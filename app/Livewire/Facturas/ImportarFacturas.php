@@ -12,6 +12,7 @@ use App\Models\TipoProveedor;
 use App\Services\Facturas\AltaProveedorDesdeFactura;
 use App\Services\Facturas\ExtractorDatosFactura;
 use App\Services\Facturas\LectorPdf;
+use App\Services\Facturas\Plantillas\ExtractorPorCoordenadas;
 use App\Services\Facturas\Plantillas\ExtractorPosicional;
 use App\Services\Facturas\VerifactuQrLector;
 use Livewire\Attributes\On;
@@ -85,8 +86,10 @@ class ImportarFacturas extends Component
         $nombreLocal = $fichero->getClientOriginalName();
         $texto       = LectorPdf::aTexto($fichero->getRealPath());
 
-        // Ni rastro de la palabra "factura": se ignora sin gastar nada en guardarlo ni analizarlo más.
-        if (mb_stripos($texto, 'factura') === false) {
+        // Ni rastro de la palabra "factura": se ignora sin gastar nada en guardarlo ni analizarlo
+        // más — salvo que sea un proveedor ya conocido cuya cabecera (con esa misma palabra) está
+        // "quemada" en una imagen y no en el texto (ver LectorPdf::extraerImagenPrincipal).
+        if (mb_stripos($texto, 'factura') === false && ! $this->esFacturaConocidaPorImagen($fichero->getRealPath())) {
             return [
                 'nombrelocal' => $nombreLocal,
                 'es_factura'  => false,
@@ -110,7 +113,7 @@ class ImportarFacturas extends Component
 
         $resultado = $verifactu
             ? array_merge($base, $this->datosDeVerifactu($verifactu, $datos))
-            : array_merge($base, $this->datosDePlantilla($texto, $datos['cif'], $datos['fecha']));
+            : array_merge($base, $this->datosDePlantilla($texto, $datos['cif'], $datos['fecha'], $rutaAbsoluta));
 
         $resultado['duplicada'] = $this->esDuplicada($resultado);
 
@@ -137,18 +140,23 @@ class ImportarFacturas extends Component
     }
 
     /** Mismo mecanismo que Proveedores\AnalizarFactura::datosDePlantilla(): resuelve por posición si el CIF ya tiene plantilla. */
-    protected function datosDePlantilla(string $texto, ?string $cif, ?string $fechaGenerica = null): array
+    protected function datosDePlantilla(string $texto, ?string $cif, ?string $fechaGenerica = null, ?string $rutaAbsoluta = null): array
     {
-        if (! $cif) {
-            return [];
+        $plantilla = $cif ? PlantillaFactura::with('campos')->where('cif', $cif)->first() : null;
+
+        // Sin CIF en el texto: se reconoce el proveedor por la huella de la imagen de cabecera.
+        if (! $plantilla && $rutaAbsoluta) {
+            $hash = $this->hashImagenCabecera($rutaAbsoluta);
+            $plantilla = $hash ? PlantillaFactura::with('campos')->where('hash_imagen', $hash)->first() : null;
         }
 
-        $plantilla = PlantillaFactura::with('campos')->where('cif', $cif)->first();
         if (! $plantilla) {
             return [];
         }
 
         $extractor = new ExtractorPosicional();
+        $extractorPosicion = new ExtractorPorCoordenadas();
+        $bloques   = null;
         $valores   = [];
 
         $camposConEtiquetaValor = [
@@ -158,6 +166,15 @@ class ImportarFacturas extends Component
         ];
 
         foreach ($plantilla->campos as $campo) {
+            if ($campo->pos_x !== null && $rutaAbsoluta) {
+                $bloques ??= LectorPdf::aBloquesConPosicion($rutaAbsoluta);
+                $valores[$campo->tipo_campo_plantilla_factura_id] = $extractorPosicion->buscarPorPosicion(
+                    $bloques, (float) $campo->pos_x, (float) $campo->pos_y, (float) $campo->pos_ancho, (int) $campo->pagina
+                );
+
+                continue;
+            }
+
             $valores[$campo->tipo_campo_plantilla_factura_id] = (in_array($campo->tipo_campo_plantilla_factura_id, $camposConEtiquetaValor, true) && $campo->delta_columna !== null)
                 ? $extractor->buscarPorEtiquetaYDelta($texto, $campo->texto_ancla, $campo->delta_columna, $campo->delta_lineas, $campo->longitud_valor)
                 : $extractor->buscarPorAncla($texto, $campo->texto_ancla);
@@ -173,6 +190,25 @@ class ImportarFacturas extends Component
                 'importe'        => $valores[TipoCampoPlantillaFactura::IMPORTE] ?? null,
             ],
         ];
+    }
+
+    protected function hashImagenCabecera(string $rutaAbsoluta): ?string
+    {
+        $bytes = LectorPdf::extraerImagenPrincipal($rutaAbsoluta);
+
+        return $bytes ? hash('sha256', $bytes) : null;
+    }
+
+    /** Evita el coste de extraer/hashear la imagen si todavía no hay ninguna plantilla que la use. */
+    protected function esFacturaConocidaPorImagen(string $rutaAbsoluta): bool
+    {
+        if (! PlantillaFactura::whereNotNull('hash_imagen')->exists()) {
+            return false;
+        }
+
+        $hash = $this->hashImagenCabecera($rutaAbsoluta);
+
+        return $hash && PlantillaFactura::where('hash_imagen', $hash)->exists();
     }
 
     protected function esDuplicada(array $resultado): bool
@@ -213,7 +249,8 @@ class ImportarFacturas extends Component
             return;
         }
 
-        $encontrado = $this->datosDePlantilla($resultado['texto'], $resultado['datos']['cif'] ?? null, $resultado['datos']['fecha'] ?? null);
+        $rutaAbsoluta = isset($resultado['ruta']) ? Documento::disco()->path($resultado['ruta']) : null;
+        $encontrado = $this->datosDePlantilla($resultado['texto'], $resultado['datos']['cif'] ?? null, $resultado['datos']['fecha'] ?? null, $rutaAbsoluta);
 
         if (! $encontrado) {
             $this->dispatch('toast-error', ['title' => __('Sigue sin haber plantilla para este CIF')]);
