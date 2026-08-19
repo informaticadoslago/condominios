@@ -2,15 +2,36 @@
     @include('livewire.inmuebles.crear.navigation')
 
     <div class="flex-1 space-y-4">
-        <div class="w-1/3">
-            <x-label for="select-inmueble-forma-pago" :value="__('Forma de pago')" />
-            <x-select id="select-inmueble-forma-pago" class="block mt-1 w-full mayusculas" wire:model.live="forma_de_pago_id">
-                <option value="">{{ __('--') }}</option>
-                @foreach ($formasDePago as $forma)
-                    <option value="{{ $forma->id }}">{{ $forma->descripcion }}</option>
+        @if ($historicoFormasPago->isNotEmpty())
+            <div class="text-sm text-gray-500">
+                <p>{{ __('Formas de pago anteriores') }}:</p>
+                @foreach ($historicoFormasPago as $h)
+                    <p>{{ $h->fecha_inicio?->format('d/m/Y') }} — {{ $h->formaDePago?->descripcion }}</p>
                 @endforeach
-            </x-select>
-            <x-input-error for="forma_de_pago_id" class="mt-2" />
+            </div>
+        @endif
+
+        <div class="flex w-2/3">
+            <div class="w-1/2">
+                <x-label for="select-inmueble-forma-pago" :value="__('Forma de pago')" />
+                <x-select id="select-inmueble-forma-pago" class="block mt-1 w-full mayusculas" wire:model.live="forma_de_pago_id">
+                    <option value="">{{ __('--') }}</option>
+                    @foreach ($formasDePago as $forma)
+                        <option value="{{ $forma->id }}">{{ $forma->descripcion }}</option>
+                    @endforeach
+                </x-select>
+                <x-input-error for="forma_de_pago_id" class="mt-2" />
+            </div>
+            {{-- Con recibo bancario no se pide: la fecha es la de la firma del mandato
+                 (se duplica ahí, ver terminar()), no una fecha aparte. --}}
+            @unless ($esReciboBancario)
+                <div class="ml-2 w-1/2">
+                    <x-label for="input-forma-pago-fecha-inicio" :value="__('Vigente desde')" />
+                    <x-input id="input-forma-pago-fecha-inicio" class="block mt-1 w-full" type="date"
+                        wire:model="forma_pago_fecha_inicio" />
+                    <x-input-error for="forma_pago_fecha_inicio" class="mt-2" />
+                </div>
+            @endunless
         </div>
 
         <div class="flex w-full">

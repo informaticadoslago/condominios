@@ -34,6 +34,9 @@ class DatosFinancierosStep extends CrearInmuebleStep
 
     public $forma_de_pago_id = null;
 
+    /** Desde cuándo rige esta forma de pago: hecho del mundo real, se escribe a mano igual que Titularidad::fecha_inicio. */
+    public $forma_pago_fecha_inicio = null;
+
     /** persona_comunidad_id del titular elegido como responsable del recibo (solo si RECIBO_BANCARIO). */
     public $persona_comunidad_id_pago = null;
     public $cuenta_bancaria_id = null;
@@ -79,6 +82,11 @@ class DatosFinancierosStep extends CrearInmuebleStep
             $this->forma_de_pago_id          = $financiero['forma_de_pago_id'] ?? null;
             $this->persona_comunidad_id_pago = $financiero['persona_comunidad_id_pago'] ?? null;
             $this->cuenta_bancaria_id        = $financiero['cuenta_bancaria_id'] ?? null;
+            $this->forma_pago_fecha_inicio   = $financiero['forma_pago_fecha_inicio']
+                ?? $this->fechaInicioVigente()?->toDateString()
+                ?? now()->toDateString();
+        } else {
+            $this->forma_pago_fecha_inicio = $this->fechaInicioVigente()?->toDateString() ?? now()->toDateString();
         }
     }
 
@@ -97,6 +105,32 @@ class DatosFinancierosStep extends CrearInmuebleStep
             ->map(fn ($p) => ['persona_comunidad_id' => $p['persona_comunidad_id'], 'nombre' => $p['nombre']])
             ->values()
             ->all();
+    }
+
+    /** Formas de pago anteriores del inmueble (las ya cerradas), de más reciente a más antigua. */
+    private function historicoFormasPago()
+    {
+        if (! $this->inmuebleId) {
+            return collect();
+        }
+
+        return FormaPagoInmueble::whereNotNull('fecha_fin')
+            ->where('inmueble_id', $this->inmuebleId)
+            ->with('formaDePago')
+            ->orderByDesc('fecha_inicio')
+            ->get();
+    }
+
+    /** Desde cuándo rige la forma de pago vigente en BD (no la que se esté editando sin guardar todavía). */
+    private function fechaInicioVigente(): ?\Illuminate\Support\Carbon
+    {
+        if (! $this->inmuebleId) {
+            return null;
+        }
+
+        return FormaPagoInmueble::vigente()
+            ->where('inmueble_id', $this->inmuebleId)
+            ->first()?->fecha_inicio;
     }
 
     /** Cuentas bancarias del titular elegido (puede no tener ninguna si es un propietario recién creado). */
@@ -329,6 +363,9 @@ class DatosFinancierosStep extends CrearInmuebleStep
 
         return [
             'forma_de_pago_id'          => ['required', 'exists:formas_de_pago,id'],
+            // Con recibo bancario la fecha la da el mandato (nueva firma o la ya
+            // registrada): aquí no se pide, se duplica en terminar().
+            'forma_pago_fecha_inicio'   => [$esReciboBancario ? 'nullable' : 'required', 'date', 'before_or_equal:today'],
             'persona_comunidad_id_pago' => ['required', 'exists:personas_comunidad,id'],
             'cuenta_bancaria_id'        => [$esReciboBancario ? 'required' : 'nullable', 'exists:cuentas_bancarias,id'],
             'mandato_referencia'        => [$mandatoObligatorio ? 'required' : 'nullable', 'string', 'max:35'],
@@ -341,6 +378,7 @@ class DatosFinancierosStep extends CrearInmuebleStep
     {
         return [
             'forma_de_pago_id'          => __('forma de pago'),
+            'forma_pago_fecha_inicio'   => __('fecha de inicio'),
             'persona_comunidad_id_pago' => __('propietario'),
             'cuenta_bancaria_id'        => __('cuenta bancaria'),
             'mandato_referencia'        => __('número de mandato'),
@@ -395,7 +433,7 @@ class DatosFinancierosStep extends CrearInmuebleStep
         $cuentaBancariaId     = $esReciboBancario ? $datos['cuenta_bancaria_id'] : null;
 
         try {
-            DB::transaction(function () use ($borrador, $propietarios, $propietariosQuitados, $datos, $cuentaBancariaId) {
+            DB::transaction(function () use ($borrador, $propietarios, $propietariosQuitados, $datos, $cuentaBancariaId, $esReciboBancario) {
             if ($this->inmuebleId) {
                 $inmueble = Inmueble::findOrFail($this->inmuebleId);
                 $inmueble->update($borrador->payload['datos']);
@@ -460,8 +498,14 @@ class DatosFinancierosStep extends CrearInmuebleStep
                 && $vigente->propietario_id == $propietarioPagoId;
 
             if (! $sinCambios) {
+                // Con recibo bancario no se pide fecha aparte: es la de la firma del
+                // mandato (la recién tecleada, o la del ya registrado en esa cuenta).
+                $fechaInicioForma = $esReciboBancario
+                    ? ($datos['mandato_fecha_firma'] ?: $this->mandatoVigente()?->fecha_firma?->toDateString())
+                    : $datos['forma_pago_fecha_inicio'];
+
                 if ($vigente) {
-                    $vigente->update(['fecha_fin' => now()->toDateString()]);
+                    $vigente->update(['fecha_fin' => $fechaInicioForma]);
                 }
 
                 FormaPagoInmueble::create([
@@ -469,7 +513,7 @@ class DatosFinancierosStep extends CrearInmuebleStep
                     'propietario_id'     => $propietarioPagoId,
                     'forma_de_pago_id'   => $datos['forma_de_pago_id'],
                     'cuenta_bancaria_id' => $cuentaBancariaId,
-                    'fecha_inicio'       => now()->toDateString(),
+                    'fecha_inicio'       => $fechaInicioForma,
                     'fecha_fin'          => null,
                 ]);
             }
@@ -519,6 +563,7 @@ class DatosFinancierosStep extends CrearInmuebleStep
             // Si la cuenta ya tiene mandato no se pide otro: se enseña el que hay.
             'mandatoVigente'       => $this->mandatoVigente(),
             'urlPlantillaMandato'  => $this->urlPlantillaMandato(),
+            'historicoFormasPago'  => $this->historicoFormasPago(),
         ]);
     }
 }
