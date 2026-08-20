@@ -168,5 +168,6 @@
         </x-dosl.tabla>
 
         @livewire('comisiones-bancarias.importar-csv')
+        @livewire('movimientos-bancarios.convertir-en-comision')
     </x-slot>
 </x-botonera-page>

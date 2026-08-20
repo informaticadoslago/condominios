@@ -7,27 +7,25 @@ use App\Exceptions\CuentaContableDesconocidaException;
 use App\Exceptions\EjercicioCerradoException;
 use App\Exceptions\EjercicioContableDesconocidoException;
 use App\Models\Comunidad;
+use App\Models\CuentaBancaria;
 use App\Models\Remesa;
 use App\Models\TipoComisionBancaria;
-use App\Services\ComisionesBancarias\ImportarComisionesBancariasCsv;
+use App\Services\ComisionesBancarias\ClasificarComisionesDesdeMovimientos;
 use App\Services\ComisionesBancarias\RegistrarComisionBancariaService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 
 /**
- * Importa comisiones bancarias desde el extracto del banco (CSV o Q43/Norma 43, el
- * formato se reconoce solo): se analiza el fichero, se enseña qué se va a dar de alta
- * (con lo ya importado y lo descartado aparte, para que quede claro por qué no está), y
- * solo al confirmar se escribe algo.
+ * Clasifica los movimientos que ya están en movimientos_bancarios (ver
+ * MovimientosBancarios\ImportarCsv, que es quien de verdad lee el extracto del banco)
+ * en comisiones: se elige la cuenta, se enseña qué se va a dar de alta (con lo ya
+ * importado y lo descartado aparte, para que quede claro por qué no está), y solo al
+ * confirmar se escribe algo.
  */
 class ImportarCsv extends Component
 {
-    use WithFileUploads;
-
     public bool $abrir = false;
-    public $fichero = null;
     public bool $analizado = false;
     public ?string $error = null;
 
@@ -45,28 +43,44 @@ class ImportarCsv extends Component
     /** Índices de $candidatas marcados para importar. */
     public array $seleccionadas = [];
 
-    protected function rules()
-    {
-        // extensions y no mimes: Q43 no tiene un tipo MIME que Symfony reconozca, así
-        // que mimes lo rechazaría siempre pasara lo que pasara; extensions mira el
-        // nombre de fichero tal cual lo mandó el navegador.
-        return ['fichero' => ['required', 'file', 'extensions:csv,txt,q43', 'max:5120']];
-    }
-
     #[On('abrir-importar-csv')]
     public function mostrar($remesaId = null)
     {
-        $this->reset(['fichero', 'analizado', 'error', 'cuentaBancariaId', 'candidatas', 'yaProcesadas', 'descartadas', 'seleccionadas']);
+        $this->reset(['analizado', 'error', 'candidatas', 'yaProcesadas', 'descartadas', 'seleccionadas']);
         $this->resetErrorBag();
         $this->remesaId = $remesaId ? (int) $remesaId : null;
+
+        $remesa = $this->remesaId ? Remesa::find($this->remesaId) : null;
+        $this->cuentaBancariaId = $remesa?->cuenta_bancaria_id
+            ?? $this->cuentasBancariasComunidad()->first()?->id;
+
         $this->abrir = true;
     }
 
-    public function procesar(ImportarComisionesBancariasCsv $servicio)
+    /** Cuentas bancarias de la comunidad activa, para el selector. */
+    public function cuentasBancariasComunidad()
     {
-        $this->validate();
+        return CuentaBancaria::where('titular_type', Comunidad::class)
+            ->where('titular_id', session('comunidad_actual_id'))
+            ->orderBy('alias')
+            ->get();
+    }
 
-        $resultado = $servicio->analizar(file_get_contents($this->fichero->getRealPath()));
+    /** Una descartada que en realidad sí es una comisión: se marca a mano desde aquí. */
+    public function convertirDescartada(int $movimientoId): void
+    {
+        $this->dispatch('abrir-convertir-en-comision', movimientoId: $movimientoId);
+    }
+
+    public function procesar(ClasificarComisionesDesdeMovimientos $servicio)
+    {
+        if (! $this->cuentaBancariaId) {
+            $this->error = __('Esta comunidad no tiene ninguna cuenta bancaria dada de alta.');
+
+            return;
+        }
+
+        $resultado = $servicio->analizar($this->cuentaBancariaId);
 
         if ($resultado['error']) {
             $this->error = $resultado['error'];
@@ -74,15 +88,14 @@ class ImportarCsv extends Component
             return;
         }
 
-        $this->error            = null;
-        $this->cuentaBancariaId = $resultado['cuentaBancaria']->id;
-        $this->candidatas       = $resultado['candidatas'];
-        $this->yaProcesadas     = $resultado['yaProcesadas'];
-        $this->descartadas      = $resultado['descartadas'];
+        $this->error         = null;
+        $this->candidatas     = $resultado['candidatas'];
+        $this->yaProcesadas   = $resultado['yaProcesadas'];
+        $this->descartadas    = $resultado['descartadas'];
 
         // Las de fuera del ejercicio en curso no se premarcan: si en su día no se
         // importó el fichero, lo normal es que ya se metieran a mano entonces. Si se
-        // abrió desde una remesa, el fichero puede traer también la liquidación normal
+        // abrió desde una remesa, el extracto puede traer también la liquidación normal
         // u otras comisiones sueltas: aquí solo interesa la de devolución, así que las
         // demás se enseñan pero sin marcar, para no importarlas de rebote.
         $this->seleccionadas = array_map('strval', array_keys(array_filter(

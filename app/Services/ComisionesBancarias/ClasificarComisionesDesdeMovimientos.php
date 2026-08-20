@@ -6,19 +6,21 @@ use App\Models\ComisionBancaria;
 use App\Models\Comunidad;
 use App\Models\CuentaBancaria;
 use App\Models\EjercicioContable;
+use App\Models\MovimientoBancario;
 use App\Models\TipoComisionBancaria;
 use App\Models\TipoMovimientoBancario;
 use Illuminate\Support\Str;
 
 /**
- * Lee el extracto de movimientos del banco —en CSV o en Q43/Norma 43, el fichero se
- * reconoce solo— y separa sus filas en tres cajones: candidatas a importar, ya
- * importadas antes, y descartadas porque no son un tipo que nos interesa aquí.
+ * Clasifica los movimientos ya volcados en movimientos_bancarios (el extracto lo lee
+ * ImportarMovimientosBancariosCsv, aquí ya no se sube ningún fichero) en tres cajones:
+ * candidatas a comisión, ya importadas antes, y descartadas porque no son un tipo que
+ * nos interesa aquí.
  *
  * No escribe nada: solo prepara las propuestas. El alta de verdad la hace
  * RegistrarComisionBancariaService, fila a fila, cuando el usuario confirma.
  */
-final class ImportarComisionesBancariasCsv
+final class ClasificarComisionesDesdeMovimientos
 {
     /**
      * @return array{
@@ -29,158 +31,34 @@ final class ImportarComisionesBancariasCsv
      *     error: ?string,
      * }
      */
-    public function analizar(string $contenido): array
+    public function analizar(int $cuentaBancariaId): array
     {
-        // Los ficheros de banca electrónica suelen llevar BOM UTF-8: sin quitarlo, la
-        // primera línea no empieza "de verdad" por ES ni por 11, aunque se vea igual.
-        $contenido = ltrim($contenido, "\xEF\xBB\xBF");
-
-        $lineas = preg_split('/\r\n|\r|\n/', $contenido);
-        $lineas = array_values(array_filter($lineas, fn ($l) => trim($l) !== ''));
-
-        if (empty($lineas)) {
-            return $this->error(__('El fichero está vacío.'));
-        }
-
-        $primera = trim($lineas[0]);
-
-        if (Str::startsWith($primera, 'ES') && strlen($primera) >= 20) {
-            return $this->analizarCsv($lineas);
-        }
-
-        if (Str::startsWith($primera, '11') && strlen($primera) >= 20 && ctype_digit(substr($primera, 0, 20))) {
-            return $this->analizarQ43($lineas);
-        }
-
-        return $this->error(__('El fichero no es un CSV ni un Q43/Norma 43 reconocible (primera línea: :linea).', ['linea' => $primera]));
-    }
-
-    private function analizarCsv(array $lineas): array
-    {
-        $iban = trim($lineas[0]);
-        $cuentaBancaria = CuentaBancaria::where('iban', $iban)->first();
+        $cuentaBancaria = CuentaBancaria::find($cuentaBancariaId);
 
         if (! $cuentaBancaria) {
-            return $this->error(__('No hay ninguna cuenta bancaria con el IBAN :iban', ['iban' => $iban]));
+            return $this->error(__('Cuenta bancaria no encontrada.'));
         }
 
-        $indiceCabecera = null;
-        foreach ($lineas as $i => $linea) {
-            if (Str::startsWith(trim($linea), 'F. VALOR')) {
-                $indiceCabecera = $i;
-                break;
-            }
-        }
-
-        if ($indiceCabecera === null) {
-            return $this->error(__('No se encuentra la fila de cabecera (F. VALOR;F. CONTABLE;...).'));
-        }
-
-        $cabecera = str_getcsv($lineas[$indiceCabecera], ';');
-        $filas = [];
-        foreach (array_slice($lineas, $indiceCabecera + 1) as $linea) {
-            $valores = str_getcsv($linea, ';');
-            if (count($valores) < count($cabecera)) {
-                continue;
-            }
-            $filas[] = array_combine($cabecera, array_slice($valores, 0, count($cabecera)));
-        }
+        // Mismas claves que traía el CSV, para no tocar clasificar(): el importe se
+        // devuelve al formato español porque aImporte() espera esa cadena. Más moderno
+        // primero, para revisar las descartadas de más arriba a abajo; ID va aparte,
+        // solo lo usa filaDescartada() para poder convertir esa línea a mano.
+        $filas = MovimientoBancario::where('cuenta_bancaria_id', $cuentaBancaria->id)
+            ->orderByDesc('fecha_valor')
+            ->get()
+            ->map(fn (MovimientoBancario $m) => [
+                'ID'             => $m->id,
+                'F. VALOR'       => $m->fecha_valor->format('Y-m-d'),
+                'TIPO OPERACIÓN' => $m->tipo_operacion,
+                'DESCRIPCIÓN'    => $m->descripcion ?? '',
+                'IMPORTE'        => number_format((float) $m->importe, 2, ',', '.'),
+            ])
+            ->all();
 
         return $this->clasificar($cuentaBancaria, $filas);
     }
 
     /**
-     * Registro 11 (cabecera de cuenta): posiciones 3-6 entidad, 7-10 oficina, 11-20
-     * cuenta. No traen dígitos de control, así que se busca el IBAN por coincidencia
-     * de esos tres trozos, dejando los 2+2 dígitos de control como comodín.
-     */
-    private function analizarQ43(array $lineas): array
-    {
-        $cabecera = $lineas[0];
-        $entidad  = substr($cabecera, 2, 4);
-        $oficina  = substr($cabecera, 6, 4);
-        $cuenta   = substr($cabecera, 10, 10);
-
-        $cuentaBancaria = CuentaBancaria::where('iban', 'like', "ES__{$entidad}{$oficina}__{$cuenta}")->first();
-
-        if (! $cuentaBancaria) {
-            return $this->error(__('No hay ninguna cuenta bancaria que case con entidad :entidad, oficina :oficina y cuenta :cuenta.', [
-                'entidad' => $entidad, 'oficina' => $oficina, 'cuenta' => $cuenta,
-            ]));
-        }
-
-        return $this->clasificar($cuentaBancaria, $this->filasDesdeQ43($lineas));
-    }
-
-    /**
-     * Cada línea "22" es un movimiento; las "23xx" que le siguen son continuación de su
-     * texto libre (se concatenan tal cual, sin espacio: una FRA cortada a mitad de
-     * palabra sigue exactamente donde la dejó la línea anterior). Cualquier otro tipo
-     * de registro cierra el movimiento que estuviera abierto.
-     */
-    private function filasDesdeQ43(array $lineas): array
-    {
-        $filas  = [];
-        $actual = null;
-
-        foreach ($lineas as $linea) {
-            $tipoRegistro = substr($linea, 0, 2);
-
-            if ($tipoRegistro === '22') {
-                if ($actual !== null) {
-                    $filas[] = $this->cerrarFilaQ43($actual);
-                }
-
-                $actual = [
-                    'fecha_valor'      => substr($linea, 16, 6),
-                    'signo'            => substr($linea, 27, 1),
-                    'importe_centimos' => (int) substr($linea, 28, 14),
-                    'tipo_operacion'   => trim(substr($linea, 52)),
-                    'descripcion'      => '',
-                ];
-
-                continue;
-            }
-
-            if ($tipoRegistro === '23' && $actual !== null) {
-                $subtipo   = substr($linea, 2, 2);
-                $contenido = substr($linea, 4);
-                $actual['descripcion'] .= $subtipo === '01' ? ltrim($contenido) : $contenido;
-
-                continue;
-            }
-
-            if ($actual !== null) {
-                $filas[] = $this->cerrarFilaQ43($actual);
-                $actual = null;
-            }
-        }
-
-        if ($actual !== null) {
-            $filas[] = $this->cerrarFilaQ43($actual);
-        }
-
-        return $filas;
-    }
-
-    private function cerrarFilaQ43(array $actual): array
-    {
-        $fecha  = '20'.substr($actual['fecha_valor'], 0, 2).'-'.substr($actual['fecha_valor'], 2, 2).'-'.substr($actual['fecha_valor'], 4, 2);
-        $euros  = $actual['importe_centimos'] / 100;
-        $signo  = $actual['signo'] === '1' ? '-' : '';
-
-        return [
-            'F. VALOR'       => $fecha,
-            'TIPO OPERACIÓN' => $actual['tipo_operacion'],
-            'DESCRIPCIÓN'    => rtrim($actual['descripcion']),
-            'IMPORTE'        => $signo.number_format($euros, 2, ',', ''),
-        ];
-    }
-
-    /**
-     * A partir de aquí es indiferente si las filas vinieron de un CSV o de un Q43:
-     * misma clasificación, mismo emparejado por FRA, misma comprobación de duplicados.
-     *
      * @param  array<int, array{"F. VALOR": string, "TIPO OPERACIÓN": string, "DESCRIPCIÓN": string, "IMPORTE": string}>  $filas
      */
     private function clasificar(CuentaBancaria $cuentaBancaria, array $filas): array
@@ -289,7 +167,7 @@ final class ImportarComisionesBancariasCsv
             }
         }
 
-        usort($candidatas, fn ($a, $b) => $a['fecha'] <=> $b['fecha']);
+        usort($candidatas, fn ($a, $b) => $b['fecha'] <=> $a['fecha']);
 
         return [
             'cuentaBancaria' => $cuentaBancaria,
@@ -361,6 +239,7 @@ final class ImportarComisionesBancariasCsv
     private function filaDescartada(array $fila, string $motivo): array
     {
         return [
+            'id'       => $fila['ID'] ?? null,
             'fecha'    => $fila['F. VALOR'] ?? null,
             'tipo'     => $fila['TIPO OPERACIÓN'] ?? null,
             'concepto' => $fila['DESCRIPCIÓN'] ?? null,
