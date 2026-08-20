@@ -7,10 +7,11 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Modal de configuración (solo superadmin, permiso 'global-configuracion'). De momento
- * MUESTRA en solo lectura las variables del .env repartidas en pestañas por prefijo;
- * el qué hacer con cada grupo (editar, mover a BD…) se decide después. Los secretos se
- * enmascaran: esto se ve por web y no debe filtrar credenciales.
+ * Modal de configuración (solo superadmin, permiso 'global-configuracion'). Muestra las
+ * variables del .env repartidas en pestañas por prefijo; solo las claves listadas en
+ * EDITABLES se pueden modificar, una a una según se va decidiendo. Los secretos se
+ * enmascaran y se editan aparte, en un modal de solo escritura (nunca se muestra el valor
+ * actual): esto se ve por web y no debe filtrar credenciales.
  */
 class Configuracion extends Component
 {
@@ -36,15 +37,91 @@ class Configuracion extends Component
         'backup'      => ['BACKUP_'],
     ];
 
+    /** Claves editables por pestaña. Se van añadiendo una a una según se decide. */
+    private const EDITABLES = [
+        'correo' => [
+            'MAIL_MAILER', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD',
+            'MAIL_ENCRYPTION', 'MAIL_FROM_NAME', 'MAIL_FROM_ADDRESS',
+            'EMAIL_FIRMA', 'EMAIL_FACTURA_FIRMA', 'EMAIL_SANDBOX', 'EMAIL_SANDBOX_TO',
+        ],
+    ];
+
+    /** Valores en edición de la pestaña activa (solo claves editables no secretas). */
+    public array $form = [];
+
+    /** Modal secundario para cambiar una clave secreta (p.ej. MAIL_PASSWORD). */
+    public bool $passwordAbierto = false;
+
+    public string $passwordClave = '';
+
+    public string $passwordNueva = '';
+
+    public string $passwordConfirmacion = '';
+
     #[On('abrir-configuracion')]
     public function abrir(): void
     {
         $this->show = true;
+        $this->cargarFormulario();
     }
 
     public function close(): void
     {
         $this->show = false;
+    }
+
+    public function updatedTab(): void
+    {
+        $this->cargarFormulario();
+    }
+
+    /** Carga en $form las claves editables no secretas de la pestaña activa. */
+    private function cargarFormulario(): void
+    {
+        $env = $this->leerEnv();
+        $this->form = [];
+
+        foreach (self::EDITABLES[$this->tab] ?? [] as $clave) {
+            if (! $this->esSecreto($clave)) {
+                $this->form[$clave] = $env[$clave] ?? '';
+            }
+        }
+    }
+
+    public function esEditable(string $clave): bool
+    {
+        return in_array($clave, self::EDITABLES[$this->tab] ?? [], true);
+    }
+
+    /** Guarda en el .env los valores editados de la pestaña activa. */
+    public function guardar(): void
+    {
+        $this->escribirEnv($this->form);
+        $this->cargarFormulario();
+
+        $this->dispatch('toast-success', ['title' => __('Configuración guardada')]);
+    }
+
+    public function abrirPassword(string $clave): void
+    {
+        $this->passwordClave = $clave;
+        $this->passwordNueva = '';
+        $this->passwordConfirmacion = '';
+        $this->passwordAbierto = true;
+    }
+
+    public function guardarPassword(): void
+    {
+        if ($this->passwordNueva !== $this->passwordConfirmacion) {
+            $this->dispatch('toast-error', ['title' => __('Las contraseñas no coinciden')]);
+
+            return;
+        }
+
+        $this->escribirEnv([$this->passwordClave => $this->passwordNueva]);
+        $this->passwordAbierto = false;
+
+        $this->dispatch('toast-success', ['title' => __('Contraseña actualizada')]);
     }
 
     /** Reparte cada variable del .env en su pestaña por prefijo, con secretos enmascarados. */
@@ -70,7 +147,7 @@ class Configuracion extends Component
         return 'otros';
     }
 
-    private function esSecreto(string $clave): bool
+    public function esSecreto(string $clave): bool
     {
         return Str::contains($clave, ['PASSWORD', 'SECRET', 'TOKEN', 'KEY']);
     }
@@ -104,6 +181,37 @@ class Configuracion extends Component
         }
 
         return $vars;
+    }
+
+    /** Reescribe en el .env las claves indicadas (deben existir ya como línea CLAVE=...). */
+    private function escribirEnv(array $cambios): void
+    {
+        $ruta = base_path('.env');
+        $lineas = file($ruta, FILE_IGNORE_NEW_LINES);
+
+        foreach ($lineas as $i => $linea) {
+            if (! Str::contains($linea, '=')) {
+                continue;
+            }
+
+            $clave = trim(explode('=', $linea, 2)[0]);
+
+            if (array_key_exists($clave, $cambios)) {
+                $lineas[$i] = $clave.'='.$this->formatearValorEnv($cambios[$clave]);
+            }
+        }
+
+        file_put_contents($ruta, implode(PHP_EOL, $lineas).PHP_EOL);
+    }
+
+    /** Envuelve entre comillas dobles si hay espacios o caracteres fuera de [A-Za-z0-9_.-/:@]. */
+    private function formatearValorEnv(string $valor): string
+    {
+        if ($valor === '' || preg_match('/^[A-Za-z0-9_.\-\/:@]+$/', $valor)) {
+            return $valor;
+        }
+
+        return '"'.str_replace('"', '\"', $valor).'"';
     }
 
     public function render()
