@@ -3,6 +3,7 @@
 namespace App\Services\Recibos;
 
 use App\Models\Cobro;
+use App\Models\Comunidad;
 use App\Models\CuentaBancaria;
 use App\Models\EjercicioContable;
 use App\Models\TipoComisionBancaria;
@@ -17,9 +18,10 @@ use Illuminate\Support\Facades\DB;
  * todavía no han entrado en ningún asiento.
  *
  * Se agrupa como lo ve el banco en el extracto, que es lo que luego hay que conciliar:
- * los cobros de una remesa son un asiento —el banco abona el total de una vez— y cada
- * transferencia suelta es el suyo. Al debe la cuenta corriente por el total, al haber la
- * de cada propietario por lo suyo, que es lo que cancela la deuda que dejó la emisión.
+ * los cobros de una remesa son un asiento —el banco abona el total de una vez—, y los
+ * sueltos de un mismo propietario el mismo día también, sea uno o varios recibos a la
+ * vez. Al debe la cuenta corriente por el total, al haber la de cada propietario por lo
+ * suyo, que es lo que cancela la deuda que dejó la emisión.
  *
  * Una devolución es un cobro en negativo y va sola en su asiento. Lo devuelto vuelve al
  * debe del propietario con el banco de contrapartida, que es el único movimiento real
@@ -30,8 +32,12 @@ use Illuminate\Support\Facades\DB;
  * entre el cargo real de la comisión quede neteado con lo ya repercutido.
  *
  * Se puede volver a lanzar sin miedo: los cobros ya enlazados se saltan, y si aun así
- * llegara dos veces el mismo grupo, la contabilidad reconoce la referencia y devuelve el
- * asiento que ya hizo en vez de duplicarlo.
+ * llegara dos veces el mismo grupo exacto, la contabilidad reconoce la referencia y
+ * devuelve el asiento que ya hizo en vez de duplicarlo. La referencia lleva metida una
+ * huella del contenido real del grupo (qué cobros son, no solo de qué remesa/propietario
+ * y fecha) para que esto sea verdad también con grupos parciales: enlazar hoy 2 cobros de
+ * un propietario y mañana otro más del mismo día son dos hechos distintos, y cada uno
+ * saca su propio asiento en vez de intentar completar uno ya escrito.
  */
 final class EnlazarCobrosContabilidad
 {
@@ -45,15 +51,32 @@ final class EnlazarCobrosContabilidad
      */
     public function ejecutar(array $reciboIds): array
     {
+        // El sobrante de un pago no tiene recibo, así que no lo pilla el whereIn de
+        // abajo: se busca aparte, por si algún propietario de estos recibos tiene alguno
+        // suelto sin enlazar todavía.
+        $propietarioIds = Cobro::whereIn('recibo_id', $reciboIds)
+            ->join('recibos', 'recibos.id', '=', 'cobros.recibo_id')
+            ->pluck('recibos.propietario_id')
+            ->unique();
+
         $cobros = Cobro::with([
             'recibo.presupuesto.comunidad.cuentasBancarias',
             'recibo.propietario',
             'recibo.inmueble',
+            'propietario.persona.comunidad.cuentasBancarias',
             'formaDePago',
             'lineaRemesa.remesa.cuentaBancaria',
         ])
-            ->whereIn('recibo_id', $reciboIds)
             ->whereNull('asiento_contable')
+            ->where(function ($query) use ($reciboIds, $propietarioIds) {
+                $query->whereIn('recibo_id', $reciboIds);
+
+                if ($propietarioIds->isNotEmpty()) {
+                    $query->orWhere(function ($query) use ($propietarioIds) {
+                        $query->whereNull('recibo_id')->whereIn('propietario_id', $propietarioIds);
+                    });
+                }
+            })
             ->get();
 
         $enlazables = $cobros->filter(fn (Cobro $cobro) => $this->esEnlazable($cobro));
@@ -82,13 +105,19 @@ final class EnlazarCobrosContabilidad
      */
     private function esEnlazable(Cobro $cobro): bool
     {
-        $empresaId = $cobro->recibo?->presupuesto?->comunidad?->empresa_contable_id;
+        $empresaId = $this->comunidad($cobro)?->empresa_contable_id;
 
         if ((float) $cobro->importe == 0
-            || $cobro->recibo?->asiento_contable === null
-            || $cobro->recibo?->propietario?->cuenta_contable === null
             || $empresaId === null
+            || $this->cuentaContablePropietario($cobro) === null
             || $this->cuentaTesoreria($cobro)?->cuenta_contable === null) {
+            return false;
+        }
+
+        // El sobrante no cancela la deuda de ningún recibo —es dinero suelto a favor del
+        // propietario—, así que no le aplica esta comprobación: solo el cobro de un
+        // recibo necesita que ese recibo esté ya emitido en contabilidad.
+        if ($cobro->recibo_id !== null && $cobro->recibo?->asiento_contable === null) {
             return false;
         }
 
@@ -125,12 +154,31 @@ final class EnlazarCobrosContabilidad
     private function cuentaTesoreria(Cobro $cobro): ?CuentaBancaria
     {
         return $cobro->lineaRemesa?->remesa?->cuentaBancaria
-            ?? $cobro->recibo?->presupuesto?->comunidad?->cuentasBancarias->first();
+            ?? $this->comunidad($cobro)?->cuentasBancarias->first();
     }
 
     /**
-     * Un asiento por remesa y fecha de abono; los cobros sueltos, uno cada uno. Cada
-     * devolución va sola: lleva su comisión y su motivo, y el banco las carga una a una.
+     * La comunidad del cobro: por el recibo normalmente, y por el propietario cuando no
+     * hay recibo —el sobrante—, que llega a la misma comunidad por su persona.
+     */
+    private function comunidad(Cobro $cobro): ?Comunidad
+    {
+        return $cobro->recibo?->presupuesto?->comunidad
+            ?? $cobro->propietario?->persona?->comunidad;
+    }
+
+    /** La subcuenta de cliente del propietario, venga el cobro de un recibo o suelto. */
+    private function cuentaContablePropietario(Cobro $cobro): ?string
+    {
+        return $cobro->recibo?->propietario?->cuenta_contable
+            ?? $cobro->propietario?->cuenta_contable;
+    }
+
+    /**
+     * Un asiento por remesa y fecha de abono; los cobros sueltos de un mismo propietario
+     * el mismo día también van juntos —sea un recibo o varios cobrados de golpe, es el
+     * mismo dinero entrando esa fecha en su cuenta—. Cada devolución va sola: lleva su
+     * comisión y su motivo, y el banco las carga una a una.
      */
     private function clave(Cobro $cobro): string
     {
@@ -138,18 +186,29 @@ final class EnlazarCobrosContabilidad
             return 'devolucion|'.$cobro->id;
         }
 
-        return $cobro->lineaRemesa
-            ? 'remesa|'.$cobro->lineaRemesa->remesa_id.'|'.$cobro->fecha->toDateString()
-            : 'cobro|'.$cobro->id;
+        if ($cobro->lineaRemesa) {
+            return 'remesa|'.$cobro->lineaRemesa->remesa_id.'|'.$cobro->fecha->toDateString();
+        }
+
+        $propietarioId = $cobro->recibo?->propietario_id ?? $cobro->propietario_id;
+
+        return 'cobro|'.$propietarioId.'|'.$cobro->fecha->toDateString();
     }
 
     /** @param  Collection<int, Cobro>  $grupo */
     private function enlazarGrupo(Collection $grupo): int
     {
-        $primero   = $grupo->first();
-        $remesa    = $primero->lineaRemesa?->remesa;
-        $empresaId = $primero->recibo->presupuesto->comunidad->empresa_contable_id;
+        $primero = $grupo->first();
+        $remesa  = $primero->lineaRemesa?->remesa;
+
+        // El de referencia para lo que no lleva el sobrante (recibo, presupuesto):
+        // cualquier cobro del grupo que sí venga de un recibo. Solo faltará si el grupo
+        // es el sobrante solo, sin ningún recibo cobrado a su lado.
+        $conRecibo = $grupo->first(fn (Cobro $cobro) => $cobro->recibo_id !== null) ?? $primero;
+
+        $empresaId = $this->comunidad($primero)?->empresa_contable_id;
         $fecha     = $primero->fecha->toDateString();
+        $propietarioId = $conRecibo->recibo?->propietario_id ?? $primero->propietario_id;
 
         if ($primero->esDevolucion()) {
             return $this->enlazarDevolucion($primero, $empresaId, $fecha);
@@ -166,8 +225,10 @@ final class EnlazarCobrosContabilidad
 
             $lineas[] = new DatosApunte(
                 haber: $centimos,
-                cuenta: $cobro->recibo->propietario->cuenta_contable,
-                concepto: trim(sprintf('%s %s', $cobro->recibo->inmueble?->planta, $cobro->recibo->inmueble?->puerta)) ?: null,
+                cuenta: $this->cuentaContablePropietario($cobro),
+                concepto: $cobro->recibo
+                    ? (trim(sprintf('%s %s', $cobro->recibo->inmueble?->planta, $cobro->recibo->inmueble?->puerta)) ?: null)
+                    : __('Sobrante a cuenta'),
             );
         }
 
@@ -179,19 +240,26 @@ final class EnlazarCobrosContabilidad
             fecha: $fecha,
             concepto: $remesa
                 ? sprintf('Cobro remesa %s', $remesa->referencia)
-                : sprintf('Cobro %s · %s', $primero->formaDePago?->descripcion, $primero->recibo->presupuesto->nombre),
+                : sprintf('Cobro %s · %s', $primero->formaDePago?->descripcion, $conRecibo->recibo?->presupuesto?->nombre ?? __('saldo a favor')),
             lineas: $lineas,
             diario: 'BAN',
-            // El hecho es el abono del banco: el de la remesa entera, o el de esa
-            // transferencia. Reenviarlo devuelve el mismo asiento en vez de duplicarlo.
+            // El hecho es el abono del banco de ESTOS cobros: reenviar el mismo grupo
+            // devuelve el mismo asiento, pero un grupo distinto —aunque comparta remesa o
+            // propietario y fecha— es un hecho distinto y saca un asiento propio.
             referenciaTipo: $remesa ? 'remesas' : 'cobros',
-            referenciaId: $remesa ? $remesa->id.':'.$fecha : (string) $primero->id,
+            referenciaId: ($remesa ? $remesa->id.':'.$fecha : $propietarioId.':'.$fecha).':'.$this->huella($grupo),
             evento: 'cobro',
         )));
 
         Cobro::whereIn('id', $grupo->pluck('id'))->update(['asiento_contable' => $asiento->id]);
 
         return $grupo->count();
+    }
+
+    /** Identifica el grupo por su contenido: mismos cobros → mismo hecho contable. */
+    private function huella(Collection $grupo): string
+    {
+        return (string) crc32($grupo->pluck('id')->sort()->implode(','));
     }
 
     /**

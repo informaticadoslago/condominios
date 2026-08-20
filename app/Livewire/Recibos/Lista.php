@@ -343,6 +343,8 @@ class Lista extends ListaComponent
             'cobroImporte'       => __('Importe recibido'),
         ]);
 
+        $sobrante = 0.0;
+
         // Un solo recibo con importe tecleado: se registra ese importe tal cual, aunque
         // supere (o el recibo ya esté cobrado del todo) — es la vía para meter un pago
         // de más, que deja el saldo en negativo (a favor del propietario).
@@ -354,12 +356,37 @@ class Lista extends ListaComponent
                 (float) $this->cobroImporte,
             );
             $cobrados = $cobro ? 1 : 0;
+        } elseif ($this->cobroImporte !== null && $this->cobroImporte !== '') {
+            // Varios recibos con un importe total tecleado: hay que cuadrar. Si no llega
+            // a cubrir lo pendiente, no se cobra nada (sin pagos parciales); si sobra,
+            // el sobrante se guarda como saldo a favor del propietario.
+            try {
+                $resultado = $registrarCobro->registrarPago(
+                    $this->cobroIds,
+                    $this->cobroFecha,
+                    $this->cobroFormaDePagoId,
+                    (float) $this->cobroImporte,
+                );
+            } catch (\RuntimeException $e) {
+                $this->dispatch('toast-error', ['title' => $e->getMessage()]);
+
+                return;
+            }
+
+            $cobrados = $resultado['cobrados'];
+            $sobrante = $resultado['sobrante'];
         } else {
-            $cobrados = $registrarCobro->registrarVarios(
-                $this->cobroIds,
-                $this->cobroFecha,
-                $this->cobroFormaDePagoId,
-            );
+            try {
+                $cobrados = $registrarCobro->registrarVarios(
+                    $this->cobroIds,
+                    $this->cobroFecha,
+                    $this->cobroFormaDePagoId,
+                );
+            } catch (\RuntimeException $e) {
+                $this->dispatch('toast-error', ['title' => $e->getMessage()]);
+
+                return;
+            }
         }
 
         $this->cobroAbierto = false;
@@ -367,11 +394,17 @@ class Lista extends ListaComponent
         $this->cobroImporte = null;
         $this->limpiarSeleccion();
 
-        $this->dispatch('toast-success', [
-            'title' => $cobrados
-                ? __(':count recibos cobrados', ['count' => $cobrados])
-                : __('No había ningún recibo pendiente de cobro'),
-        ]);
+        $titulo = $cobrados
+            ? __(':count recibos cobrados', ['count' => $cobrados])
+            : __('No había ningún recibo pendiente de cobro');
+
+        if ($sobrante > 0) {
+            $titulo .= ' '.__('Sobrante de :importe € guardado como saldo a favor del propietario.', [
+                'importe' => number_format($sobrante, 2, ',', '.'),
+            ]);
+        }
+
+        $this->dispatch('toast-success', ['title' => $titulo]);
     }
 
     /**

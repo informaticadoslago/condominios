@@ -14,6 +14,10 @@ use Illuminate\Database\Eloquent\Model;
  * asiento tomándolo por un reenvío del primero.
  *
  * Nunca se edita ni se borra una fila para corregir un cobro: se añade la contraria.
+ *
+ * Puede no tener recibo: un pago puede sumar más de lo que cubre, y ese sobrante no es de
+ * ningún recibo —un recibo no se paga por más de lo que vale, ver RegistrarCobro::
+ * registrarPago—, así que va suelto, con `propietario_id` en vez de `recibo_id`.
  */
 class Cobro extends Model
 {
@@ -21,6 +25,8 @@ class Cobro extends Model
 
     protected $fillable = [
         'recibo_id',
+        // Solo con recibo_id null: a quién abonar el sobrante.
+        'propietario_id',
         'forma_de_pago_id',
         'linea_remesa_id',
         'fecha',
@@ -37,6 +43,12 @@ class Cobro extends Model
     public function recibo()
     {
         return $this->belongsTo(Recibo::class);
+    }
+
+    /** Solo presente en el sobrante; con recibo, la cuenta se llega a través de él. */
+    public function propietario()
+    {
+        return $this->belongsTo(Propietario::class);
     }
 
     public function formaDePago()

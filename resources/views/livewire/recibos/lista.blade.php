@@ -304,11 +304,23 @@
                         {{ __('Pendiente marcado') }}: {{ number_format((float) $cobroPendiente, 2, ',', '.') }} €
                     </p>
                     @if ($cobroImporte !== null && $cobroImporte !== '' && round((float) $cobroImporte, 2) !== round((float) $cobroPendiente, 2))
-                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                            {{ __('No cuadra: diferencia de :diferencia €. Se cobrará igual el pendiente de cada recibo.', [
-                                'diferencia' => number_format((float) $cobroImporte - (float) $cobroPendiente, 2, ',', '.'),
-                            ]) }}
-                        </p>
+                        @if (count($cobroIds) === 1)
+                            <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                {{ __('No cuadra: diferencia de :diferencia €. Se cobrará igual el pendiente del recibo.', [
+                                    'diferencia' => number_format((float) $cobroImporte - (float) $cobroPendiente, 2, ',', '.'),
+                                ]) }}
+                            </p>
+                        @elseif (round((float) $cobroImporte, 2) < round((float) $cobroPendiente, 2))
+                            <p class="text-xs text-red-600 dark:text-red-400 mt-1">
+                                {{ __('No llega a cubrir lo pendiente: no se admiten cobros parciales para varios recibos a la vez.') }}
+                            </p>
+                        @else
+                            <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                                {{ __('Sobran :sobrante €: se guardarán como saldo a favor del propietario.', [
+                                    'sobrante' => number_format((float) $cobroImporte - (float) $cobroPendiente, 2, ',', '.'),
+                                ]) }}
+                            </p>
+                        @endif
                     @endif
                 </div>
             </x-slot>

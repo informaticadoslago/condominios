@@ -126,10 +126,19 @@ class RegistrarCobro
     /**
      * Cobra de golpe todos los recibos indicados por su pendiente completo. Devuelve
      * cuántos se cobraron: los que ya estaban pagados no cuentan.
+     *
+     * @throws \RuntimeException si es una transferencia y los recibos son de propietarios
+     *                           distintos: una transferencia es un único movimiento de
+     *                           una cuenta, no puede saldar la de varios a la vez.
      */
     public function registrarVarios(array $reciboIds, string $fecha, int $formaDePagoId): int
     {
         return DB::transaction(function () use ($reciboIds, $fecha, $formaDePagoId) {
+            if ($formaDePagoId === FormaDePago::TRANSFERENCIA
+                && Recibo::whereIn('id', $reciboIds)->distinct()->count('propietario_id') > 1) {
+                throw new \RuntimeException(__('Una transferencia es un único movimiento de un propietario: no se puede usar para cobrar recibos de varios propietarios a la vez.'));
+            }
+
             $cobrados = 0;
 
             foreach ($reciboIds as $reciboId) {
@@ -139,6 +148,64 @@ class RegistrarCobro
             }
 
             return $cobrados;
+        });
+    }
+
+    /**
+     * Cobra varios recibos de un mismo propietario contra un único importe recibido —una
+     * transferencia que cubre varias cuotas de golpe. No hay pagos parciales: si el
+     * importe no llega a cubrir lo pendiente de todos los recibos, no se cobra ninguno,
+     * para eso está `registrarVarios`.
+     *
+     * Si sobra, el sobrante no es de ningún recibo —un recibo no se paga por más de lo
+     * que vale— así que sale como un cobro suelto, sin recibo, abonado directamente al
+     * propietario: saldo a favor sin aplicar todavía a ningún vencimiento futuro.
+     *
+     * @param  int[]  $reciboIds
+     * @return array{cobrados: int, sobrante: float}
+     *
+     * @throws \RuntimeException si los recibos son de propietarios distintos, o el
+     *                           importe no llega a cubrir lo pendiente
+     */
+    public function registrarPago(array $reciboIds, string $fecha, int $formaDePagoId, float $importeRecibido): array
+    {
+        return DB::transaction(function () use ($reciboIds, $fecha, $formaDePagoId, $importeRecibido) {
+            $recibos = Recibo::whereIn('id', $reciboIds)->lockForUpdate()->get();
+
+            $propietarioId = $recibos->pluck('propietario_id')->unique();
+
+            if ($propietarioId->count() > 1) {
+                throw new \RuntimeException(__('Los recibos seleccionados son de propietarios distintos: no se puede repartir un único importe entre varios.'));
+            }
+
+            $pendienteTotal = $recibos->sum(fn (Recibo $recibo) => $this->deuda($recibo) - (float) $recibo->importe_pagado);
+
+            if (round($importeRecibido, 2) < round($pendienteTotal, 2)) {
+                throw new \RuntimeException(__('El importe recibido no llega a cubrir lo pendiente de los recibos seleccionados (:pendiente €): no se admiten cobros parciales desde aquí.', [
+                    'pendiente' => number_format($pendienteTotal, 2, ',', '.'),
+                ]));
+            }
+
+            $cobrados = 0;
+
+            foreach ($recibos as $recibo) {
+                if ($this->registrar($recibo->id, $fecha, $formaDePagoId)) {
+                    $cobrados++;
+                }
+            }
+
+            $sobrante = round($importeRecibido - $pendienteTotal, 2);
+
+            if ($sobrante > 0) {
+                Cobro::create([
+                    'propietario_id'   => $propietarioId->first(),
+                    'forma_de_pago_id' => $formaDePagoId,
+                    'fecha'            => $fecha,
+                    'importe'          => $sobrante,
+                ]);
+            }
+
+            return ['cobrados' => $cobrados, 'sobrante' => $sobrante];
         });
     }
 }

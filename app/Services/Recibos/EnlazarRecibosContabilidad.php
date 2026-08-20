@@ -21,8 +21,16 @@ use Illuminate\Support\Facades\DB;
  * asiento, que es lo que los marca como enlazados.
  *
  * Se puede volver a lanzar sin miedo: los recibos ya enlazados se saltan, y si aun así
- * llegara dos veces el mismo grupo, la contabilidad reconoce la referencia y devuelve el
- * asiento que ya hizo en vez de duplicarlo.
+ * llegara dos veces el mismo grupo exacto, la contabilidad reconoce la referencia y
+ * devuelve el asiento que ya hizo en vez de duplicarlo.
+ *
+ * La referencia lleva metida una huella del propio grupo (qué recibos son, no solo de
+ * qué presupuesto y fecha) precisamente para que esto último sea verdad: si un día se
+ * enlazan 3 de los 9 recibos de un vencimiento y otro día los 6 restantes, son dos hechos
+ * contables distintos y tienen que acabar en dos asientos distintos, aunque compartan
+ * presupuesto y fecha. Un asiento ya escrito no se completa después con líneas que
+ * faltaban —eso lo dejaría descuadrado sin que ningún apunte se enterara—; lo que no
+ * entró la primera vez entra en un asiento nuevo la siguiente.
  */
 final class EnlazarRecibosContabilidad
 {
@@ -112,15 +120,22 @@ final class EnlazarRecibosContabilidad
             concepto: sprintf('%s · vencimiento %s', $presupuesto->nombre, $primero->fecha_vencimiento->format('d/m/Y')),
             lineas: $lineas,
             diario: 'REC',
-            // El hecho es la emisión de ese vencimiento, no cada recibo suelto: reenviarlo
-            // devuelve el mismo asiento en vez de duplicarlo.
+            // El hecho es la emisión de ESTOS recibos de ese vencimiento: reenviar el
+            // mismo grupo devuelve el mismo asiento, pero un grupo distinto —aunque sea
+            // del mismo vencimiento— es un hecho distinto y saca un asiento propio.
             referenciaTipo: 'recibos',
-            referenciaId: $presupuesto->id.':'.$fecha,
+            referenciaId: $presupuesto->id.':'.$fecha.':'.$this->huella($grupo),
             evento: 'emision',
         )));
 
         Recibo::whereIn('id', $grupo->pluck('id'))->update(['asiento_contable' => $asiento->id]);
 
         return $grupo->count();
+    }
+
+    /** Identifica el grupo por su contenido: mismos recibos → mismo hecho contable. */
+    private function huella(Collection $grupo): string
+    {
+        return (string) crc32($grupo->pluck('id')->sort()->implode(','));
     }
 }
