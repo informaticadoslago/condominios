@@ -51,6 +51,15 @@ class Lista extends ListaComponent
         ];
     }
 
+    public function columnasDisponibles(): array
+    {
+        return [
+            'nombre'    => __('Nombre'),
+            'documento' => __('Documento'),
+            'estado'    => __('Estado'),
+        ];
+    }
+
     /**
      * Se reimplementan en vez de dejar el ConBajaPorEstado del trait tal cual: un
      * proveedor no se puede borrar (por eso existe el estado de baja), y la baja/
