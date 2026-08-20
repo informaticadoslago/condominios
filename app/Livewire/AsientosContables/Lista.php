@@ -25,6 +25,12 @@ class Lista extends ListaComponent
         return ['numero', 'fecha', 'concepto'];
     }
 
+    /** Lista contable: solo mostrar/ocultar, sin arrastrar (ver ListaComponent::permiteReordenarColumnas). */
+    public function permiteReordenarColumnas(): bool
+    {
+        return false;
+    }
+
     public function columnasDisponibles(): array
     {
         return [

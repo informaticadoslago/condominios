@@ -36,6 +36,12 @@ class Lista extends ListaComponent
         return ['fecha'];
     }
 
+    /** Lista contable: solo mostrar/ocultar, sin arrastrar (ver ListaComponent::permiteReordenarColumnas). */
+    public function permiteReordenarColumnas(): bool
+    {
+        return false;
+    }
+
     public function columnasDisponibles(): array
     {
         return [

@@ -87,74 +87,78 @@
                                 <input type="checkbox" wire:model.live="marcarTodosVisibles"
                                     title="{{ __('Marcar/desmarcar toda la página') }}" />
                             </th>
-                            @if ($this->verColumna('inmueble'))
-                                <th class="py-3 px-6">{{ __('Inmueble') }}</th>
-                            @endif
-                            @if ($this->verColumna('propietario'))
-                                <th class="py-3 px-6">{{ __('Propietario') }}</th>
-                            @endif
-                            @if ($this->verColumna('presupuesto'))
-                                <th class="py-3 px-6">{{ __('Presupuesto') }}</th>
-                            @endif
-                            @if ($this->verColumna('numero_pago'))
-                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('numero_pago')">
-                                    {{ __('Pago') }}
-                                    @if ($sort == 'numero_pago')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort float-right mt-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('vencimiento'))
-                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('fecha_vencimiento')">
-                                    {{ __('Vencimiento') }}
-                                    @if ($sort == 'fecha_vencimiento')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort float-right mt-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('importe'))
-                                <th class="cursor-pointer py-3 px-6 text-right" wire:click="ordenar('importe')">
-                                    {{ __('Importe') }}
-                                    @if ($sort == 'importe')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} ml-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort ml-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('importe_pagado'))
-                                <th class="cursor-pointer py-3 px-6 text-right" wire:click="ordenar('importe_pagado')">
-                                    {{ __('Pagado') }}
-                                    @if ($sort == 'importe_pagado')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} ml-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort ml-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('saldo'))
-                                <th class="cursor-pointer py-3 px-6 text-right" wire:click="ordenar('saldo')">
-                                    {{ __('Saldo') }}
-                                    @if ($sort == 'saldo')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} ml-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort ml-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('forma_de_pago'))
-                                <th class="py-3 px-6">{{ __('Forma de pago') }}</th>
-                            @endif
-                            @if ($this->verColumna('estado'))
-                                <th class="py-3 px-6">{{ __('Estado') }}</th>
-                            @endif
-                            @if ($this->verColumna('asiento'))
-                                <th class="py-3 px-6">{{ __('Asiento') }}</th>
-                            @endif
+                            @foreach ($this->columnas as $clave)
+                                @switch($clave)
+                                    @case('inmueble')
+                                        <th class="py-3 px-6">{{ __('Inmueble') }}</th>
+                                        @break
+                                    @case('propietario')
+                                        <th class="py-3 px-6">{{ __('Propietario') }}</th>
+                                        @break
+                                    @case('presupuesto')
+                                        <th class="py-3 px-6">{{ __('Presupuesto') }}</th>
+                                        @break
+                                    @case('numero_pago')
+                                        <th class="cursor-pointer py-3 px-6" wire:click="ordenar('numero_pago')">
+                                            {{ __('Pago') }}
+                                            @if ($sort == 'numero_pago')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort float-right mt-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('vencimiento')
+                                        <th class="cursor-pointer py-3 px-6" wire:click="ordenar('fecha_vencimiento')">
+                                            {{ __('Vencimiento') }}
+                                            @if ($sort == 'fecha_vencimiento')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort float-right mt-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('importe')
+                                        <th class="cursor-pointer py-3 px-6 text-right" wire:click="ordenar('importe')">
+                                            {{ __('Importe') }}
+                                            @if ($sort == 'importe')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} ml-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort ml-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('importe_pagado')
+                                        <th class="cursor-pointer py-3 px-6 text-right" wire:click="ordenar('importe_pagado')">
+                                            {{ __('Pagado') }}
+                                            @if ($sort == 'importe_pagado')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} ml-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort ml-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('saldo')
+                                        <th class="cursor-pointer py-3 px-6 text-right" wire:click="ordenar('saldo')">
+                                            {{ __('Saldo') }}
+                                            @if ($sort == 'saldo')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} ml-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort ml-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('forma_de_pago')
+                                        <th class="py-3 px-6">{{ __('Forma de pago') }}</th>
+                                        @break
+                                    @case('estado')
+                                        <th class="py-3 px-6">{{ __('Estado') }}</th>
+                                        @break
+                                    @case('asiento')
+                                        <th class="py-3 px-6">{{ __('Asiento') }}</th>
+                                        @break
+                                @endswitch
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody class="divide-y">
@@ -163,95 +167,113 @@
                                 <td class="px-6 py-4">
                                     <input type="checkbox" wire:model.live="seleccionados" value="{{ $item->id }}" />
                                 </td>
-                                @if ($this->verColumna('inmueble'))
-                                    <td class="px-6 py-4">
-                                        {{ $item->inmueble?->tipoInmueble?->descripcion }}
-                                        {{ $item->inmueble?->planta }} {{ $item->inmueble?->puerta }}
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('propietario'))
-                                    <td class="px-6 py-4">
-                                        <span class="mayusculas">{{ $item->propietario?->persona?->nombreCompleto }}</span>
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('presupuesto'))
-                                    <td class="px-6 py-4">
-                                        {{ $item->presupuesto?->nombre }} ({{ $item->presupuesto?->anho }})
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('numero_pago'))
-                                    <td class="px-6 py-4">{{ $item->numero_pago }}</td>
-                                @endif
-                                @if ($this->verColumna('vencimiento'))
-                                    <td class="px-6 py-4">{{ $item->fecha_vencimiento?->format('d/m/Y') }}</td>
-                                @endif
-                                @if ($this->verColumna('importe'))
-                                    <td class="px-6 py-4 text-right">{{ number_format($item->importe, 2, ',', '.') }} €</td>
-                                @endif
-                                @if ($this->verColumna('importe_pagado'))
-                                    <td class="px-6 py-4 text-right">{{ number_format($item->importe_pagado, 2, ',', '.') }} €</td>
-                                @endif
-                                @if ($this->verColumna('saldo'))
-                                    <td @class([
-                                        'px-6 py-4 text-right',
-                                        'text-red-600 dark:text-red-400' => $item->saldo > 0,
-                                    ])>
-                                        {{ number_format($item->saldo, 2, ',', '.') }} €
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('forma_de_pago'))
-                                    <td class="px-6 py-4">
-                                        {{ $item->formaDePago?->descripcion }}
-                                        @if ($item->estado_id === \App\Models\TipoEstadoRecibo::GENERADO)
-                                            <button type="button" wire:click="resincronizarFormaPago({{ $item->id }})"
-                                                class="ml-2 text-gray-500 hover:text-gray-800" title="{{ __('Volver a copiar la forma de pago del inmueble') }}">
-                                                <i class="fa-solid fa-rotate"></i>
-                                            </button>
-                                        @endif
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('estado'))
-                                    <td class="px-6 py-4">
-                                        {{ $item->estado?->descripcion }}
-                                        @if ($item->historial_estados_count > 1)
-                                            <button type="button" wire:click="verHistorial({{ $item->id }})"
-                                                class="ml-2 text-gray-500 hover:text-gray-800" title="{{ __('Historial de estados') }}">
-                                                <i class="fa-solid fa-clock-rotate-left"></i>
-                                            </button>
-                                        @endif
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('asiento'))
-                                    {{-- Los recibos del mismo vencimiento comparten asiento. --}}
-                                    <td class="px-6 py-4">
-                                        {{ $item->asiento_contable ?? '—' }}
-                                    </td>
-                                @endif
+                                @foreach ($this->columnas as $clave)
+                                    @switch($clave)
+                                        @case('inmueble')
+                                            <td class="px-6 py-4">
+                                                {{ $item->inmueble?->tipoInmueble?->descripcion }}
+                                                {{ $item->inmueble?->planta }} {{ $item->inmueble?->puerta }}
+                                            </td>
+                                            @break
+                                        @case('propietario')
+                                            <td class="px-6 py-4">
+                                                <span class="mayusculas">{{ $item->propietario?->persona?->nombreCompleto }}</span>
+                                            </td>
+                                            @break
+                                        @case('presupuesto')
+                                            <td class="px-6 py-4">
+                                                {{ $item->presupuesto?->nombre }} ({{ $item->presupuesto?->anho }})
+                                            </td>
+                                            @break
+                                        @case('numero_pago')
+                                            <td class="px-6 py-4">{{ $item->numero_pago }}</td>
+                                            @break
+                                        @case('vencimiento')
+                                            <td class="px-6 py-4">{{ $item->fecha_vencimiento?->format('d/m/Y') }}</td>
+                                            @break
+                                        @case('importe')
+                                            <td class="px-6 py-4 text-right">{{ number_format($item->importe, 2, ',', '.') }} €</td>
+                                            @break
+                                        @case('importe_pagado')
+                                            <td class="px-6 py-4 text-right">{{ number_format($item->importe_pagado, 2, ',', '.') }} €</td>
+                                            @break
+                                        @case('saldo')
+                                            <td @class([
+                                                'px-6 py-4 text-right',
+                                                'text-red-600 dark:text-red-400' => $item->saldo > 0,
+                                            ])>
+                                                {{ number_format($item->saldo, 2, ',', '.') }} €
+                                            </td>
+                                            @break
+                                        @case('forma_de_pago')
+                                            <td class="px-6 py-4">
+                                                {{ $item->formaDePago?->descripcion }}
+                                                @if ($item->estado_id === \App\Models\TipoEstadoRecibo::GENERADO)
+                                                    <button type="button" wire:click="resincronizarFormaPago({{ $item->id }})"
+                                                        class="ml-2 text-gray-500 hover:text-gray-800" title="{{ __('Volver a copiar la forma de pago del inmueble') }}">
+                                                        <i class="fa-solid fa-rotate"></i>
+                                                    </button>
+                                                @endif
+                                            </td>
+                                            @break
+                                        @case('estado')
+                                            <td class="px-6 py-4">
+                                                {{ $item->estado?->descripcion }}
+                                                @if ($item->historial_estados_count > 1)
+                                                    <button type="button" wire:click="verHistorial({{ $item->id }})"
+                                                        class="ml-2 text-gray-500 hover:text-gray-800" title="{{ __('Historial de estados') }}">
+                                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                                    </button>
+                                                @endif
+                                            </td>
+                                            @break
+                                        @case('asiento')
+                                            {{-- Los recibos del mismo vencimiento comparten asiento. --}}
+                                            <td class="px-6 py-4">
+                                                {{ $item->asiento_contable ?? '—' }}
+                                            </td>
+                                            @break
+                                    @endswitch
+                                @endforeach
                             </tr>
                         @endforeach
                     </tbody>
                     <tfoot class="font-medium border-t">
                         @php
-                            // De lo marcado si hay selección, si no de la página que se ve.
-                            $colsAntes   = 1 + count(array_intersect($this->columnas, ['inmueble', 'propietario', 'presupuesto', 'numero_pago', 'vencimiento']));
-                            $colsDespues = count(array_intersect($this->columnas, ['forma_de_pago', 'estado', 'asiento']));
+                            // Las columnas con total (importe, importe_pagado, saldo) pueden
+                            // estar en cualquier posición tras reordenar, así que las celdas
+                            // sin total se van agrupando en bloques con colspan según toque,
+                            // en vez de asumir el orden de fábrica.
+                            $conTotal = ['importe', 'importe_pagado', 'saldo'];
+                            $celdasFooter = [];
+                            $grupoColspan = 1; // la columna del checkbox siempre abre el primer grupo
+                            foreach ($this->columnas as $clave) {
+                                if (in_array($clave, $conTotal, true)) {
+                                    if ($grupoColspan > 0) {
+                                        $celdasFooter[] = ['tipo' => 'grupo', 'colspan' => $grupoColspan];
+                                        $grupoColspan = 0;
+                                    }
+                                    $celdasFooter[] = ['tipo' => 'total', 'clave' => $clave];
+                                } else {
+                                    $grupoColspan++;
+                                }
+                            }
+                            if ($grupoColspan > 0) {
+                                $celdasFooter[] = ['tipo' => 'grupo', 'colspan' => $grupoColspan];
+                            }
                         @endphp
                         <tr>
-                            <td class="px-6 py-3" colspan="{{ $colsAntes }}">
-                                {{ count($seleccionados) ? __('Totales (:count marcados)', ['count' => count($seleccionados)]) : __('Totales') }}
-                            </td>
-                            @if ($this->verColumna('importe'))
-                                <td class="px-6 py-3 text-right">{{ number_format($totales['importe'], 2, ',', '.') }} €</td>
-                            @endif
-                            @if ($this->verColumna('importe_pagado'))
-                                <td class="px-6 py-3 text-right">{{ number_format($totales['importe_pagado'], 2, ',', '.') }} €</td>
-                            @endif
-                            @if ($this->verColumna('saldo'))
-                                <td class="px-6 py-3 text-right">{{ number_format($totales['saldo'], 2, ',', '.') }} €</td>
-                            @endif
-                            @if ($colsDespues)
-                                <td colspan="{{ $colsDespues }}"></td>
-                            @endif
+                            @foreach ($celdasFooter as $indice => $celda)
+                                @if ($celda['tipo'] === 'grupo')
+                                    <td class="px-6 py-3" colspan="{{ $celda['colspan'] }}">
+                                        @if ($indice === 0)
+                                            {{ count($seleccionados) ? __('Totales (:count marcados)', ['count' => count($seleccionados)]) : __('Totales') }}
+                                        @endif
+                                    </td>
+                                @else
+                                    <td class="px-6 py-3 text-right">{{ number_format($totales[$celda['clave']], 2, ',', '.') }} €</td>
+                                @endif
+                            @endforeach
                         </tr>
                     </tfoot>
                 </table>

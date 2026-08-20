@@ -82,35 +82,39 @@
                                 <input type="checkbox" wire:model.live="marcarTodosVisibles"
                                     title="{{ __('Marcar/desmarcar toda la página') }}" />
                             </th>
-                            @if ($this->verColumna('cif'))
-                                <th class="py-3 px-6">{{ __('CIF proveedor') }}</th>
-                            @endif
-                            @if ($this->verColumna('razon_social'))
-                                <th class="py-3 px-6">{{ __('Razón social') }}</th>
-                            @endif
-                            @if ($this->verColumna('fecha_factura'))
-                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('fecha_factura')">
-                                    {{ __('Fecha factura') }}
-                                    @if ($sort == 'fecha_factura')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort float-right mt-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('numero_factura'))
-                                <th class="py-3 px-6">{{ __('Número factura') }}</th>
-                            @endif
-                            @if ($this->verColumna('importe'))
-                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('importe')">
-                                    {{ __('Importe') }}
-                                    @if ($sort == 'importe')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort float-right mt-1"></i>
-                                    @endif
-                                </th>
-                            @endif
+                            @foreach ($this->columnas as $clave)
+                                @switch($clave)
+                                    @case('cif')
+                                        <th class="py-3 px-6">{{ __('CIF proveedor') }}</th>
+                                        @break
+                                    @case('razon_social')
+                                        <th class="py-3 px-6">{{ __('Razón social') }}</th>
+                                        @break
+                                    @case('fecha_factura')
+                                        <th class="cursor-pointer py-3 px-6" wire:click="ordenar('fecha_factura')">
+                                            {{ __('Fecha factura') }}
+                                            @if ($sort == 'fecha_factura')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort float-right mt-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('numero_factura')
+                                        <th class="py-3 px-6">{{ __('Número factura') }}</th>
+                                        @break
+                                    @case('importe')
+                                        <th class="cursor-pointer py-3 px-6" wire:click="ordenar('importe')">
+                                            {{ __('Importe') }}
+                                            @if ($sort == 'importe')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort float-right mt-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                @endswitch
+                            @endforeach
                             <th class="py-3 px-6 text-center">{{ __('Soporte') }}</th>
                             @if (contabilidad_activa())
                                 <th class="py-3 px-6">{{ __('Contabilidad') }}</th>
@@ -124,43 +128,47 @@
                                 <td class="px-6 py-4">
                                     <input type="checkbox" wire:model.live="seleccionados" value="{{ $item->id }}" />
                                 </td>
-                                @if ($this->verColumna('cif'))
-                                    <td class="px-6 py-4">{{ $item->proveedor->persona->documento_identificativo ?? '' }}</td>
-                                @endif
-                                @if ($this->verColumna('razon_social'))
-                                    <td class="px-6 py-4">
-                                        <span class="mayusculas">{{ $item->proveedor->persona->nombreCompleto ?? '' }}</span>
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('fecha_factura'))
-                                    <td class="px-6 py-4">
-                                        {{ $item->fecha_factura }}
-                                        <button type="button" class="text-gray-400 hover:text-gray-800 ml-1" title="{{ __('Corregir fecha') }}"
-                                            wire:click="corregirCampo({{ $item->id }}, {{ \App\Models\TipoCampoPlantillaFactura::FECHA }})">
-                                            <i class="fa-solid fa-pen text-xs"></i>
-                                        </button>
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('numero_factura'))
-                                    <td class="px-6 py-4">
-                                        {{ $item->numero_factura }}
-                                        <button type="button" class="text-gray-400 hover:text-gray-800 ml-1" title="{{ __('Corregir número') }}"
-                                            wire:click="corregirCampo({{ $item->id }}, {{ \App\Models\TipoCampoPlantillaFactura::NUMERO_FACTURA }})">
-                                            <i class="fa-solid fa-pen text-xs"></i>
-                                        </button>
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('importe'))
-                                    <td class="px-6 py-4">
-                                        @if ($item->importe !== null)
-                                            {{ number_format($item->importe, 2, ',', '.') }} €
-                                        @endif
-                                        <button type="button" class="text-gray-400 hover:text-gray-800 ml-1" title="{{ __('Corregir importe') }}"
-                                            wire:click="corregirCampo({{ $item->id }}, {{ \App\Models\TipoCampoPlantillaFactura::IMPORTE }})">
-                                            <i class="fa-solid fa-pen text-xs"></i>
-                                        </button>
-                                    </td>
-                                @endif
+                                @foreach ($this->columnas as $clave)
+                                    @switch($clave)
+                                        @case('cif')
+                                            <td class="px-6 py-4">{{ $item->proveedor->persona->documento_identificativo ?? '' }}</td>
+                                            @break
+                                        @case('razon_social')
+                                            <td class="px-6 py-4">
+                                                <span class="mayusculas">{{ $item->proveedor->persona->nombreCompleto ?? '' }}</span>
+                                            </td>
+                                            @break
+                                        @case('fecha_factura')
+                                            <td class="px-6 py-4">
+                                                {{ $item->fecha_factura }}
+                                                <button type="button" class="text-gray-400 hover:text-gray-800 ml-1" title="{{ __('Corregir fecha') }}"
+                                                    wire:click="corregirCampo({{ $item->id }}, {{ \App\Models\TipoCampoPlantillaFactura::FECHA }})">
+                                                    <i class="fa-solid fa-pen text-xs"></i>
+                                                </button>
+                                            </td>
+                                            @break
+                                        @case('numero_factura')
+                                            <td class="px-6 py-4">
+                                                {{ $item->numero_factura }}
+                                                <button type="button" class="text-gray-400 hover:text-gray-800 ml-1" title="{{ __('Corregir número') }}"
+                                                    wire:click="corregirCampo({{ $item->id }}, {{ \App\Models\TipoCampoPlantillaFactura::NUMERO_FACTURA }})">
+                                                    <i class="fa-solid fa-pen text-xs"></i>
+                                                </button>
+                                            </td>
+                                            @break
+                                        @case('importe')
+                                            <td class="px-6 py-4">
+                                                @if ($item->importe !== null)
+                                                    {{ number_format($item->importe, 2, ',', '.') }} €
+                                                @endif
+                                                <button type="button" class="text-gray-400 hover:text-gray-800 ml-1" title="{{ __('Corregir importe') }}"
+                                                    wire:click="corregirCampo({{ $item->id }}, {{ \App\Models\TipoCampoPlantillaFactura::IMPORTE }})">
+                                                    <i class="fa-solid fa-pen text-xs"></i>
+                                                </button>
+                                            </td>
+                                            @break
+                                    @endswitch
+                                @endforeach
                                 {{-- Con papel, el ojo lo abre en otra pestaña (documentos.ver lo
                                      sirve inline, así que se ve en el navegador sin descargarlo).
                                      Sin documento la factura se tecleó (o se leyó su QR) y el papel

@@ -54,78 +54,86 @@
                 <table class="table-striped w-full table-auto text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
-                            @if ($this->verColumna('referencia'))
-                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('referencia')">
-                                    {{ __('Referencia') }}
-                                    @if ($sort == 'referencia')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort float-right mt-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('fecha_cargo'))
-                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('fecha_cargo')">
-                                    {{ __('Fecha de cargo') }}
-                                    @if ($sort == 'fecha_cargo')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort float-right mt-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('cuenta'))
-                                <th class="py-3 px-6">{{ __('Cuenta de abono') }}</th>
-                            @endif
-                            @if ($this->verColumna('recibos'))
-                                <th class="py-3 px-6 text-right">{{ __('Recibos') }}</th>
-                            @endif
-                            @if ($this->verColumna('importe'))
-                                <th class="py-3 px-6 text-right">{{ __('Importe') }}</th>
-                            @endif
-                            @if ($this->verColumna('devueltos'))
-                                <th class="py-3 px-6 text-right">{{ __('Devueltos') }}</th>
-                            @endif
+                            @foreach ($this->columnas as $clave)
+                                @switch($clave)
+                                    @case('referencia')
+                                        <th class="cursor-pointer py-3 px-6" wire:click="ordenar('referencia')">
+                                            {{ __('Referencia') }}
+                                            @if ($sort == 'referencia')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort float-right mt-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('fecha_cargo')
+                                        <th class="cursor-pointer py-3 px-6" wire:click="ordenar('fecha_cargo')">
+                                            {{ __('Fecha de cargo') }}
+                                            @if ($sort == 'fecha_cargo')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort float-right mt-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('cuenta')
+                                        <th class="py-3 px-6">{{ __('Cuenta de abono') }}</th>
+                                        @break
+                                    @case('recibos')
+                                        <th class="py-3 px-6 text-right">{{ __('Recibos') }}</th>
+                                        @break
+                                    @case('importe')
+                                        <th class="py-3 px-6 text-right">{{ __('Importe') }}</th>
+                                        @break
+                                    @case('devueltos')
+                                        <th class="py-3 px-6 text-right">{{ __('Devueltos') }}</th>
+                                        @break
+                                @endswitch
+                            @endforeach
                             <th class="py-3 px-6">{{ __('Acción') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
                         @foreach ($items as $item)
                             <tr wire:key="{{ $item->id }}">
-                                @if ($this->verColumna('referencia'))
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $item->referencia }}</td>
-                                @endif
-                                @if ($this->verColumna('fecha_cargo'))
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $item->fecha_cargo?->format('d/m/Y') }}</td>
-                                @endif
-                                @if ($this->verColumna('cuenta'))
-                                    <td class="px-6 py-4">{{ $item->cuentaBancaria?->iban }}</td>
-                                @endif
-                                @if ($this->verColumna('recibos'))
-                                    <td class="px-6 py-4 text-right">{{ $item->lineas_count }}</td>
-                                @endif
-                                @if ($this->verColumna('importe'))
-                                    <td class="px-6 py-4 text-right">
-                                        {{ number_format((float) $item->lineas_sum_importe, 2, ',', '.') }}
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('devueltos'))
-                                    <td class="px-6 py-4 text-right">
-                                        @if ($item->lineas_devueltas_count)
-                                            <span class="text-red-700 dark:text-red-400">{{ $item->lineas_devueltas_count }}</span>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                {{ number_format((float) $item->lineas_devueltas_importe_sum, 2, ',', '.') }} €
-                                            </div>
-                                            @if ((float) $item->comision_devolucion_sum > 0)
-                                                <div class="text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                                                    {{ number_format((float) $item->comision_devolucion_sum, 2, ',', '.') }} € {{ __('gastos') }}
-                                                </div>
-                                            @endif
-                                        @else
-                                            —
-                                        @endif
-                                    </td>
-                                @endif
+                                @foreach ($this->columnas as $clave)
+                                    @switch($clave)
+                                        @case('referencia')
+                                            <td class="px-6 py-4 whitespace-nowrap">{{ $item->referencia }}</td>
+                                            @break
+                                        @case('fecha_cargo')
+                                            <td class="px-6 py-4 whitespace-nowrap">{{ $item->fecha_cargo?->format('d/m/Y') }}</td>
+                                            @break
+                                        @case('cuenta')
+                                            <td class="px-6 py-4">{{ $item->cuentaBancaria?->iban }}</td>
+                                            @break
+                                        @case('recibos')
+                                            <td class="px-6 py-4 text-right">{{ $item->lineas_count }}</td>
+                                            @break
+                                        @case('importe')
+                                            <td class="px-6 py-4 text-right">
+                                                {{ number_format((float) $item->lineas_sum_importe, 2, ',', '.') }}
+                                            </td>
+                                            @break
+                                        @case('devueltos')
+                                            <td class="px-6 py-4 text-right">
+                                                @if ($item->lineas_devueltas_count)
+                                                    <span class="text-red-700 dark:text-red-400">{{ $item->lineas_devueltas_count }}</span>
+                                                    <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                        {{ number_format((float) $item->lineas_devueltas_importe_sum, 2, ',', '.') }} €
+                                                    </div>
+                                                    @if ((float) $item->comision_devolucion_sum > 0)
+                                                        <div class="text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                                                            {{ number_format((float) $item->comision_devolucion_sum, 2, ',', '.') }} € {{ __('gastos') }}
+                                                        </div>
+                                                    @endif
+                                                @else
+                                                    —
+                                                @endif
+                                            </td>
+                                            @break
+                                    @endswitch
+                                @endforeach
                                 <td class="px-4 whitespace-nowrap">
                                     <x-button type="button" class="bg-gray-500 hover:bg-gray-600 text-white"
                                         wire:click="verDetalle({{ $item->id }})"

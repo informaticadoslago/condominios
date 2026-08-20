@@ -33,6 +33,12 @@ class Lista extends ListaComponent
         return ['codigo', 'nombre', 'saldo_inicial', 'debe', 'haber', 'saldo_final'];
     }
 
+    /** Lista contable: solo mostrar/ocultar, sin arrastrar (ver ListaComponent::permiteReordenarColumnas). */
+    public function permiteReordenarColumnas(): bool
+    {
+        return false;
+    }
+
     public function columnasDisponibles(): array
     {
         return [

@@ -39,6 +39,9 @@ class ListaComponent extends Component
     /** Configuración de fábrica de la lista; la usa el botón de borrar filtro. */
     public array $porDefecto = [];
 
+    /** Abre/cierra la ventana del selector de columnas (el arrastre necesita sitio). */
+    public bool $columnasAbierto = false;
+
     protected $listeners = ['renderiza' => 'render'];
 
     /**
@@ -70,6 +73,17 @@ class ListaComponent extends Component
     protected function columnasPorDefecto(): array
     {
         return array_keys($this->columnasDisponibles());
+    }
+
+    /**
+     * Si esta lista deja arrastrar sus columnas para reordenarlas. Las contables
+     * (Mayor, Sumas y saldos, Asientos) lo tienen a false: Debe/Haber/Saldo van
+     * siempre al final y su tfoot de totales depende de esa posición fija, así que
+     * ahí solo se puede mostrar/ocultar, nunca reordenar.
+     */
+    public function permiteReordenarColumnas(): bool
+    {
+        return true;
     }
 
     /**
@@ -244,24 +258,65 @@ class ListaComponent extends Component
         $this->guardarPreferencias();
     }
 
+    /**
+     * Arrastra una columna justo antes de otra dentro de las visibles. El orden de
+     * $this->columnas es el que pinta la tabla.
+     */
+    public function moverColumnaAntesDe(string $clave, string $antesDe): void
+    {
+        // Defensa en profundidad: el botón no sale si permiteReordenarColumnas() es
+        // false, pero por si acaso alguien fuerza la llamada a mano.
+        if (! $this->permiteReordenarColumnas() || $clave === $antesDe) {
+            return;
+        }
+
+        $columnas = array_values(array_diff($this->columnas, [$clave]));
+        $posicion = array_search($antesDe, $columnas, true);
+
+        if ($posicion === false) {
+            return;
+        }
+
+        array_splice($columnas, $posicion, 0, [$clave]);
+        $this->columnas = $columnas;
+
+        $this->guardarPreferencias();
+    }
+
+    /** «Reset» de la ventana de mover: vuelve las visibles a su orden de fábrica, sin tocar cuáles se ven. */
+    public function resetOrdenColumnas(): void
+    {
+        if (! $this->permiteReordenarColumnas()) {
+            return;
+        }
+
+        $this->columnas = array_values(array_intersect(array_keys($this->columnasDisponibles()), $this->columnas));
+
+        $this->guardarPreferencias();
+    }
+
     public function aplicarFiltro(): void
     {
         $this->resetPage();
         $this->guardarPreferencias();
     }
 
-    /** Deja la lista como de fábrica (filtros, columnas, búsqueda y orden) y olvida lo guardado. */
+    /**
+     * Deja la lista como de fábrica (filtros, búsqueda y orden de las filas), pero no
+     * toca qué columnas se ven ni en qué orden están: eso se elige aparte, en el
+     * selector de columnas, y su «Reset» propio (resetOrdenColumnas) es quien lo
+     * restaura si hace falta.
+     */
     public function borrarFiltro(): void
     {
         $this->filtros = $this->porDefecto['filtros'];
-        $this->columnas = $this->porDefecto['columnas'];
         $this->search = $this->porDefecto['search'];
         $this->sort = $this->porDefecto['sort'];
         $this->direction = $this->porDefecto['direction'];
         $this->lineasXPagina = $this->porDefecto['lineasXPagina'];
 
         $this->resetPage();
-        PreferenciaLista::olvidar($this->claveLista());
+        $this->guardarPreferencias();
     }
 
     public function updatingSearch($value)

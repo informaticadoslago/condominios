@@ -41,80 +41,88 @@
                 <table class="table-striped w-full table-auto text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
-                            @if ($this->verColumna('fecha'))
-                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('fecha')">
-                                    {{ __('Fecha') }}
-                                    @if ($sort == 'fecha')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort float-right mt-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('tipo'))
-                                <th class="py-3 px-6">{{ __('Tipo') }}</th>
-                            @endif
-                            @if ($this->verColumna('cuenta'))
-                                <th class="py-3 px-6">{{ __('Cuenta bancaria') }}</th>
-                            @endif
-                            @if ($this->verColumna('remesa'))
-                                <th class="py-3 px-6">{{ __('Remesa') }}</th>
-                            @endif
-                            @if ($this->verColumna('concepto'))
-                                <th class="cursor-pointer py-3 px-6" wire:click="ordenar('concepto')">
-                                    {{ __('Concepto') }}
-                                    @if ($sort == 'concepto')
-                                        <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
-                                    @else
-                                        <i class="fa-solid fa-sort float-right mt-1"></i>
-                                    @endif
-                                </th>
-                            @endif
-                            @if ($this->verColumna('referencia'))
-                                <th class="py-3 px-6">{{ __('Referencia') }}</th>
-                            @endif
-                            @if ($this->verColumna('importe'))
-                                <th class="py-3 px-6 text-right">{{ __('Importe') }}</th>
-                            @endif
-                            @if ($this->verColumna('contabilizada'))
-                                <th class="py-3 px-6">{{ __('Contabilizada') }}</th>
-                            @endif
+                            @foreach ($this->columnas as $clave)
+                                @switch($clave)
+                                    @case('fecha')
+                                        <th class="cursor-pointer py-3 px-6" wire:click="ordenar('fecha')">
+                                            {{ __('Fecha') }}
+                                            @if ($sort == 'fecha')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort float-right mt-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('tipo')
+                                        <th class="py-3 px-6">{{ __('Tipo') }}</th>
+                                        @break
+                                    @case('cuenta')
+                                        <th class="py-3 px-6">{{ __('Cuenta bancaria') }}</th>
+                                        @break
+                                    @case('remesa')
+                                        <th class="py-3 px-6">{{ __('Remesa') }}</th>
+                                        @break
+                                    @case('concepto')
+                                        <th class="cursor-pointer py-3 px-6" wire:click="ordenar('concepto')">
+                                            {{ __('Concepto') }}
+                                            @if ($sort == 'concepto')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort float-right mt-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('referencia')
+                                        <th class="py-3 px-6">{{ __('Referencia') }}</th>
+                                        @break
+                                    @case('importe')
+                                        <th class="py-3 px-6 text-right">{{ __('Importe') }}</th>
+                                        @break
+                                    @case('contabilizada')
+                                        <th class="py-3 px-6">{{ __('Contabilizada') }}</th>
+                                        @break
+                                @endswitch
+                            @endforeach
                             <th class="py-3 px-6">{{ __('Acción') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
                         @foreach ($items as $item)
                             <tr wire:key="{{ $item->id }}">
-                                @if ($this->verColumna('fecha'))
-                                    <td class="px-6 py-4">{{ $item->fecha?->format('d/m/Y') }}</td>
-                                @endif
-                                @if ($this->verColumna('tipo'))
-                                    <td class="px-6 py-4">{{ $item->tipoComisionBancaria?->descripcion }}</td>
-                                @endif
-                                @if ($this->verColumna('cuenta'))
-                                    <td class="px-6 py-4">{{ $item->cuentaBancaria?->alias ?: $item->cuentaBancaria?->iban }}</td>
-                                @endif
-                                @if ($this->verColumna('remesa'))
-                                    <td class="px-6 py-4">{{ $item->remesa?->referencia ?: '—' }}</td>
-                                @endif
-                                @if ($this->verColumna('concepto'))
-                                    <td class="px-6 py-4">{{ $item->concepto }}</td>
-                                @endif
-                                @if ($this->verColumna('referencia'))
-                                    <td class="px-6 py-4">{{ $item->referencia }}</td>
-                                @endif
-                                @if ($this->verColumna('importe'))
-                                    <td class="px-6 py-4 text-right">{{ number_format($item->lineas_sum_importe ?? 0, 2, ',', '.') }}</td>
-                                @endif
-                                @if ($this->verColumna('contabilizada'))
-                                    <td class="px-6 py-4">
-                                        @if ($item->asiento_contable)
-                                            <i class="fa-solid fa-check text-green-600" title="{{ __('Contabilizada') }}"></i>
-                                        @else
-                                            <i class="fa-solid fa-xmark text-red-600" title="{{ __('Sin contabilizar') }}"></i>
-                                        @endif
-                                    </td>
-                                @endif
+                                @foreach ($this->columnas as $clave)
+                                    @switch($clave)
+                                        @case('fecha')
+                                            <td class="px-6 py-4">{{ $item->fecha?->format('d/m/Y') }}</td>
+                                            @break
+                                        @case('tipo')
+                                            <td class="px-6 py-4">{{ $item->tipoComisionBancaria?->descripcion }}</td>
+                                            @break
+                                        @case('cuenta')
+                                            <td class="px-6 py-4">{{ $item->cuentaBancaria?->alias ?: $item->cuentaBancaria?->iban }}</td>
+                                            @break
+                                        @case('remesa')
+                                            <td class="px-6 py-4">{{ $item->remesa?->referencia ?: '—' }}</td>
+                                            @break
+                                        @case('concepto')
+                                            <td class="px-6 py-4">{{ $item->concepto }}</td>
+                                            @break
+                                        @case('referencia')
+                                            <td class="px-6 py-4">{{ $item->referencia }}</td>
+                                            @break
+                                        @case('importe')
+                                            <td class="px-6 py-4 text-right">{{ number_format($item->lineas_sum_importe ?? 0, 2, ',', '.') }}</td>
+                                            @break
+                                        @case('contabilizada')
+                                            <td class="px-6 py-4">
+                                                @if ($item->asiento_contable)
+                                                    <i class="fa-solid fa-check text-green-600" title="{{ __('Contabilizada') }}"></i>
+                                                @else
+                                                    <i class="fa-solid fa-xmark text-red-600" title="{{ __('Sin contabilizar') }}"></i>
+                                                @endif
+                                            </td>
+                                            @break
+                                    @endswitch
+                                @endforeach
                                 <td class="px-4 whitespace-nowrap">
                                     <x-button type="button" class="btn-editar" id="btn-detalle-comision-bancaria-{{ $item->id }}"
                                         wire:click="toggleDetalle({{ $item->id }})" title="{{ __('Ver líneas') }}">

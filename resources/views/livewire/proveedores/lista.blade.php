@@ -35,40 +35,48 @@
                 <table class="table-striped w-full table-auto text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
-                            @if ($this->verColumna('nombre'))
-                                <th class="py-3 px-6">{{ __('Nombre') }}</th>
-                            @endif
-                            @if ($this->verColumna('documento'))
-                                <th class="py-3 px-6">{{ __('Documento') }}</th>
-                            @endif
-                            @if ($this->verColumna('estado'))
-                                <th class="py-3 px-6">{{ __('Estado') }}</th>
-                            @endif
+                            @foreach ($this->columnas as $clave)
+                                @switch($clave)
+                                    @case('nombre')
+                                        <th class="py-3 px-6">{{ __('Nombre') }}</th>
+                                        @break
+                                    @case('documento')
+                                        <th class="py-3 px-6">{{ __('Documento') }}</th>
+                                        @break
+                                    @case('estado')
+                                        <th class="py-3 px-6">{{ __('Estado') }}</th>
+                                        @break
+                                @endswitch
+                            @endforeach
                             <th class="py-3 px-6">{{ __('Acción') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
                         @foreach ($items as $item)
                             <tr wire:key="{{ $item->id }}">
-                                @if ($this->verColumna('nombre'))
-                                    <td class="px-6 py-4">
-                                        <span class="mayusculas">{{ $item->persona->nombreCompleto ?? '' }}</span>
-                                    </td>
-                                @endif
-                                @if ($this->verColumna('documento'))
-                                    <td class="px-6 py-4">{{ $item->persona->documento_identificativo ?? '' }}</td>
-                                @endif
-                                @if ($this->verColumna('estado'))
-                                    <td class="px-6 py-4">
-                                        <span class="mayusculas">{{ $item->estado?->descripcion }}</span>
-                                        @if ($item->historial_estados_count > 1)
-                                            <button type="button" wire:click="verHistorial({{ $item->id }})"
-                                                class="ml-2 text-gray-500 hover:text-gray-800" title="{{ __('Historial de estados') }}">
-                                                <i class="fa-solid fa-clock-rotate-left"></i>
-                                            </button>
-                                        @endif
-                                    </td>
-                                @endif
+                                @foreach ($this->columnas as $clave)
+                                    @switch($clave)
+                                        @case('nombre')
+                                            <td class="px-6 py-4">
+                                                <span class="mayusculas">{{ $item->persona->nombreCompleto ?? '' }}</span>
+                                            </td>
+                                            @break
+                                        @case('documento')
+                                            <td class="px-6 py-4">{{ $item->persona->documento_identificativo ?? '' }}</td>
+                                            @break
+                                        @case('estado')
+                                            <td class="px-6 py-4">
+                                                <span class="mayusculas">{{ $item->estado?->descripcion }}</span>
+                                                @if ($item->historial_estados_count > 1)
+                                                    <button type="button" wire:click="verHistorial({{ $item->id }})"
+                                                        class="ml-2 text-gray-500 hover:text-gray-800" title="{{ __('Historial de estados') }}">
+                                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                                    </button>
+                                                @endif
+                                            </td>
+                                            @break
+                                    @endswitch
+                                @endforeach
                                 <td class="px-4 whitespace-nowrap">
                                     <x-button type="button" class="btn" id="btn-ver-proveedor-{{ $item->id }}"
                                         wire:click="$dispatch('proveedor-ver', {id: {{ $item->id }}})"
