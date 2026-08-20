@@ -236,11 +236,52 @@ class Lista extends ListaComponent
         ];
     }
 
+    protected function filtroContabilizada(): array
+    {
+        return [
+            'clave'    => 'contabilizada',
+            'etiqueta' => __('Contabilizada'),
+            'tipo'     => 'select',
+            'opciones' => [
+                0 => __('Todas'),
+                1 => __('Sí'),
+                2 => __('No'),
+            ],
+            'neutro'   => 0,
+            'aplicar'  => fn ($query, $valor) => (int) $valor === 1
+                ? $query->whereNotNull('asiento_contable')
+                : $query->whereNull('asiento_contable'),
+        ];
+    }
+
+    /** «Pagada»: mismo estado que pinta la columna Pago de la tabla (pendiente() <= 0). */
+    protected function filtroPagada(): array
+    {
+        return [
+            'clave'    => 'pagada',
+            'etiqueta' => __('Pagada'),
+            'tipo'     => 'select',
+            'opciones' => [
+                0 => __('Todas'),
+                1 => __('Sí'),
+                2 => __('No'),
+            ],
+            'neutro'   => 0,
+            'aplicar'  => fn ($query, $valor) => (int) $valor === 1
+                ? $query->whereColumn('importe_pagado', '>=', 'importe')
+                : $query->whereColumn('importe_pagado', '<', 'importe'),
+        ];
+    }
+
     public function definicionesFiltro(): array
     {
         return [
             $this->filtroCif(),
             $this->filtroRazonSocial(),
+            // Solo tiene sentido si la contabilidad está activa: es la misma condición
+            // que decide si se ve la columna y el botón de Contabilizar en la tabla.
+            ...(contabilidad_activa() ? [$this->filtroContabilizada()] : []),
+            $this->filtroPagada(),
             $this->filtroFechaDesde(),
             $this->filtroFechaHasta(),
         ];
