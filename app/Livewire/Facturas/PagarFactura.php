@@ -62,7 +62,7 @@ class PagarFactura extends Component
             return;
         }
 
-        if ($motivo = $pagos->motivoNoPagable($factura)) {
+        if ($motivo = $pagos->motivoNoPagable($factura, $this->fecha)) {
             $this->dispatch('toast-error', ['title' => $motivo]);
 
             return;

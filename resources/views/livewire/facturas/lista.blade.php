@@ -304,7 +304,7 @@
             </x-slot>
 
             <x-slot name="footer">
-                <x-secondary-button type="button" wire:click="$set('pagoLoteAbierto', false)">
+                <x-secondary-button type="button" wire:click="cerrarPagoLote">
                     {{ __('Cancelar') }}
                 </x-secondary-button>
                 <x-button type="button" class="ml-2" wire:click="pagarLote">

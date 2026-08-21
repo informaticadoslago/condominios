@@ -5,6 +5,7 @@ namespace App\Services\Facturas;
 use App\Models\CuentaBancaria;
 use App\Models\FacturaProveedor;
 use App\Models\PagoFactura;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -80,11 +81,29 @@ final class RegistrarPagoFactura
 
     /**
      * Por qué esta factura no se puede pagar todavía. Null si se puede.
+     *
+     * $fecha es la fecha con la que se quiere registrar el pago: no puede ser anterior a
+     * la de la propia factura, o quedaría pagada antes de haberse emitido.
      */
-    public function motivoNoPagable(FacturaProveedor $factura): ?string
+    public function motivoNoPagable(FacturaProveedor $factura, ?string $fecha = null): ?string
     {
         if ($factura->pendiente() <= 0) {
             return __('Esta factura ya está pagada.');
+        }
+
+        // fecha_factura se guarda como texto dd/mm/aaaa (ver
+        // AltaProveedorDesdeFactura::normalizarFecha), no en ISO: hay que convertirla antes
+        // de comparar con $fecha, que llega en formato Y-m-d del input.
+        if ($fecha !== null && $factura->fecha_factura) {
+            try {
+                $fechaFactura = Carbon::createFromFormat('d/m/Y', $factura->fecha_factura)->toDateString();
+            } catch (\Exception) {
+                $fechaFactura = null;
+            }
+
+            if ($fechaFactura !== null && $fecha < $fechaFactura) {
+                return __('La fecha de pago no puede ser anterior a la fecha de la factura.');
+            }
         }
 
         $comunidad = $factura->proveedor?->persona?->comunidad;

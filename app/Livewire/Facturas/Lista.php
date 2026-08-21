@@ -17,6 +17,7 @@ use App\Services\Facturas\EnlazarFacturasContabilidad;
 use App\Services\Facturas\EnlazarPagosContabilidad;
 use App\Services\Facturas\LectorPdf;
 use App\Services\Facturas\RegistrarPagoFactura;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\WithFileUploads;
@@ -564,7 +565,14 @@ class Lista extends ListaComponent
 
         $this->pagoLoteFecha       = now()->toDateString();
         $this->pagoLoteUnicoApunte = false;
+        $this->resetValidation();
         $this->pagoLoteAbierto     = true;
+    }
+
+    public function cerrarPagoLote(): void
+    {
+        $this->pagoLoteAbierto = false;
+        $this->resetValidation();
     }
 
     /**
@@ -590,12 +598,29 @@ class Lista extends ListaComponent
             ->whereIn('id', $this->pagoLoteIds)
             ->get();
 
+        // Todo el lote sale con la misma fecha: si no cubre la factura más tardía, no se
+        // paga ninguna, para no dejar elegir facturas una a una hasta que cuadre.
+        $fechaMasTardia = $facturas
+            ->map(fn ($factura) => $factura->fecha_factura
+                ? Carbon::createFromFormat('d/m/Y', $factura->fecha_factura)->toDateString()
+                : null)
+            ->filter()
+            ->max();
+
+        if ($fechaMasTardia && $this->pagoLoteFecha < $fechaMasTardia) {
+            throw ValidationException::withMessages([
+                'pagoLoteFecha' => __('Hay una factura del :fecha: la fecha de pago no puede ser anterior.', [
+                    'fecha' => Carbon::parse($fechaMasTardia)->format('d/m/Y'),
+                ]),
+            ]);
+        }
+
         $pagadas       = 0;
         $sinContabilizar = 0;
         $pagoIdsGrupo  = [];
 
         foreach ($facturas as $factura) {
-            if ($pagos->motivoNoPagable($factura)) {
+            if ($pagos->motivoNoPagable($factura, $this->pagoLoteFecha)) {
                 continue;
             }
 
