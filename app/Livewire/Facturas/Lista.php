@@ -40,6 +40,9 @@ class Lista extends ListaComponent
 
     public ?string $pagoLoteFecha = null;
 
+    /** Si el lote sale como una única transferencia (un solo apunte en el banco) o una por factura. */
+    public bool $pagoLoteUnicoApunte = false;
+
     /** Facturas sobre las que va a actuar el modal, congeladas al abrirlo. */
     public array $pagoLoteIds = [];
 
@@ -559,8 +562,9 @@ class Lista extends ListaComponent
             return;
         }
 
-        $this->pagoLoteFecha   = now()->toDateString();
-        $this->pagoLoteAbierto = true;
+        $this->pagoLoteFecha       = now()->toDateString();
+        $this->pagoLoteUnicoApunte = false;
+        $this->pagoLoteAbierto     = true;
     }
 
     /**
@@ -568,8 +572,13 @@ class Lista extends ListaComponent
      * se pueden pagar todavía (ya pagadas, sin cuenta bancaria, sin contabilizar cuando
      * hace falta…) se saltan solas, con el mismo motivo que vería quien las pagara una a
      * una desde PagarFactura.
+     *
+     * Con "único apunte" marcado, todas salen del banco en una sola transferencia: en vez
+     * de un asiento por factura, es uno solo con el total (ver
+     * EnlazarPagosContabilidad::ejecutarAgrupado). Si el mismo día hay varias
+     * transferencias distintas, se pagan en lotes separados, uno por transferencia.
      */
-    public function pagarLote(RegistrarPagoFactura $pagos): void
+    public function pagarLote(RegistrarPagoFactura $pagos, EnlazarPagosContabilidad $contabilidad): void
     {
         $this->validate([
             'pagoLoteFecha' => ['required', 'date'],
@@ -583,6 +592,7 @@ class Lista extends ListaComponent
 
         $pagadas       = 0;
         $sinContabilizar = 0;
+        $pagoIdsGrupo  = [];
 
         foreach ($facturas as $factura) {
             if ($pagos->motivoNoPagable($factura)) {
@@ -590,14 +600,32 @@ class Lista extends ListaComponent
             }
 
             try {
-                if ($pagos->registrar($factura->id, $this->pagoLoteFecha)) {
+                // Con "único apunte" el pago se registra sin enlazarlo todavía: el grupo
+                // entero se manda a contabilidad de una vez al final, en un solo asiento.
+                $pago = $pagos->registrar($factura->id, $this->pagoLoteFecha, enlazarContabilidad: ! $this->pagoLoteUnicoApunte);
+
+                if ($pago) {
                     $pagadas++;
+
+                    if ($this->pagoLoteUnicoApunte) {
+                        $pagoIdsGrupo[] = $pago->id;
+                    }
                 }
             } catch (AsientoInvalidoException|EjercicioCerradoException|EjercicioContableDesconocidoException|CuentaContableDesconocidaException $e) {
                 // El pago quedó registrado; lo que falló es su asiento, igual que en
                 // PagarFactura. Se sigue con el resto del lote.
                 $pagadas++;
                 $sinContabilizar++;
+            }
+        }
+
+        if ($pagoIdsGrupo !== []) {
+            try {
+                $resultado = $contabilidad->ejecutarAgrupado($pagoIdsGrupo);
+                $sinContabilizar += $resultado['omitidos'];
+            } catch (AsientoInvalidoException|EjercicioCerradoException|EjercicioContableDesconocidoException|CuentaContableDesconocidaException $e) {
+                // Los pagos quedaron registrados; lo que falló es el asiento del grupo.
+                $sinContabilizar += count($pagoIdsGrupo);
             }
         }
 

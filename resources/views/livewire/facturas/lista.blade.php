@@ -292,6 +292,15 @@
                     <x-input class="block mt-1 w-full" type="date" id="pagoLoteFecha" wire:model="pagoLoteFecha" />
                     <x-input-error for="pagoLoteFecha" class="mt-1" />
                 </div>
+
+                @if (count($pagoLoteIds) > 1)
+                    <div class="mt-4">
+                        <label class="flex items-center">
+                            <x-checkbox wire:model="pagoLoteUnicoApunte" id="pagoLoteUnicoApunte" />
+                            <span class="ml-2 text-sm">{{ __('Un único apunte bancario (una sola transferencia paga todas estas facturas)') }}</span>
+                        </label>
+                    </div>
+                @endif
             </x-slot>
 
             <x-slot name="footer">

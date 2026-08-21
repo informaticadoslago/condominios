@@ -27,8 +27,12 @@ final class RegistrarPagoFactura
     /**
      * Paga una factura. Sin importe explícito paga lo que queda pendiente, que es el caso
      * normal. Devuelve null si no había nada que pagar.
+     *
+     * $enlazarContabilidad a false deja el pago sin asiento: lo usa el pago en lote con un
+     * único apunte bancario, que enlaza el grupo entero de una vez después de registrar
+     * todos los pagos (ver Facturas\Lista::pagarLote).
      */
-    public function registrar(int $facturaId, string $fecha, ?float $importe = null): ?PagoFactura
+    public function registrar(int $facturaId, string $fecha, ?float $importe = null, bool $enlazarContabilidad = true): ?PagoFactura
     {
         $pago = DB::transaction(function () use ($facturaId, $fecha, $importe) {
             // Bloqueada la fila: dos usuarios pagando la misma factura a la vez leerían el
@@ -67,7 +71,7 @@ final class RegistrarPagoFactura
 
         // Fuera de la transacción del pago: que la contabilidad falle no deshace un pago
         // que en la gestión ya ocurrió, igual que en recibos.
-        if ($pago) {
+        if ($pago && $enlazarContabilidad) {
             $this->contabilidad->ejecutar([$pago->id]);
         }
 
