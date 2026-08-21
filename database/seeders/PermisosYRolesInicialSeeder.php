@@ -76,6 +76,7 @@ class PermisosYRolesInicialSeeder extends Seeder
          $this->asignarPermisos('administrativo_comunidad', $permisos_administrativo_comunidad, true);
 
         $permisos_administrativo_contabilidad = [
+            'asiento-contable-list',
             'cuenta-contable-create',
             'cuenta-contable-delete',
             'cuenta-contable-edit',
@@ -89,7 +90,13 @@ class PermisosYRolesInicialSeeder extends Seeder
         ];
          $this->asignarPermisos('administrativo_contabilidad', $permisos_administrativo_contabilidad, true);
 
-        $permisos = [
+        $permisos_admin_contabilidad = [
+            'asiento-contable-delete',
+            'asiento-contable-edit',
+        ];
+         $this->asignarPermisos('admin_contabilidad', $permisos_admin_contabilidad, true);
+
+         $permisos = [
             'configuracion-delete',
             'configuracion-edit',
             'configuracion-list',

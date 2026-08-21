@@ -126,6 +126,20 @@
                                         wire:click="toggleDetalle({{ $item->id }})" title="{{ __('Ver líneas') }}">
                                         <i class="fa-solid fa-eye"> </i>
                                     </x-button>
+                                    @if ($item->referencia_tipo === null)
+                                        @can('asiento-contable-edit')
+                                            <x-button type="button" class="btn-editar" id="btn-invertir-asiento-contable-{{ $item->id }}"
+                                                wire:click="confirmarInvertir({{ $item->id }})" title="{{ __('Invertir Debe/Haber') }}">
+                                                <i class="fa-solid fa-right-left"> </i>
+                                            </x-button>
+                                        @endcan
+                                        @can('asiento-contable-delete')
+                                            <x-button type="button" class="btn-borrar" id="btn-borrar-asiento-contable-{{ $item->id }}"
+                                                wire:click="confirmarBorrar({{ $item->id }})" title="{{ __('Borrar') }}">
+                                                <i class="fa-solid fa-trash"> </i>
+                                            </x-button>
+                                        @endcan
+                                    @endif
                                 </td>
                             </tr>
                             @if (in_array($item->id, $expandido, true))

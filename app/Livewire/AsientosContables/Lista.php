@@ -6,6 +6,8 @@ use App\Livewire\ListaComponent;
 use App\Livewire\Traits\ConEmpresaContableActiva;
 use App\Models\AsientoContable;
 use App\Models\EjercicioContable;
+use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
 {
@@ -51,6 +53,102 @@ class Lista extends ListaComponent
         } else {
             $this->expandido[] = $id;
         }
+    }
+
+    public function confirmarInvertir(int $id): void
+    {
+        abort_unless(auth()->user()->can('asiento-contable-edit'), 403);
+
+        $asiento = AsientoContable::findOrFail($id);
+
+        // Solo asientos dados de alta directamente en Contabilidad: los que vienen de
+        // gestión (referencia_tipo relleno) no se tocan desde aquí.
+        if ($asiento->referencia_tipo !== null) {
+            return;
+        }
+
+        $this->dispatch('swalConfirm', [
+            'title'              => __('¿Invertir el asiento?'),
+            'text'               => __('Se intercambian Debe y Haber en todas sus líneas. El saldo de cada apunte no cambia.'),
+            'icon'               => 'warning',
+            'showCancelButton'   => true,
+            'confirmButtonColor' => '#d33',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, invertir'),
+            'cancelButtonText'   => __('Cancelar'),
+            'confirmCallback'    => 'ejecutarInvertirAsiento',
+            'cancelCallback'     => 'invertirAsientoCancelado',
+            'id'                 => $id,
+        ]);
+    }
+
+    #[On('ejecutarInvertirAsiento')]
+    public function invertir(int $id): void
+    {
+        abort_unless(auth()->user()->can('asiento-contable-edit'), 403);
+
+        $asiento = AsientoContable::findOrFail($id);
+
+        if ($asiento->referencia_tipo !== null) {
+            return;
+        }
+
+        DB::transaction(function () use ($asiento) {
+            foreach ($asiento->apuntesContables as $apunte) {
+                $apunte->update([
+                    'debe'  => $apunte->haber,
+                    'haber' => $apunte->debe,
+                ]);
+            }
+        });
+
+        $this->dispatch('toast-success', ['title' => __('Asiento invertido')]);
+    }
+
+    public function confirmarBorrar(int $id): void
+    {
+        abort_unless(auth()->user()->can('asiento-contable-delete'), 403);
+
+        $asiento = AsientoContable::findOrFail($id);
+
+        // Solo asientos dados de alta directamente en Contabilidad: los que vienen de
+        // gestión (referencia_tipo relleno) se borran desde gestión.
+        if ($asiento->referencia_tipo !== null) {
+            return;
+        }
+
+        $this->dispatch('swalConfirm', [
+            'title'              => __('¿Borrar el asiento?'),
+            'text'               => __('Se borra el asiento y todas sus líneas. No se puede deshacer.'),
+            'icon'               => 'warning',
+            'showCancelButton'   => true,
+            'confirmButtonColor' => '#d33',
+            'cancelButtonColor'  => '#f1c40f',
+            'confirmButtonText'  => __('Sí, borrar'),
+            'cancelButtonText'   => __('Cancelar'),
+            'confirmCallback'    => 'ejecutarBorrarAsiento',
+            'cancelCallback'     => 'borrarAsientoCancelado',
+            'id'                 => $id,
+        ]);
+    }
+
+    #[On('ejecutarBorrarAsiento')]
+    public function borrar(int $id): void
+    {
+        abort_unless(auth()->user()->can('asiento-contable-delete'), 403);
+
+        $asiento = AsientoContable::findOrFail($id);
+
+        if ($asiento->referencia_tipo !== null) {
+            return;
+        }
+
+        DB::transaction(function () use ($asiento) {
+            $asiento->apuntesContables()->delete();
+            $asiento->delete();
+        });
+
+        $this->dispatch('toast-success', ['title' => __('Asiento borrado')]);
     }
 
     /**
