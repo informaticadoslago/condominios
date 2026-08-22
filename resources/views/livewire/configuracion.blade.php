@@ -27,7 +27,7 @@
                 @if (empty($vars))
                     <p class="text-sm text-gray-500 py-4">{{ __('Sin variables en este grupo.') }}</p>
                 @else
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         @foreach ($vars as $clave => $valor)
                             <div class="rounded border border-gray-100 dark:border-gray-700 px-2 py-1.5">
                                 <dt class="font-mono text-xs text-gray-600 dark:text-gray-300 break-all">
@@ -77,9 +77,9 @@
     </x-dosl.dialog-modal>
 
     {{-- Modal secundario: cambiar una clave secreta (nunca muestra el valor actual). --}}
-    <x-dosl.dialog-modal wire:model.live="passwordAbierto" maxWidth="sm">
+    <x-dosl.dialog-modal wire:model.live="passwordAbierto" maxWidth="lg">
         <x-slot name="title">
-            {{ __('Cambiar') }} {{ $passwordClave }}
+            <span class="whitespace-nowrap">{{ __('Cambiar') }} {{ $passwordClave }}</span>
         </x-slot>
 
         <x-slot name="content">

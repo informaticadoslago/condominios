@@ -37,16 +37,34 @@ class Configuracion extends Component
         'backup'      => ['BACKUP_'],
     ];
 
+    /** Claves sueltas que no encajan por prefijo pero van en una pestaña concreta. */
+    private const PESTANA_EXCEPCIONES = [
+        'SAVE_USER_LAST_SEEN' => 'seguimiento',
+    ];
+
     /** Claves editables por pestaña. Se van añadiendo una a una según se decide. */
     private const EDITABLES = [
+        'seguimiento' => [
+            'TRACK_LOGIN', 'TRACK_NEW_USER_REGISTRATION', 'SAVE_USER_LAST_SEEN',
+        ],
         'correo' => [
             'MAIL_MAILER', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD',
             'MAIL_ENCRYPTION', 'MAIL_FROM_NAME', 'MAIL_FROM_ADDRESS',
             'EMAIL_FIRMA', 'EMAIL_FACTURA_FIRMA', 'EMAIL_SANDBOX', 'EMAIL_SANDBOX_TO',
         ],
+        'backup' => [
+            'BACKUP_MAIL_TO_ADDRESS', 'BACKUP_MAIL_FROM_NAME', 'BACKUP_MAIL_FROM_ADDRESS',
+            'BACKUP_ARCHIVE_PASSWORD', 'BACKUP_HOUR_ONE', 'BACKUP_HOUR_TWO', 'BACKUP_HOUR_CLEAN',
+        ],
+        'otros' => [
+            'SERVER_TEST_COLOR', 'LOGO_TEXT', 'LOGO_ALT', 'LOGO_IMG',
+            'DOCUMENTOS_ROOT', 'COMS_ROOT',
+            'ENVIAR_EMAIL_AL_ENVIAR_REMESA', 'ENVIAR_EMAIL_TRANSFERENCIAS',
+        ],
     ];
 
-    /** Valores en edición de la pestaña activa (solo claves editables no secretas). */
+    /** Valores en edición de todas las pestañas (solo claves editables no secretas). Se cargan una
+     *  sola vez al abrir para que cambiar de pestaña no descarte cambios sin guardar. */
     public array $form = [];
 
     /** Modal secundario para cambiar una clave secreta (p.ej. MAIL_PASSWORD). */
@@ -70,20 +88,17 @@ class Configuracion extends Component
         $this->show = false;
     }
 
-    public function updatedTab(): void
-    {
-        $this->cargarFormulario();
-    }
-
-    /** Carga en $form las claves editables no secretas de la pestaña activa. */
+    /** Carga en $form las claves editables no secretas de todas las pestañas. */
     private function cargarFormulario(): void
     {
         $env = $this->leerEnv();
         $this->form = [];
 
-        foreach (self::EDITABLES[$this->tab] ?? [] as $clave) {
-            if (! $this->esSecreto($clave)) {
-                $this->form[$clave] = $env[$clave] ?? '';
+        foreach (self::EDITABLES as $claves) {
+            foreach ($claves as $clave) {
+                if (! $this->esSecreto($clave)) {
+                    $this->form[$clave] = $env[$clave] ?? '';
+                }
             }
         }
     }
@@ -133,11 +148,21 @@ class Configuracion extends Component
             $grupos[$this->pestanaDe($clave)][$clave] = $this->esSecreto($clave) ? '••••••' : $valor;
         }
 
+        // Las no editables primero, dejando las editables agrupadas al final de cada pestaña.
+        foreach ($grupos as $pestana => &$vars) {
+            $editables = self::EDITABLES[$pestana] ?? [];
+            uksort($vars, fn ($a, $b) => in_array($a, $editables, true) <=> in_array($b, $editables, true));
+        }
+
         return $grupos;
     }
 
     private function pestanaDe(string $clave): string
     {
+        if (isset(self::PESTANA_EXCEPCIONES[$clave])) {
+            return self::PESTANA_EXCEPCIONES[$clave];
+        }
+
         foreach (self::PREFIJOS as $pestana => $prefijos) {
             if (Str::startsWith($clave, $prefijos)) {
                 return $pestana;
