@@ -68,6 +68,7 @@ class PlanCuentasComunidadesSeeder extends Seeder
             // La 62600001 viene siempre creada: es la que se asigna de fábrica a
             // cuenta_gasto_comisiones_bancarias al enlazar una comunidad nueva (ver
             // Comunidades\Lista::ejecutarEnlace).
+            ['codigo' => '62500000', 'nombre' => 'Primas de seguros', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             ['codigo' => '62600000', 'nombre' => 'Servicios bancarios', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             ['codigo' => '62600001', 'nombre' => 'Comisiones bancarias', 'tipo_cuenta_contable_id' => TipoCuentaContable::GASTO],
             // Gasto periódico de la cuenta, ajeno a las remesas (mantenimiento, custodia
