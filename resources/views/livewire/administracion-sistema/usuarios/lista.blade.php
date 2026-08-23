@@ -56,7 +56,7 @@
                                         <span class="mayusculas">{{ $usuario->login }}</span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <span class="mayusculas">{{ $usuario->email }}</span>
+                                        <span>{{ $usuario->email }}</span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="inline-flex items-center gap-1">
