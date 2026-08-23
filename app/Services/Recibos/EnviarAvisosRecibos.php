@@ -28,19 +28,21 @@ use Illuminate\Support\Facades\Mail;
 final class EnviarAvisosRecibos
 {
     /**
-     * Avisa a los propietarios incluidos en una remesa del cargo que se les va a pasar.
+     * Vista previa de a quién se avisaría del cargo de una remesa, línea a línea: un
+     * correo por recibo, no agrupado por destinatario (el importe y el inmueble son de
+     * esa línea concreta). Para enseñarlo en pantalla y dejar desmarcar antes de mandar.
      *
-     * @return array{avisados: int, sin_correo: int}
+     * @return array{lineas: Collection<int, array{linea_id: int, nombre: ?string, correo: string, validado: bool, importe: float}>, sin_correo: int}
      */
-    public function deRemesa(Remesa $remesa, ?string $idioma = null): array
+    public function lineasRemesa(Remesa $remesa): array
     {
         $lineas = $remesa->lineas()
             ->whereNull('fecha_devolucion')
             ->with(['recibo.propietario.persona.contactos', 'recibo.inmueble', 'recibo.presupuesto'])
             ->get();
 
-        $avisados = 0;
         $sinCorreo = 0;
+        $resultado = collect();
 
         foreach ($lineas as $linea) {
             $correo = $this->correoDe($linea->recibo);
@@ -51,15 +53,51 @@ final class EnviarAvisosRecibos
                 continue;
             }
 
-            $mailable = new AvisoRemesa($linea, $idioma);
-
-            Mail::to($correo->valor)->queue($mailable);
-            $this->registrar($linea->recibo, $mailable, $correo->valor);
-
-            $avisados++;
+            $resultado->push([
+                'linea_id' => $linea->id,
+                'nombre'   => $linea->recibo?->propietario?->persona?->nombreCompleto,
+                'correo'   => $correo->valor,
+                'validado' => $correo->estaValidado(),
+                'importe'  => (float) $linea->importe,
+            ]);
         }
 
-        return ['avisados' => $avisados, 'sin_correo' => $sinCorreo];
+        return ['lineas' => $resultado->values(), 'sin_correo' => $sinCorreo];
+    }
+
+    /**
+     * Manda el aviso de cargo de una línea de remesa ya seleccionada (ver lineasRemesa).
+     * $cc/$cco igual que en enviarTransferencia: sueltos, solo se comprueba que tengan
+     * forma de correo.
+     */
+    public function enviarLineaRemesa(
+        LineaRemesa $linea,
+        ?string $idioma = null,
+        ?string $cc = null,
+        ?string $cco = null,
+    ): bool {
+        $correo = $this->correoDe($linea->recibo);
+
+        if (! $correo) {
+            return false;
+        }
+
+        $mailable = new AvisoRemesa($linea, $idioma);
+
+        $envio = Mail::to($correo->valor);
+
+        if ($cc) {
+            $envio->cc($cc);
+        }
+
+        if ($cco) {
+            $envio->bcc($cco);
+        }
+
+        $envio->queue($mailable);
+        $this->registrar($linea->recibo, $mailable, $correo->valor);
+
+        return true;
     }
 
     /**

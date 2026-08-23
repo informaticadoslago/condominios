@@ -112,6 +112,24 @@ class Lista extends ListaComponent
 
     public array $avisoCco = [];
 
+    public bool $avisoRemesaAbierto = false;
+
+    public ?int $avisoRemesaRemesaId = null;
+
+    /** Una línea de remesa por recibo avisado (ver EnviarAvisosRecibos::lineasRemesa). */
+    public array $avisoRemesaLineas = [];
+
+    /** Ids de línea marcados para avisar; empiezan todos marcados. */
+    public array $avisoRemesaSeleccion = [];
+
+    /** Ids de línea con el "+" de CC/CCO abierto. */
+    public array $avisoRemesaConCopia = [];
+
+    /** CC y CCO sueltos por id de línea; no van ligados a ningún contacto guardado. */
+    public array $avisoRemesaCc = [];
+
+    public array $avisoRemesaCco = [];
+
     public bool $avisoDevolucionAbierto = false;
 
     public ?int $avisoDevolucionRemesaId = null;
@@ -587,11 +605,12 @@ class Lista extends ListaComponent
     }
 
     /**
-     * Avisa por correo a los propietarios incluidos en la remesa. No se manda solo al
-     * generarla: el botón está para pulsarlo cuando la remesa ya se ha mandado al banco
-     * de verdad, que es cuando el cargo va a ocurrir.
+     * Abre la vista previa de a quién se va a avisar del cargo de una remesa, todos
+     * marcados, para poder dejar fuera a quien no toque antes de mandar nada. No se
+     * manda solo al generarla: el botón está para pulsarlo cuando la remesa ya se ha
+     * mandado al banco de verdad, que es cuando el cargo va a ocurrir.
      */
-    public function avisarRemesa(int $remesaId, EnviarAvisosRecibos $servicio): void
+    public function abrirAvisoRemesa(int $remesaId, EnviarAvisosRecibos $servicio): void
     {
         if (! config('recibos.enviar_email_al_enviar_remesa')) {
             return;
@@ -603,9 +622,95 @@ class Lista extends ListaComponent
             return;
         }
 
-        $resultado = $servicio->deRemesa($remesa);
+        ['lineas' => $lineas, 'sin_correo' => $sinCorreo] = $servicio->lineasRemesa($remesa);
 
-        $this->avisar($resultado);
+        if ($lineas->isEmpty()) {
+            $this->dispatch('toast-error', [
+                'title' => $sinCorreo > 0
+                    ? __('No se puede avisar: nadie tiene dirección de correo')
+                    : __('No hay ningún cargo que avisar'),
+            ]);
+
+            return;
+        }
+
+        $this->avisoRemesaRemesaId  = $remesa->id;
+        $this->avisoRemesaLineas    = $lineas->all();
+        // Sin validar no empieza marcado: no está confirmado que esa dirección sea suya.
+        $this->avisoRemesaSeleccion = $lineas->where('validado', true)
+            ->pluck('linea_id')->map(fn ($id) => (string) $id)->all();
+        $this->avisoRemesaConCopia  = [];
+        $this->avisoRemesaCc        = [];
+        $this->avisoRemesaCco       = [];
+        $this->avisoRemesaAbierto   = true;
+    }
+
+    /** Casilla de cabecera del aviso del cargo: marca o desmarca todas las líneas. */
+    public function toggleTodosAvisoRemesa(): void
+    {
+        if (count($this->avisoRemesaSeleccion) === count($this->avisoRemesaLineas)) {
+            $this->avisoRemesaSeleccion = [];
+        } else {
+            $this->avisoRemesaSeleccion = collect($this->avisoRemesaLineas)
+                ->pluck('linea_id')->map(fn ($id) => (string) $id)->all();
+        }
+    }
+
+    /** Abre o cierra los campos de CC/CCO de una línea, en el aviso del cargo. */
+    public function toggleConCopiaRemesa(int $lineaId): void
+    {
+        if (in_array($lineaId, $this->avisoRemesaConCopia, true)) {
+            $this->avisoRemesaConCopia = array_values(array_diff($this->avisoRemesaConCopia, [$lineaId]));
+        } else {
+            $this->avisoRemesaConCopia[] = $lineaId;
+        }
+    }
+
+    public function enviarAvisoRemesa(EnviarAvisosRecibos $servicio): void
+    {
+        if ($this->avisoRemesaSeleccion === []) {
+            $this->dispatch('toast-error', ['title' => __('No queda ningún destinatario marcado')]);
+
+            return;
+        }
+
+        $this->validate([
+            'avisoRemesaCc.*'  => ['nullable', 'email'],
+            'avisoRemesaCco.*' => ['nullable', 'email'],
+        ], [], [
+            'avisoRemesaCc.*'  => __('CC'),
+            'avisoRemesaCco.*' => __('CCO'),
+        ]);
+
+        $lineaIds = array_map('intval', $this->avisoRemesaSeleccion);
+        $lineas   = LineaRemesa::whereIn('id', $lineaIds)->with('recibo')->get()->keyBy('id');
+
+        $avisados = 0;
+
+        foreach ($lineaIds as $lineaId) {
+            $linea = $lineas->get($lineaId);
+
+            if (! $linea) {
+                continue;
+            }
+
+            if ($servicio->enviarLineaRemesa(
+                $linea,
+                cc: $this->avisoRemesaCc[$lineaId] ?? null,
+                cco: $this->avisoRemesaCco[$lineaId] ?? null,
+            )) {
+                $avisados++;
+            }
+        }
+
+        $this->avisoRemesaAbierto   = false;
+        $this->avisoRemesaLineas    = [];
+        $this->avisoRemesaSeleccion = [];
+        $this->avisoRemesaConCopia  = [];
+        $this->avisoRemesaCc        = [];
+        $this->avisoRemesaCco       = [];
+
+        $this->avisar(['avisados' => $avisados, 'sin_correo' => 0]);
     }
 
     /**

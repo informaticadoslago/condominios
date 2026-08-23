@@ -159,7 +159,7 @@
                                          el aviso nunca sale solo, hay que pulsarlo. --}}
                                     @if ($avisoRemesaActivo)
                                         <x-button type="button" class="bg-blue-600 hover:bg-blue-700 text-white ml-1"
-                                            wire:click="avisarRemesa({{ $item->id }})"
+                                            wire:click="abrirAvisoRemesa({{ $item->id }})"
                                             title="{{ __('Avisar por correo del cargo') }}">
                                             <i class="fa-solid fa-envelope"> </i>
                                         </x-button>
@@ -762,6 +762,91 @@
                 </x-secondary-button>
                 <x-button type="button" class="ml-2" wire:click="enviarAvisosTransferencia">
                     {{ __('Enviar avisos') }}
+                </x-button>
+            </x-slot>
+        </x-dosl.dialog-modal>
+
+        {{-- Avisar del cargo: un correo por línea de remesa (un recibo, un inmueble), con
+             casilla para dejar a alguien fuera y "+" para CC/CCO antes de mandar nada. --}}
+        <x-dosl.dialog-modal wire:model.live="avisoRemesaAbierto" maxWidth="2xl">
+            <x-slot name="title">
+                {{ __('Avisar por correo del cargo') }}
+            </x-slot>
+
+            <x-slot name="content">
+                <div class="max-h-96 overflow-y-auto border rounded-lg">
+                    <table class="table-striped w-full table-auto text-sm text-left">
+                        <thead class="font-medium border-b">
+                            <tr>
+                                <th class="py-2 px-3 w-px">
+                                    <input type="checkbox" wire:click="toggleTodosAvisoRemesa"
+                                        @checked(count($avisoRemesaSeleccion) === count($avisoRemesaLineas))
+                                        title="{{ __('Marcar/desmarcar todos') }}" />
+                                </th>
+                                <th class="py-2 px-3">{{ __('Propietario') }}</th>
+                                <th class="py-2 px-3">{{ __('Correo') }}</th>
+                                <th class="py-2 px-3 text-right">{{ __('Importe') }}</th>
+                                <th class="py-2 px-3 w-px"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            @foreach ($avisoRemesaLineas as $linea)
+                                <tr wire:key="aviso-remesa-{{ $linea['linea_id'] }}">
+                                    <td class="py-2 px-3">
+                                        <input type="checkbox" wire:model.live="avisoRemesaSeleccion" value="{{ $linea['linea_id'] }}" />
+                                    </td>
+                                    <td class="py-2 px-3 mayusculas">{{ $linea['nombre'] }}</td>
+                                    <td class="py-2 px-3">
+                                        {{ $linea['correo'] }}
+                                        @unless ($linea['validado'])
+                                            <i class="fa-solid fa-envelope text-red-500 ml-1"
+                                                title="{{ __('No validado') }}"></i>
+                                        @endunless
+                                    </td>
+                                    <td class="py-2 px-3 text-right">{{ number_format((float) $linea['importe'], 2, ',', '.') }}</td>
+                                    <td class="py-2 px-3">
+                                        <button type="button" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                            wire:click="toggleConCopiaRemesa({{ $linea['linea_id'] }})"
+                                            title="{{ __('Añadir CC/CCO') }}">
+                                            <i class="fa-solid fa-plus"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @if (in_array($linea['linea_id'], $avisoRemesaConCopia))
+                                    <tr wire:key="aviso-remesa-copia-{{ $linea['linea_id'] }}">
+                                        <td></td>
+                                        <td colspan="4" class="pb-2 px-3">
+                                            <div class="flex gap-2">
+                                                <div class="flex-1">
+                                                    <x-input class="block w-full text-xs" type="email" placeholder="CC"
+                                                        wire:model.blur="avisoRemesaCc.{{ $linea['linea_id'] }}" />
+                                                    <x-input-error for="avisoRemesaCc.{{ $linea['linea_id'] }}" class="mt-1" />
+                                                </div>
+                                                <div class="flex-1">
+                                                    <x-input class="block w-full text-xs" type="email" placeholder="CCO"
+                                                        wire:model.blur="avisoRemesaCco.{{ $linea['linea_id'] }}" />
+                                                    <x-input-error for="avisoRemesaCco.{{ $linea['linea_id'] }}" class="mt-1" />
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endif
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="mt-3 font-medium">
+                    {{ __('Marcados') }}: {{ count($avisoRemesaSeleccion) }} {{ __('de') }} {{ count($avisoRemesaLineas) }}
+                </p>
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button type="button" wire:click="$set('avisoRemesaAbierto', false)">
+                    {{ __('Cancelar') }}
+                </x-secondary-button>
+                <x-button type="button" class="ml-2" wire:click="enviarAvisoRemesa">
+                    {{ __('Enviar') }}
                 </x-button>
             </x-slot>
         </x-dosl.dialog-modal>
