@@ -67,6 +67,14 @@ class Configuracion extends Component
      *  sola vez al abrir para que cambiar de pestaña no descarte cambios sin guardar. */
     public array $form = [];
 
+    /** Claves que se han vuelto editables en esta sesión al importarlas (no estaban en EDITABLES). */
+    public array $importadas = [];
+
+    /** Modal secundario para pegar varias líneas CLAVE=VALOR y aplicarlas de golpe al formulario. */
+    public bool $importarAbierto = false;
+
+    public string $importarTexto = '';
+
     /** Modal secundario para cambiar una clave secreta (p.ej. MAIL_PASSWORD). */
     public bool $passwordAbierto = false;
 
@@ -101,11 +109,65 @@ class Configuracion extends Component
                 }
             }
         }
+
+        foreach ($this->importadas as $clave) {
+            $this->form[$clave] = $env[$clave] ?? '';
+        }
     }
 
     public function esEditable(string $clave): bool
     {
-        return in_array($clave, self::EDITABLES[$this->tab] ?? [], true);
+        return in_array($clave, self::EDITABLES[$this->tab] ?? [], true)
+            || in_array($clave, $this->importadas, true);
+    }
+
+    public function abrirImportar(): void
+    {
+        $this->importarTexto = '';
+        $this->importarAbierto = true;
+    }
+
+    /** Aplica al formulario (en memoria) las líneas CLAVE=VALOR pegadas. Ignora comentarios,
+     *  líneas mal formadas y claves secretas. Las claves que no estuvieran ya en EDITABLES
+     *  pasan a ser editables en esta sesión; si la clave no existe en el .env se añadirá al
+     *  final del archivo al guardar. */
+    public function importar(): void
+    {
+        $aplicadas = 0;
+        $ignoradas = 0;
+
+        foreach (preg_split('/\r\n|\r|\n/', $this->importarTexto) as $linea) {
+            $linea = trim($linea);
+
+            if ($linea === '' || Str::startsWith($linea, '#') || ! Str::contains($linea, '=')) {
+                continue;
+            }
+
+            [$clave, $valor] = explode('=', $linea, 2);
+            $clave = trim($clave);
+            $valor = trim(trim($valor), '"\'');
+
+            if (! preg_match('/^[A-Z0-9_]+$/', $clave) || $this->esSecreto($clave)) {
+                $ignoradas++;
+
+                continue;
+            }
+
+            $this->form[$clave] = $valor;
+
+            if (! in_array($clave, $this->importadas, true)) {
+                $this->importadas[] = $clave;
+            }
+
+            $aplicadas++;
+        }
+
+        $this->importarAbierto = false;
+        $this->importarTexto = '';
+
+        $this->dispatch('toast-success', [
+            'title' => __(':aplicadas aplicadas, :ignoradas ignoradas', ['aplicadas' => $aplicadas, 'ignoradas' => $ignoradas]),
+        ]);
     }
 
     /** Guarda en el .env los valores editados de la pestaña activa. */
@@ -144,7 +206,16 @@ class Configuracion extends Component
     {
         $grupos = array_fill_keys(array_keys($this->pestanas), []);
 
-        foreach ($this->leerEnv() as $clave => $valor) {
+        $env = $this->leerEnv();
+
+        // Claves recién importadas que aún no existen en disco: se muestran ya en su pestaña.
+        foreach ($this->importadas as $clave) {
+            if (! array_key_exists($clave, $env)) {
+                $env[$clave] = $this->form[$clave] ?? '';
+            }
+        }
+
+        foreach ($env as $clave => $valor) {
             $grupos[$this->pestanaDe($clave)][$clave] = $this->esSecreto($clave) ? '••••••' : $valor;
         }
 
@@ -208,11 +279,13 @@ class Configuracion extends Component
         return $vars;
     }
 
-    /** Reescribe en el .env las claves indicadas (deben existir ya como línea CLAVE=...). */
+    /** Reescribe en el .env las claves indicadas. Las que no existan ya como línea CLAVE=...
+     *  se añaden al final del archivo. */
     private function escribirEnv(array $cambios): void
     {
         $ruta = base_path('.env');
         $lineas = file($ruta, FILE_IGNORE_NEW_LINES);
+        $pendientes = $cambios;
 
         foreach ($lineas as $i => $linea) {
             if (! Str::contains($linea, '=')) {
@@ -221,9 +294,14 @@ class Configuracion extends Component
 
             $clave = trim(explode('=', $linea, 2)[0]);
 
-            if (array_key_exists($clave, $cambios)) {
-                $lineas[$i] = $clave.'='.$this->formatearValorEnv($cambios[$clave]);
+            if (array_key_exists($clave, $pendientes)) {
+                $lineas[$i] = $clave.'='.$this->formatearValorEnv($pendientes[$clave]);
+                unset($pendientes[$clave]);
             }
+        }
+
+        foreach ($pendientes as $clave => $valor) {
+            $lineas[] = $clave.'='.$this->formatearValorEnv($valor);
         }
 
         file_put_contents($ruta, implode(PHP_EOL, $lineas).PHP_EOL);
