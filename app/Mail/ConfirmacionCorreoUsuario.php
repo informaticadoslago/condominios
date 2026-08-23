@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\URL;
 
 /**
  * Correo que se envía al "Activar" un usuario en estado Inicial: le pide confirmar
- * que ese correo es el suyo y que se está usando en esta escuela. El enlace, al
+ * que ese correo es el suyo y que se está usando en esta aplicación. El enlace, al
  * pincharlo, marca email_verified_at (ver routes/web.php, ruta firmada, sin login).
  */
 class ConfirmacionCorreoUsuario extends Mailable implements ShouldQueue
@@ -24,14 +24,19 @@ class ConfirmacionCorreoUsuario extends Mailable implements ShouldQueue
         $this->onQueue('EnviarCorreo');
     }
 
+    public function asunto(): string
+    {
+        return __('Confirma tu correo — :sistema', ['sistema' => config('app.name')]);
+    }
+
     public function build()
     {
         $enlace = URL::signedRoute('usuarios.confirmar-correo', ['usuario' => $this->usuario->id]);
 
-        return $this->subject(__('Confirma tu correo — :escuela', ['escuela' => config('mail.from.name')]))
+        return $this->subject($this->asunto())
             ->view('emails.confirmacion-correo', [
                 'nombre' => $this->usuario->nombreCompleto,
-                'escuela' => config('mail.from.name'),
+                'sistema' => config('app.name'),
                 'enlace' => $enlace,
             ]);
     }

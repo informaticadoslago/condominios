@@ -6,7 +6,7 @@
 --}}
 <x-emails.layout plantilla="aviso-transferencia" :titulo="__('Aviso de pago')">
 
-    <p class="saludo">{{ __('Hola, :nombre:', ['nombre' => $nombre]) }}</p>
+    <p class="saludo">{{ __('Hola :nombre:', ['nombre' => $nombre]) }}</p>
 
     <p>{{ __('Te recordamos que tienes pendiente el siguiente recibo de :comunidad. Como tu forma de pago es transferencia, hay que hacer el ingreso.', ['comunidad' => $comunidad]) }}</p>
 
@@ -42,6 +42,10 @@
     </p>
 
     <x-slot name="pie">
-        {{ $comunidad }}
+        {{ $comunidad }}<br><br>
+        {{ __('Este es un correo automático: por favor no respondas a esta dirección.') }}
+        @if ($correoContacto)
+            {{ __('Para cualquier consulta, escribe a :correo.', ['correo' => $correoContacto]) }}
+        @endif
     </x-slot>
 </x-emails.layout>

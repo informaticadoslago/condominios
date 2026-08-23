@@ -8,6 +8,8 @@ return [
     'Comunidades' => 'Comunidades',
     'Configuracion' => 'Configuración',
     'Copias de seguridad' => 'Copias de seguridad',
+    'Correos enviados' => 'Correos enviados',
+    'Pruebas de correo' => 'Pruebas de correo',
     'Cuentas contables' => 'Cuentas contables',
         'Importar comunidad' => 'Importar comunidad',
     'dashboard' => 'dashboard',

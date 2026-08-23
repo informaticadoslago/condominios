@@ -2,8 +2,8 @@
 
 namespace App\Services\Comunidades;
 
-use App\Models\AvisoRecibo;
 use App\Models\Cobro;
+use App\Models\CorreoEnviado;
 use App\Models\ComunidadDirectivo;
 use App\Models\ConceptoPresupuesto;
 use App\Models\Contacto;
@@ -140,7 +140,7 @@ class ComunidadExportador extends ExportadorZip
             'remesas'                  => $remesas,
             'lineas_remesas'           => $lineasRemesas,
             'cobros'                   => Cobro::whereIn('recibo_id', $reciboIds)->get(),
-            'avisos_recibos'           => AvisoRecibo::whereIn('recibo_id', $reciboIds)->get(),
+            'correos_enviados'         => CorreoEnviado::whereIn('recibo_id', $reciboIds)->get(),
             'documentos'               => $documentos,
             'facturas_proveedores'     => $facturas,
             'pagos_facturas'           => PagoFactura::whereIn('factura_proveedor_id', $facturaIds)->get(),
@@ -223,7 +223,7 @@ class ComunidadExportador extends ExportadorZip
         6. `inmuebles`, `titularidades`, `formas_pago_inmuebles`
         7. `grupos_de_reparto`, `inmueble_grupo_de_reparto`
         8. `presupuestos`, `conceptos_presupuestos`
-        9. `recibos`, `remesas`, `lineas_remesas`, `cobros`, `avisos_recibos`
+        9. `recibos`, `remesas`, `lineas_remesas`, `cobros`, `correos_enviados`
         10. `documentos` (creando primero el fichero físico con el contenido de `ficheros.json`,
             luego la fila), `facturas_proveedores`, `pagos_facturas`
         11. `historial_estados`

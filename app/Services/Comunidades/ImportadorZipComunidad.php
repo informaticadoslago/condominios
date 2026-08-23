@@ -281,7 +281,7 @@ class ImportadorZipComunidad
             'remesas',
             'lineas_remesas',
             'cobros',
-            'avisos_recibos',
+            'correos_enviados',
             'documentos',
             'facturas_proveedores',
             'pagos_facturas',
@@ -323,7 +323,7 @@ class ImportadorZipComunidad
             'remesas',
             'lineas_remesas',
             'cobros',
-            'avisos_recibos',
+            'correos_enviados',
             'documentos',
             'facturas_proveedores',
             'pagos_facturas',
@@ -444,7 +444,7 @@ class ImportadorZipComunidad
                 $this->remapearColumna($datos, 'linea_remesa_id', 'lineas_remesas', $mapaIds);
                 break;
 
-            case 'avisos_recibos':
+            case 'correos_enviados':
                 $this->remapearColumna($datos, 'recibo_id', 'recibos', $mapaIds);
                 break;
 

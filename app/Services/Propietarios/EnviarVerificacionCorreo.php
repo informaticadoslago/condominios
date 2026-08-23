@@ -5,6 +5,7 @@ namespace App\Services\Propietarios;
 use App\Mail\VerificacionCorreoPropietario;
 use App\Models\Comunidad;
 use App\Models\Contacto;
+use App\Models\CorreoEnviado;
 use App\Models\Estado;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
@@ -70,9 +71,15 @@ final class EnviarVerificacionCorreo
     private function enviar($contactos, Comunidad $comunidad, ?string $idioma): int
     {
         foreach ($contactos as $contacto) {
-            Mail::to($contacto->valor)->queue(
-                new VerificacionCorreoPropietario($contacto, $comunidad, $idioma)
-            );
+            $mailable = new VerificacionCorreoPropietario($contacto, $comunidad, $idioma);
+            Mail::to($contacto->valor)->queue($mailable);
+            CorreoEnviado::create([
+                'tipo'         => $mailable::class,
+                'asunto'       => $mailable->asunto(),
+                'destinatario' => $contacto->valor,
+                'enviado_at'   => now(),
+                'user_id'      => auth()->id(),
+            ]);
         }
 
         return $contactos->count();

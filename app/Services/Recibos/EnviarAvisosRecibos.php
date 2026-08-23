@@ -5,9 +5,9 @@ namespace App\Services\Recibos;
 use App\Mail\AvisoDevolucion;
 use App\Mail\AvisoRemesa;
 use App\Mail\AvisoTransferencia;
-use App\Models\AvisoRecibo;
 use App\Models\Comunidad;
 use App\Models\Contacto;
+use App\Models\CorreoEnviado;
 use App\Models\Estado;
 use App\Models\LineaRemesa;
 use App\Models\Recibo;
@@ -54,7 +54,7 @@ final class EnviarAvisosRecibos
             $mailable = new AvisoRemesa($linea, $idioma);
 
             Mail::to($correo->valor)->queue($mailable);
-            $this->registrar($linea->recibo, $mailable->asunto(), $correo->valor);
+            $this->registrar($linea->recibo, $mailable, $correo->valor);
 
             $avisados++;
         }
@@ -92,7 +92,7 @@ final class EnviarAvisosRecibos
         }
 
         $envio->queue($mailable);
-        $this->registrar($recibo, $mailable->asunto(), $correo->valor);
+        $this->registrar($recibo, $mailable, $correo->valor);
 
         return true;
     }
@@ -178,7 +178,7 @@ final class EnviarAvisosRecibos
         $envio->queue($mailable);
 
         foreach ($recibos as $recibo) {
-            $this->registrar($recibo, $mailable->asunto(), $correoValor);
+            $this->registrar($recibo, $mailable, $correoValor);
         }
     }
 
@@ -215,11 +215,12 @@ final class EnviarAvisosRecibos
             ->first();
     }
 
-    private function registrar(Recibo $recibo, string $motivo, string $destinatario): void
+    private function registrar(Recibo $recibo, object $mailable, string $destinatario): void
     {
-        AvisoRecibo::create([
+        CorreoEnviado::create([
+            'tipo'         => $mailable::class,
             'recibo_id'    => $recibo->id,
-            'motivo'       => $motivo,
+            'asunto'       => $mailable->asunto(),
             'destinatario' => $destinatario,
             'enviado_at'   => now(),
             // Nulo si no hay sesión: lo mandó un proceso, no una persona.

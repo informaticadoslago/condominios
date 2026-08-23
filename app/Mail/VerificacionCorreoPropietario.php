@@ -39,6 +39,11 @@ class VerificacionCorreoPropietario extends Mailable implements ShouldQueue
         $this->locale($idioma ?? config('app.locale'));
     }
 
+    public function asunto(): string
+    {
+        return __('Confirma tu correo — :comunidad', ['comunidad' => $this->comunidad->nombre]);
+    }
+
     public function build()
     {
         // Caduca a propósito: un enlace de verificación que vale para siempre acaba
@@ -49,11 +54,12 @@ class VerificacionCorreoPropietario extends Mailable implements ShouldQueue
             ['contacto' => $this->contacto->id],
         );
 
-        return $this->subject(__('Confirma tu correo — :comunidad', ['comunidad' => $this->comunidad->nombre]))
+        return $this->subject($this->asunto())
             ->view('emails.verificacion-correo-propietario', [
                 'nombre'    => $this->contacto->contactable?->nombreCompleto,
                 'comunidad' => $this->comunidad->nombre,
                 'enlace'    => $enlace,
+                'correoContacto' => $this->comunidad->correo_contacto,
             ]);
     }
 }

@@ -102,6 +102,8 @@ class PermisosYRolesInicialSeeder extends Seeder
             'configuracion-list',
             // Pantalla de tokens de API: caducidad por defecto y revocar los de cualquiera.
             'configuracion-token',
+            'correo-enviado-list',
+            'correo-prueba-enviar',
             'global-configuracion',
             'log-viewer-admin',
             'operador-list',

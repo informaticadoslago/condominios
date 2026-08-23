@@ -71,7 +71,18 @@ class AvisoRemesa extends Mailable implements ShouldQueue
             return '';
         }
 
-        return trim(($inmueble->planta ?? '').' '.($inmueble->puerta ?? ''));
+        $partes = [];
+
+        // No usar truthy: la planta "0" (bajo) es un valor válido, no un vacío.
+        if ($inmueble->planta !== null && $inmueble->planta !== '') {
+            $partes[] = __('PL. :planta', ['planta' => $inmueble->planta]);
+        }
+
+        if ($inmueble->puerta !== null && $inmueble->puerta !== '') {
+            $partes[] = __('PTA. :puerta', ['puerta' => $inmueble->puerta]);
+        }
+
+        return implode(' ', $partes);
     }
 
     private function concepto($recibo): string

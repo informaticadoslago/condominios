@@ -7,6 +7,7 @@ use App\Models\ComunidadDirectivo;
 use App\Models\ConceptoPresupuesto;
 use App\Models\Contacto;
 use App\Models\Cobro;
+use App\Models\CorreoEnviado;
 use App\Models\CuentaBancaria;
 use App\Models\Direccion;
 use App\Models\Documento;
@@ -28,7 +29,6 @@ use App\Models\Recibo;
 use App\Models\Remesa;
 use App\Models\Titularidad;
 use App\Models\User;
-use App\Models\AvisoRecibo;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
@@ -100,7 +100,7 @@ class ComunidadEliminador
         Documento::destroy($documentoIds);
 
         // 5-7. Recibos/remesas/cobros y sus satélites: hay FKs RESTRICT entre ellos.
-        AvisoRecibo::whereIn('recibo_id', $reciboIds)->delete();
+        CorreoEnviado::whereIn('recibo_id', $reciboIds)->delete();
         Cobro::whereIn('recibo_id', $reciboIds)
             ->orWhereIn('linea_remesa_id', $lineaRemesaIds)
             ->delete();

@@ -6,7 +6,7 @@
 --}}
 <x-emails.layout plantilla="aviso-remesa" :titulo="__('Aviso de cargo')">
 
-    <p class="saludo">{{ __('Hola, :nombre:', ['nombre' => $nombre]) }}</p>
+    <p class="saludo">{{ __('Hola :nombre:', ['nombre' => $nombre]) }}</p>
 
     <p>{{ __('Te avisamos de que :comunidad va a pasar al cobro el siguiente recibo. No tienes que hacer nada: se cargará en tu cuenta.', ['comunidad' => $comunidad]) }}</p>
 
@@ -34,13 +34,14 @@
     </table>
 
     <p class="aviso">
-        {{ __('Si los datos no son correctos o la cuenta ya no es la tuya, dínoslo antes de la fecha del cargo.') }}
-        @if ($correoContacto)
-            {{ __('Por favor, envíanos un correo lo antes posible a :correo.', ['correo' => $correoContacto]) }}
-        @endif
+        {{ __('Si los datos no son correctos o la cuenta ya no es la tuya, escribe o llama antes de la fecha del cargo.') }}
     </p>
 
     <x-slot name="pie">
-        {{ $comunidad }}
+        {{ $comunidad }}<br><br>
+        {{ __('Este es un correo automático: por favor no respondas a esta dirección.') }}
+        @if ($correoContacto)
+            {{ __('Para cualquier consulta, escribe a :correo.', ['correo' => $correoContacto]) }}
+        @endif
     </x-slot>
 </x-emails.layout>

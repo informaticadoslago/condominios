@@ -68,6 +68,7 @@ class AvisoDevolucion extends Mailable implements ShouldQueue
                 // El IBAN entero: es el de la comunidad y hace falta completo para
                 // poder hacer la transferencia.
                 'iban' => $this->formatearIban($this->comunidad->cuentasBancarias()->first()?->iban),
+                'correoContacto' => $this->comunidad->correo_contacto,
             ]);
     }
 

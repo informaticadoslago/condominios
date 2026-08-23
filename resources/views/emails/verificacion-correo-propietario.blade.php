@@ -8,12 +8,15 @@
 <x-emails.layout plantilla="verificacion-correo-propietario"
     :titulo="__('Confirma tu correo')">
 
-    <p class="saludo">{{ __('Hola, :nombre:', ['nombre' => $nombre]) }}</p>
+    <p class="saludo">{{ __('Hola :nombre:', ['nombre' => $nombre]) }}</p>
 
     <p>{{ __('Esta dirección de correo consta como tuya en :comunidad. Para poder mandarte los recibos y los avisos de la comunidad necesitamos que confirmes que es correcta.', ['comunidad' => $comunidad]) }}</p>
 
     <p class="boton-caja">
-        <a href="{{ $enlace }}" class="boton">{{ __('Confirmar mi correo') }}</a>
+        {{-- El color va también inline, no solo en la clase: Gmail y otros webmail
+             suelen pintar los <a> de su azul de enlace por defecto, ignorando el color
+             que venga del <style> del <head>. --}}
+        <a href="{{ $enlace }}" class="boton" style="color:#ffffff;">{{ __('Confirmar mi correo') }}</a>
     </p>
 
     <p class="aviso">
@@ -22,6 +25,10 @@
     </p>
 
     <x-slot name="pie">
-        {{ __('Si no esperabas este mensaje, puedes ignorarlo: sin confirmar, no se usará esta dirección.') }}
+        {{ __('Si no esperabas este mensaje, puedes ignorarlo: sin confirmar, no se usará esta dirección.') }}<br><br>
+        {{ __('Este es un correo automático: por favor no respondas a esta dirección.') }}
+        @if ($correoContacto)
+            {{ __('Para cualquier consulta, escribe a :correo.', ['correo' => $correoContacto]) }}
+        @endif
     </x-slot>
 </x-emails.layout>

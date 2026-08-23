@@ -6,7 +6,7 @@
 --}}
 <x-emails.layout plantilla="aviso-devolucion" :titulo="__('Aviso de devolución')">
 
-    <p class="saludo">{{ __('Hola, :nombre:', ['nombre' => $nombre]) }}</p>
+    <p class="saludo">{{ __('Hola :nombre:', ['nombre' => $nombre]) }}</p>
 
     <p>{{ __('Con fecha :fecha el banco nos ha devuelto los siguientes recibos de :comunidad:', ['fecha' => $fecha, 'comunidad' => $comunidad]) }}</p>
 
@@ -29,7 +29,7 @@
 
     @if ($iban)
         <div class="destacado">
-            {{ __('Rogamos hagan una transferencia a la cuenta de la comunidad a la mayor brevedad:') }}<br>
+            {{ __('Rogamos haga una transferencia a la cuenta de la comunidad a la mayor brevedad:') }}<br>
             <span class="iban">{{ $iban }}</span>
         </div>
     @endif
@@ -37,6 +37,10 @@
     <p class="aviso">{{ __('Un saludo.') }}</p>
 
     <x-slot name="pie">
-        {{ $comunidad }}
+        {{ $comunidad }}<br><br>
+        {{ __('Este es un correo automático: por favor no respondas a esta dirección.') }}
+        @if ($correoContacto)
+            {{ __('Para cualquier consulta, escribe a :correo.', ['correo' => $correoContacto]) }}
+        @endif
     </x-slot>
 </x-emails.layout>

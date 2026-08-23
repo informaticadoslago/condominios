@@ -2,6 +2,7 @@
 namespace App\Livewire\AdministracionSistema\Usuarios;
 
 use App\Mail\ConfirmacionCorreoUsuario;
+use App\Models\CorreoEnviado;
 use App\Models\User;
 use App\Models\Persona;
 use App\Models\EstadoUsuario;
@@ -191,7 +192,15 @@ class Lista extends ListaComponent
 
         $usuario->estado_id = EstadoUsuario::USUARIO_ACTIVO;
         $usuario->save();
-        Mail::to($usuario->email)->queue(new ConfirmacionCorreoUsuario($usuario));
+        $mailable = new ConfirmacionCorreoUsuario($usuario);
+        Mail::to($usuario->email)->queue($mailable);
+        CorreoEnviado::create([
+            'tipo'         => $mailable::class,
+            'asunto'       => $mailable->asunto(),
+            'destinatario' => $usuario->email,
+            'enviado_at'   => now(),
+            'user_id'      => auth()->id(),
+        ]);
 
         $this->dispatch('toast-success', ['title' => __('Usuario activado; correo enviado')]);
     }
@@ -224,7 +233,15 @@ class Lista extends ListaComponent
             return;
         }
 
-        Mail::to($usuario->email)->queue(new ConfirmacionCorreoUsuario($usuario));
+        $mailable = new ConfirmacionCorreoUsuario($usuario);
+        Mail::to($usuario->email)->queue($mailable);
+        CorreoEnviado::create([
+            'tipo'         => $mailable::class,
+            'asunto'       => $mailable->asunto(),
+            'destinatario' => $usuario->email,
+            'enviado_at'   => now(),
+            'user_id'      => auth()->id(),
+        ]);
 
         $this->dispatch('toast-success', ['title' => __('Correo de bienvenida reenviado')]);
     }

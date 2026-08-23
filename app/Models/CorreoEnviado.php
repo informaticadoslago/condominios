@@ -5,19 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Constancia de un aviso mandado por un recibo: cuándo, a qué dirección, por qué motivo
- * y quién lo lanzó (nulo si fue un proceso automático).
+ * Constancia de un correo enviado (o encolado): cuándo, a qué dirección, con qué asunto,
+ * de qué tipo (la clase Mailable usada) y quién lo lanzó (nulo si fue un proceso
+ * automático). `recibo_id` solo se rellena en los correos ligados a un recibo (aviso de
+ * remesa, transferencia o devolución); el resto lo dejan a null.
  *
- * No guarda el cuerpo del correo. Sirve para responder «¿se le avisó, y cuándo?» cuando
- * alguien dice que no se enteró, no para reproducir lo que se le mandó.
+ * No guarda el cuerpo del correo. Sirve para responder «¿se le avisó, y cuándo?», no
+ * para reproducir lo que se le mandó.
  */
-class AvisoRecibo extends Model
+class CorreoEnviado extends Model
 {
-    protected $table = 'avisos_recibos';
+    protected $table = 'correos_enviados';
 
     protected $fillable = [
+        'tipo',
         'recibo_id',
-        'motivo',
+        'asunto',
         'destinatario',
         'enviado_at',
         'user_id',

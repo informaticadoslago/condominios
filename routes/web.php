@@ -15,10 +15,12 @@ use App\Livewire\Remesas\Lista as RemesasLista;
 use App\Http\Controllers\EmpresaContableContextoController;
 use App\Livewire\AdministracionSistema\Backups\Lista as BackupsLista;
 use App\Livewire\AdministracionSistema\Comunidades\Importar as ComunidadesImportar;
+use App\Livewire\AdministracionSistema\CorreosEnviados\Lista as CorreosEnviadosLista;
 use App\Livewire\AdministracionSistema\Empresa\Editar as EmpresaEditar;
 use App\Livewire\AdministracionSistema\Jobs\Lista as JobsLista;
 use App\Livewire\AdministracionSistema\Permisos\Lista as PermisosLista;
 use App\Livewire\AdministracionSistema\Personas\Lista as PersonasLista;
+use App\Livewire\AdministracionSistema\PruebasCorreo\Formulario as PruebasCorreoFormulario;
 use App\Livewire\AdministracionSistema\Roles\Lista as RolesLista;
 use App\Livewire\AdministracionSistema\TokensApi\Lista as AdminTokensApiLista;
 use App\Livewire\AdministracionSistema\Usuarios\Lista as UsuariosLista;
@@ -112,6 +114,12 @@ Route::middleware([
         Route::get('/tokens-api', AdminTokensApiLista::class)
             ->can('configuracion-token')
             ->name('tokens-api.index');
+        Route::get('/correos-enviados', CorreosEnviadosLista::class)
+            ->can('correo-enviado-list')
+            ->name('correos-enviados.index');
+        Route::get('/pruebas-correo', PruebasCorreoFormulario::class)
+            ->can('correo-prueba-enviar')
+            ->name('pruebas-correo.index');
         Route::get('/jobs', JobsLista::class)->name('jobs.index');
         Route::get('/backups', BackupsLista::class)->name('backups.index');
         Route::get('/backups/{fichero}/descargar', BackupDescargaController::class)
