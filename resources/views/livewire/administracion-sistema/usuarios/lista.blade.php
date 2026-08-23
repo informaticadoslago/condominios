@@ -60,7 +60,8 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="inline-flex items-center gap-1">
-                                            @forelse ($usuario->getRoleNames() as $role)
+                                            @php $roles = $usuario->getRoleNames(); @endphp
+                                            @forelse ($roles->take(2) as $role)
                                                 <x-dosl.badge color="platano">
                                                     {{ $role }}
                                                 </x-dosl.badge>
@@ -69,6 +70,25 @@
                                                     sin roles
                                                 </span>
                                             @endforelse
+                                            @if ($roles->count() > 2)
+                                                <x-dropdown align="left" width="60">
+                                                    <x-slot name="trigger">
+                                                        <button type="button" title="{{ __('Ver todos los roles') }}"
+                                                            class="px-2 py-0.5 rounded-lg text-xs text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-800/5 dark:hover:bg-white/10">
+                                                            ...
+                                                        </button>
+                                                    </x-slot>
+                                                    <x-slot name="content">
+                                                        <div class="p-2 flex flex-wrap gap-1">
+                                                            @foreach ($roles as $role)
+                                                                <x-dosl.badge color="platano">
+                                                                    {{ $role }}
+                                                                </x-dosl.badge>
+                                                            @endforeach
+                                                        </div>
+                                                    </x-slot>
+                                                </x-dropdown>
+                                            @endif
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
