@@ -13,7 +13,8 @@ class TipoProveedor extends Model
     REPARACION = 1,
     PROFESIONALES = 2,
     SUMINISTROS = 3,
-    LIMPIEZA = 4;
+    LIMPIEZA = 4,
+    SEGUROS = 5;
 
     const
     ESTADO_ACTIVO = 1,
