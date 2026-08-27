@@ -3,6 +3,7 @@
 namespace App\Services\Contabilidad;
 
 use App\Exceptions\EmpresaContableInvalidaException;
+use App\Models\CuentaContable;
 use App\Models\EmpresaContable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,13 @@ use Illuminate\Support\Facades\DB;
  */
 final class ResolverEmpresaContableService
 {
-    public function ejecutar(string $cif, string $razonSocial): EmpresaContable
+    /**
+     * $plantilla: qué plantilla añadir encima de la común al copiar el plan de cuentas
+     * (ver CuentaContable::copiarPlanGlobalA), solo si esta llamada CREA la empresa -si ya
+     * existe, su plan no se toca-. null = solo la común, es un value object (string), no
+     * un modelo de gestión: no rompe la frontera del módulo.
+     */
+    public function ejecutar(string $cif, string $razonSocial, ?string $plantilla = null): EmpresaContable
     {
         $cif         = $this->normalizar($cif);
         $razonSocial = trim($razonSocial);
@@ -40,11 +47,17 @@ final class ResolverEmpresaContableService
 
         try {
             // En transacción porque al crearse arrastra el plan de cuentas y su rol de
-            // acceso (ver EmpresaContable::booted): o está todo o no está nada.
-            return DB::transaction(fn (): EmpresaContable => EmpresaContable::create([
-                'cif'          => $cif,
-                'razon_social' => $razonSocial,
-            ]));
+            // acceso: o está todo o no está nada.
+            return DB::transaction(function () use ($cif, $razonSocial, $plantilla): EmpresaContable {
+                $empresa = EmpresaContable::create([
+                    'cif'          => $cif,
+                    'razon_social' => $razonSocial,
+                ]);
+
+                CuentaContable::copiarPlanGlobalA($empresa, $plantilla);
+
+                return $empresa;
+            });
         } catch (QueryException $e) {
             // Dos peticiones a la vez con el mismo CIF: la que pierde choca contra el
             // único. La empresa existe, que es lo que quería quien llamó.

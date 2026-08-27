@@ -40,7 +40,9 @@ class EmpresaContable extends Model
         static::created(function (self $empresaContable) {
             Role::firstOrCreate(['name' => $empresaContable->nombreRol(), 'guard_name' => 'web']);
 
-            CuentaContable::copiarPlanGlobalA($empresaContable);
+            // El plan de cuentas NO se copia aquí: quien crea la empresa es quien sabe
+            // (si lo sabe) qué plantilla le corresponde -comunidad, sociedad, ninguna-, así
+            // que es quien llama a CuentaContable::copiarPlanGlobalA() explícitamente.
         });
     }
 

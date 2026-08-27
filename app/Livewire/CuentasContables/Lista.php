@@ -7,7 +7,7 @@ use App\Livewire\Traits\ConArbolCuentasContables;
 use App\Livewire\Traits\ConBajaPorEstado;
 use App\Livewire\Traits\ConFiltroEstado;
 use App\Livewire\Traits\ConHistorialEstadoModal;
-use App\Models\CuentaContable;
+use App\Models\CuentaContablePlantilla;
 use App\Models\Estado;
 use App\Models\TipoCuentaContable;
 use Livewire\Attributes\On;
@@ -21,12 +21,12 @@ class Lista extends ListaComponent
 
     protected function modeloBaja(): string
     {
-        return CuentaContable::class;
+        return CuentaContablePlantilla::class;
     }
 
     protected function modeloHistorial(): string
     {
-        return CuentaContable::class;
+        return CuentaContablePlantilla::class;
     }
 
     public function mount()
@@ -66,10 +66,30 @@ class Lista extends ListaComponent
         ];
     }
 
+    protected function filtroPlantilla(): array
+    {
+        return [
+            'clave' => 'plantilla',
+            'etiqueta' => __('Plantilla'),
+            'tipo' => 'select',
+            'opciones' => [
+                ''                                        => __('Todas'),
+                'comun'                                    => __('Común'),
+                CuentaContablePlantilla::PLANTILLA_COMUNIDAD => __('Comunidad'),
+                CuentaContablePlantilla::PLANTILLA_SOCIEDAD  => __('Sociedad'),
+            ],
+            'neutro' => '',
+            'aplicar' => fn ($query, $valor) => $valor === 'comun'
+                ? $query->whereNull('plantilla')
+                : $query->where('plantilla', $valor),
+        ];
+    }
+
     public function definicionesFiltro(): array
     {
         return [
             $this->filtroTipo(),
+            $this->filtroPlantilla(),
             $this->filtroEstado(),
         ];
     }
@@ -78,11 +98,9 @@ class Lista extends ListaComponent
     {
         $search = trim($this->search ?? '');
 
-        // Cuentas maestras: aún no asignadas a ninguna empresa contable.
         $consultaBase = fn () => $this->aplicarFiltros(
-            CuentaContable::with(['tipoCuentaContable', 'estado'])
+            CuentaContablePlantilla::with(['tipoCuentaContable', 'estado'])
                 ->withCount(['historialEstados', 'subcuentas'])
-                ->whereNull('empresa_contable_id')
         )
             ->when($search, function ($q) use ($search) {
                 $q->where('codigo', 'like', "%{$search}%")

@@ -72,11 +72,39 @@ mucho que el número quede libre en nuestra base.
 
 ---
 
-## La plantilla de comunidades
+## Plantillas: común, comunidad y sociedad
 
-Vive en [`PlanCuentasComunidadesSeeder`](../database/seeders/PlanCuentasComunidadesSeeder.php),
-como cuentas maestras (`empresa_contable_id` nulo) con las que arranca una empresa contable
-nueva.
+No hay una única plantilla: hay una **común**, y encima de ella una plantilla propia según
+el origen (comunidad o sociedad). Viven en su propia tabla,
+[`cuenta_contable_plantillas`](../app/Models/CuentaContablePlantilla.php) —no en
+`cuenta_contables`—, para que un borrado o un update masivo de plantillas no pueda rozar ni
+por accidente una cuenta real de una empresa contable ya creada. Cada una en su seeder:
+
+- [`PlanCuentasBaseSeeder`](../database/seeders/PlanCuentasBaseSeeder.php) — común, `plantilla`
+  nula. Se copia siempre.
+- [`PlanCuentasComunidadesSeeder`](../database/seeders/PlanCuentasComunidadesSeeder.php) —
+  `plantilla = 'comunidad'`. Se copia encima de la común al enlazar una comunidad.
+- [`PlanCuentasSociedadesSeeder`](../database/seeders/PlanCuentasSociedadesSeeder.php) —
+  `plantilla = 'sociedad'`. Se copia encima de la común al enlazar una sociedad.
+
+La pantalla "Cuentas contables" (`CuentasContables\Lista`/`Formulario`) edita
+`CuentaContablePlantilla` con un selector de plantilla; es la misma pantalla que
+"Plan de cuentas" (`PlanDeCuentas\Lista`/`Formulario`, dentro de una empresa contable) pero
+sobre la tabla de plantillas en vez de sobre las cuentas reales de esa empresa —el árbol,
+el histórico y el alta/baja funcionan igual en las dos porque son el mismo mecanismo
+(`ConArbolCuentasContables`, `ConHistorialEstado`), solo cambia dónde se guardan los datos.
+
+Quien copia el plan es [`CuentaContable::copiarPlanGlobalA()`](../app/Models/CuentaContable.php),
+llamado por quien crea la empresa contable (`ResolverEmpresaContableService`, o el alta
+directa del CRUD de Empresas contables) — la contabilidad no sabe si viene de una comunidad
+o una sociedad, solo recibe el nombre de la plantilla. Una empresa contable creada
+directamente (sin pasar por ningún enlace) solo lleva la común.
+
+Una cuenta de una plantilla puede usar el **mismo código** que una de la común —la 430, ver
+más abajo—: al copiar, la de la plantilla pisa el nombre de la común, siempre en ese orden
+(común primero, plantilla encima).
+
+### Común
 
 | Código | Nombre | Naturaleza |
 |---|---|---|
@@ -85,21 +113,40 @@ nueva.
 | `12900000` | Resultado del ejercicio | Patrimonio neto |
 | `40000000` | Proveedores | Pasivo |
 | `41000000` | Acreedores por prestaciones de servicios | Pasivo |
-| `43000000` | Propietarios | Activo |
+| `43000000` | Clientes | Activo |
 | `57200000` | Bancos | Activo |
 | `62200000` | Reparación y conservación | Gasto |
 | `62300000` | Servicios de profesionales independientes | Gasto |
+| `62500000` | Primas de seguros | Gasto |
+| `62600000` | Servicios bancarios | Gasto |
+| `62600001` | Comisiones bancarias | Gasto |
+| `62600002` | Comisiones de mantenimiento y administración de cuenta | Gasto |
 | `62800000` | Suministros | Gasto |
 | `62900000` | Servicios de limpieza | Gasto |
+
+### Encima, si es una comunidad
+
+| Código | Nombre | Naturaleza |
+|---|---|---|
+| `43000000` | Propietarios *(pisa a «Clientes»)* | Activo |
 | `75000000` | Ingresos por cuotas de comunidad | Ingreso |
 | `75010000` | Ingresos por derramas | Ingreso |
 
-Es **una** plantilla, no el plan de cuentas del sistema. La contabilidad es genérica y no
-sabe qué es una cuota ni una derrama: solo mueve céntimos entre códigos que le dan. El día
-que entre otro tipo de empresa se añade otra plantilla al lado, sin tocar esta ni el motor.
+### Encima, si es una sociedad
 
-De la tabla, tres cuentas llevan nombre nuestro sobre un uso del PGC: la `43000000`
-(430 *Clientes*), la `62900000` (629 *Otros servicios*) y las dos de ingresos. El resto son
+| Código | Nombre | Naturaleza |
+|---|---|---|
+| `47200000` | H.P., IVA soportado | Activo |
+| `47700000` | H.P., IVA repercutido | Pasivo |
+| `60000000` | Compras | Gasto |
+| `70000000` | Ventas / prestación de servicios | Ingreso |
+
+La contabilidad es genérica y no sabe qué es una cuota, una derrama ni un IVA: solo mueve
+céntimos entre códigos que le dan. El día que entre otro origen se añade otra plantilla al
+lado, sin tocar las demás ni el motor.
+
+De la común, dos cuentas llevan nombre nuestro sobre un uso del PGC: la `43000000`
+(430 *Clientes*, ver más abajo) y la `62900000` (629 *Otros servicios*). El resto son
 literales del cuadro.
 
 ---
@@ -110,15 +157,18 @@ El remanente es la **120**, del subgrupo 12 *«Resultados pendientes de aplicaci
 un tiempo en la `30000000`, que es grupo 3 *Existencias* y cuya 300 es *Mercaderías A*.
 
 Están las tres del subgrupo porque el cierre las necesita: la **129** *Resultado del
-ejercicio* es donde aterriza la diferencia entre las 75xx y las 62xx, y de ahí sale contra la
-**120** o la **121** *Resultados negativos de ejercicios anteriores* según el signo.
+ejercicio* es donde aterriza la diferencia entre ingresos y gastos (75xx/62xx en una
+comunidad, 70xx/60xx-62xx en una sociedad), y de ahí sale contra la **120** o la **121**
+*Resultados negativos de ejercicios anteriores* según el signo.
 
 ---
 
 ## Propietarios: la 430
 
-El propietario va a la **430 «Clientes»**, que en nuestro plan se llama `43000000`
-**Propietarios**. Caso de manual del criterio 1: uso estipulado, nombre nuestro.
+El propietario va a la **430 «Clientes»**: en la plantilla común se llama, literalmente,
+`43000000` **Clientes** —la sirve tal cual una sociedad—, y la plantilla de comunidad pisa
+ese nombre por `43000000` **Propietarios** al copiarla. Caso de manual del criterio 1: uso
+estipulado, nombre nuestro (y aquí, nombre nuestro *distinto según quién lo lea*).
 
 Se descartó la 431 para las derramas. En el BOE es *«Clientes, efectos comerciales a
 cobrar»*, con 4310 en cartera, 4311 descontados, 4312 en gestión de cobro y 4315 impagados:

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\EmpresasContables;
 
+use App\Models\CuentaContable;
 use App\Models\EmpresaContable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -72,7 +73,12 @@ class Formulario extends Component
             $empresa->update($data);
             $this->dispatch('toast-success', ['title' => __('Empresa contable modificada')]);
         } else {
-            DB::transaction(fn () => EmpresaContable::create($data));
+            // Alta directa (no viene de enlazar una comunidad ni una sociedad): plan de
+            // cuentas común a secas, sin ninguna plantilla añadida encima.
+            DB::transaction(function () use ($data) {
+                $empresa = EmpresaContable::create($data);
+                CuentaContable::copiarPlanGlobalA($empresa);
+            });
             $this->dispatch('toast-success', ['title' => __('Empresa contable creada')]);
         }
 

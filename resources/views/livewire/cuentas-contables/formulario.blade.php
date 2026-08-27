@@ -33,6 +33,16 @@
             <x-input id="cc-nombre" class="block mt-1 w-full mayusculas" type="text" wire:model="nombre" forzar-may />
             <x-input-error for="nombre" class="mt-2" />
         </div>
+        <div class="mt-3">
+            <x-label for="cc-plantilla" :value="__('Plantilla')" />
+            <x-select id="cc-plantilla" class="block mt-1 w-full" wire:model="plantilla">
+                <option value="">{{ __('Común (se copia siempre)') }}</option>
+                <option value="comunidad">{{ __('Comunidad') }}</option>
+                <option value="sociedad">{{ __('Sociedad') }}</option>
+            </x-select>
+            <x-input-error for="plantilla" class="mt-2" />
+            <p class="text-xs text-gray-500 mt-1">{{ __('Se copia encima de la común solo al enlazar ese origen con la contabilidad.') }}</p>
+        </div>
     </x-slot>
 
     <x-slot name="footer">

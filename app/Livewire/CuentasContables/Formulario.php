@@ -2,7 +2,7 @@
 
 namespace App\Livewire\CuentasContables;
 
-use App\Models\CuentaContable;
+use App\Models\CuentaContablePlantilla;
 use App\Models\TipoCuentaContable;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
@@ -17,16 +17,24 @@ class Formulario extends Component
     public string $nombre = '';
     public ?int $tipo_cuenta_contable_id = null;
 
+    /** '' en el select = común (se guarda como null); si no, PLANTILLA_COMUNIDAD/SOCIEDAD. */
+    public string $plantilla = '';
+
+    private function plantillaNormalizada(): ?string
+    {
+        return $this->plantilla !== '' ? $this->plantilla : null;
+    }
+
     protected function rules()
     {
         return [
             // De 1 a 3 cifras es un nivel del PGC (grupo, subgrupo o cuenta); 8, una cuenta.
             'codigo'                  => [
                 'required', 'regex:/^(\d{1,3}|\d{8})$/',
-                // Único entre las cuentas maestras (empresa_contable_id nulo): el índice
-                // único compuesto de la BD no lo garantiza solo (NULL no choca con NULL).
-                Rule::unique('cuenta_contables', 'codigo')
-                    ->whereNull('empresa_contable_id')
+                // Único dentro de la misma plantilla: el índice único compuesto de la BD no
+                // lo garantiza solo (NULL no choca con NULL).
+                Rule::unique('cuenta_contable_plantillas', 'codigo')
+                    ->where('plantilla', $this->plantillaNormalizada())
                     ->ignore($this->itemId),
             ],
             'nombre'                  => ['required', 'string', 'max:150'],
@@ -41,7 +49,7 @@ class Formulario extends Component
             'required' => 'Debe rellenar :attribute',
             'max'      => 'Máxima longitud de :attribute = :max',
             'regex'    => 'El :attribute lleva 8 dígitos, o de 1 a 3 (grupo, subgrupo o cuenta)',
-            'unique'   => 'Ya existe una cuenta con ese código',
+            'unique'   => 'Ya existe una cuenta con ese código en esa plantilla',
             'exists'   => 'El :attribute seleccionado no es válido',
         ];
     }
@@ -58,7 +66,7 @@ class Formulario extends Component
     #[On('abrir-crear-cuenta-contable')]
     public function crear($codigoPrefijo = null)
     {
-        $this->reset(['itemId', 'codigo', 'nombre', 'tipo_cuenta_contable_id']);
+        $this->reset(['itemId', 'codigo', 'nombre', 'tipo_cuenta_contable_id', 'plantilla']);
         $this->resetValidation();
         $this->codigo = $codigoPrefijo ? substr(preg_replace('/\D/', '', $codigoPrefijo), 0, 8) : '';
         $this->abrir = true;
@@ -67,23 +75,24 @@ class Formulario extends Component
     /** Nivel del PGC (hasta 3 cifras): no lleva tipo ni se autonumera. */
     public function esAgrupacion(): bool
     {
-        return strlen(preg_replace('/\D/', '', (string) $this->codigo)) <= CuentaContable::CIFRAS_AGRUPACION;
+        return strlen(preg_replace('/\D/', '', (string) $this->codigo)) <= CuentaContablePlantilla::CIFRAS_AGRUPACION;
     }
 
     /**
      * Con el prefijo tecleado en Código (4-7 dígitos), completa el siguiente código de 8
-     * libre de ese grupo. Con 3 cifras o menos no toca nada: eso no es un prefijo a
-     * medias, es el código de un grupo, un subgrupo o una cuenta del PGC.
+     * libre de ese grupo, dentro de la plantilla elegida. Con 3 cifras o menos no toca
+     * nada: eso no es un prefijo a medias, es el código de un grupo, un subgrupo o una
+     * cuenta del PGC.
      */
     public function siguienteCodigo(): void
     {
         $prefijo = substr(preg_replace('/\D/', '', $this->codigo), 0, 8);
 
-        if (strlen($prefijo) <= CuentaContable::CIFRAS_AGRUPACION || strlen($prefijo) >= 8) {
+        if (strlen($prefijo) <= CuentaContablePlantilla::CIFRAS_AGRUPACION || strlen($prefijo) >= 8) {
             return;
         }
 
-        $ultimo = CuentaContable::whereNull('empresa_contable_id')
+        $ultimo = CuentaContablePlantilla::where('plantilla', $this->plantillaNormalizada())
             ->where('codigo', 'like', $prefijo.str_repeat('_', 8 - strlen($prefijo)))
             ->orderByDesc('codigo')
             ->value('codigo');
@@ -99,7 +108,7 @@ class Formulario extends Component
 
         // Sugiere el tipo de la cuenta de la que va a colgar, si existe.
         if (! $this->tipo_cuenta_contable_id) {
-            $padre = CuentaContable::padreDe($siguiente, null);
+            $padre = CuentaContablePlantilla::padreDe($siguiente, $this->plantillaNormalizada());
 
             if ($padre) {
                 $this->tipo_cuenta_contable_id = $padre->tipo_cuenta_contable_id;
@@ -110,14 +119,15 @@ class Formulario extends Component
     #[On('cuenta-contable-editar')]
     public function editar($id)
     {
-        $item = CuentaContable::whereNull('empresa_contable_id')->find($id);
-        if (! $item || $item->estado_id != CuentaContable::ESTADO_ACTIVO) {
+        $item = CuentaContablePlantilla::find($id);
+        if (! $item || $item->estado_id != CuentaContablePlantilla::ESTADO_ACTIVO) {
             return;
         }
         $this->itemId                  = $item->id;
         $this->codigo                  = $item->codigo;
         $this->nombre                  = $item->nombre;
         $this->tipo_cuenta_contable_id = $item->tipo_cuenta_contable_id;
+        $this->plantilla               = $item->plantilla ?? '';
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -125,25 +135,25 @@ class Formulario extends Component
     public function guardar()
     {
         $data = $this->validate();
+        $data['plantilla'] = $this->plantillaNormalizada();
 
         // Cuelga sola del ancestro más cercano que exista. Se recalcula también al editar:
         // si el código cambia, cambia de sitio en el árbol.
-        $data['cuenta_padre_id'] = CuentaContable::padreDe($data['codigo'], null)?->id;
+        $data['cuenta_padre_id'] = CuentaContablePlantilla::padreDe($data['codigo'], $this->plantillaNormalizada())?->id;
 
         if ($this->itemId) {
-            $cuenta = CuentaContable::findOrFail($this->itemId);
+            $cuenta = CuentaContablePlantilla::findOrFail($this->itemId);
             $cuenta->update($data);
             $this->dispatch('toast-success', ['title' => __('Cuenta modificada')]);
         } else {
-            $cuenta = CuentaContable::create($data + [
-                'empresa_contable_id' => null,
-                'estado_id'           => CuentaContable::ESTADO_ACTIVO,
+            $cuenta = CuentaContablePlantilla::create($data + [
+                'estado_id' => CuentaContablePlantilla::ESTADO_ACTIVO,
             ]);
             $this->dispatch('toast-success', ['title' => __('Cuenta creada')]);
         }
 
         // Una cuenta intermedia recién creada se lleva a los nietos que colgaban del abuelo.
-        CuentaContable::recolgarPlan(null);
+        CuentaContablePlantilla::recolgarPlan($this->plantillaNormalizada());
 
         $this->dispatch('cuenta-contable-guardada', cuenta: ['id' => $cuenta->id, 'codigo' => $cuenta->codigo, 'nombre' => $cuenta->nombre]);
         $this->cerrar();

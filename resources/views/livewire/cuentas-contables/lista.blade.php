@@ -41,6 +41,7 @@
                                 @endif
                             </th>
                             <th class="py-3 px-6">{{ __('Tipo') }}</th>
+                            <th class="py-3 px-6">{{ __('Plantilla') }}</th>
                             <th class="py-3 px-6">{{ __('Estado') }}</th>
                             <th class="py-3 px-6">{{ __('Acción') }}</th>
                         </tr>
@@ -56,6 +57,15 @@
                                 </td>
                                 <td class="px-6 py-4">{{ $item->tipoCuentaContable?->descripcion }}</td>
                                 <td class="px-6 py-4">
+                                    @if ($item->plantilla === \App\Models\CuentaContablePlantilla::PLANTILLA_COMUNIDAD)
+                                        {{ __('Comunidad') }}
+                                    @elseif ($item->plantilla === \App\Models\CuentaContablePlantilla::PLANTILLA_SOCIEDAD)
+                                        {{ __('Sociedad') }}
+                                    @else
+                                        {{ __('Común') }}
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4">
                                     <span class="mayusculas">{{ $item->estado?->descripcion }}</span>
                                     @if ($item->historial_estados_count > 1)
                                         <button type="button" wire:click="verHistorial({{ $item->id }})"
@@ -65,7 +75,7 @@
                                     @endif
                                 </td>
                                 <td class="px-4 whitespace-nowrap">
-                                    @if ($item->estado_id == \App\Models\CuentaContable::ESTADO_ACTIVO)
+                                    @if ($item->estado_id == \App\Models\CuentaContablePlantilla::ESTADO_ACTIVO)
                                         <x-button type="button" class="btn-editar" id="btn-editar-cuenta-contable-{{ $item->id }}"
                                             wire:click="$dispatch('cuenta-contable-editar', {id: {{ $item->id }}})"
                                             title="{{ __('Modificar') }}">

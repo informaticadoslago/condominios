@@ -152,19 +152,42 @@ class CuentaContable extends Model
 
     /**
      * Copia (no enlaza) el plan de cuentas global a una empresa contable recién
-     * creada: si el plan global cambia después, las cuentas ya copiadas no se
-     * ven afectadas. La jerarquía se recalcula por código con codigosAncestros(),
-     * igual que hacen CuentasContables\Formulario y PlanDeCuentas\Formulario.
+     * creada, desde las plantillas de CuentaContablePlantilla (tabla aparte: nunca hay
+     * cuentas reales de una empresa mezcladas con las maestras). Si las plantillas
+     * cambian después, las cuentas ya copiadas no se ven afectadas. La jerarquía se
+     * recalcula por código con codigosAncestros(), igual que hacen
+     * CuentasContables\Formulario y PlanDeCuentas\Formulario.
+     *
+     * $plantilla añade, encima de la común (plantilla nula), las cuentas propias de esa
+     * plantilla (p. ej. CuentaContablePlantilla::PLANTILLA_COMUNIDAD/PLANTILLA_SOCIEDAD).
+     * Si una cuenta de la plantilla usa el mismo código que una común (p. ej. la 430:
+     * «Clientes» en común, «Propietarios» en la de comunidad), la de la plantilla la
+     * pisa -por eso se procesan en ESE orden: primero todas las comunes, luego las de la
+     * plantilla encima-. Sin plantilla (alta directa de una empresa contable, sin pasar
+     * por una comunidad ni una sociedad) se copia solo la común.
      */
-    public static function copiarPlanGlobalA(EmpresaContable $empresaContable): void
+    public static function copiarPlanGlobalA(EmpresaContable $empresaContable, ?string $plantilla = null): void
     {
+        $porCodigo = [];
+
+        // Primero la común, luego la plantilla: la segunda pasada pisa a la primera.
+        $tandas = $plantilla ? [null, $plantilla] : [null];
+
+        foreach ($tandas as $tanda) {
+            foreach (CuentaContablePlantilla::where('plantilla', $tanda)->orderBy('codigo')->get() as $global) {
+                $porCodigo[$global->codigo] = $global;
+            }
+        }
+
+        ksort($porCodigo);
+
         $nuevoIdPorCodigo = [];
 
-        foreach (self::whereNull('empresa_contable_id')->orderBy('codigo')->get() as $global) {
+        foreach ($porCodigo as $codigo => $global) {
             $padreId = null;
 
             // Van en orden de código, así que los ancestros ya están copiados.
-            foreach (self::codigosAncestros($global->codigo) as $ancestro) {
+            foreach (self::codigosAncestros($codigo) as $ancestro) {
                 if (isset($nuevoIdPorCodigo[$ancestro])) {
                     $padreId = $nuevoIdPorCodigo[$ancestro];
                     break;
@@ -175,12 +198,12 @@ class CuentaContable extends Model
                 'empresa_contable_id'     => $empresaContable->id,
                 'tipo_cuenta_contable_id' => $global->tipo_cuenta_contable_id,
                 'cuenta_padre_id'         => $padreId,
-                'codigo'                  => $global->codigo,
+                'codigo'                  => $codigo,
                 'nombre'                  => $global->nombre,
                 'estado_id'               => $global->estado_id,
             ]);
 
-            $nuevoIdPorCodigo[$global->codigo] = $nueva->id;
+            $nuevoIdPorCodigo[$codigo] = $nueva->id;
         }
     }
 }

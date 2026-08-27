@@ -9,6 +9,7 @@ use App\Livewire\Traits\ConBajaPorEstado;
 use App\Livewire\Traits\ConFichaInicio;
 use App\Models\AccesoDirecto;
 use App\Models\Comunidad;
+use App\Models\CuentaContablePlantilla;
 use App\Services\ComisionesBancarias\AsegurarTiposComisionBancaria;
 use App\Services\Comunidades\EnlaceContableComunidad;
 use App\Services\Contabilidad\AbrirEjercicioContableService;
@@ -181,7 +182,7 @@ class Lista extends ListaComponent
         try {
             $empresa = DB::transaction(function () use ($comunidad, $anho) {
                 $empresa = app(ResolverEmpresaContableService::class)
-                    ->ejecutar((string) $comunidad->cif, (string) $comunidad->nombre);
+                    ->ejecutar((string) $comunidad->cif, (string) $comunidad->nombre, CuentaContablePlantilla::PLANTILLA_COMUNIDAD);
 
                 app(AbrirEjercicioContableService::class)
                     ->ejecutar($empresa->id, (string) $anho, "$anho-01-01", "$anho-12-31");
