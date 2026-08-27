@@ -35,7 +35,8 @@ class AltaProveedorDesdeFactura
         bool $sobrescribir = false,
         ?int $documentoPaisId = null,
         ?int $tipoDocumentoId = null,
-        ?int $tipoProveedorId = null
+        ?int $tipoProveedorId = null,
+        ?int $actividadId = null,
     ): array {
         $documento = $this->normalizarDocumento($documento);
         // De un PDF no se sabe el país ni el tipo, se deducen de la letra (y solo puede
@@ -109,6 +110,7 @@ class AltaProveedorDesdeFactura
         FacturaProveedor::create([
             'documento_id'   => $documentoCreado?->id,
             'proveedor_id'   => $proveedor->id,
+            'actividad_id'   => $actividadId,
             'numero_factura' => $numeroFactura,
             'fecha_factura'  => $fecha,
             'importe'        => $this->normalizarImporte($importe),

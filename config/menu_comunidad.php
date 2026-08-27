@@ -25,6 +25,7 @@ return [
                 ['icon' => 'fa-solid fa-list', 'label' => trans_key('menu.Movimientos bancarios'), 'route' => 'movimientos-bancarios.index'],
                 ['type' => 'spacer'],
                 ['icon' => 'fa-solid fa-people-roof', 'label' => trans_key('menu.Grupos de reparto'), 'route' => 'grupos-de-reparto.index'],
+                ['icon' => 'fa-solid fa-diagram-project', 'label' => trans_key('menu.Actividades'), 'route' => 'actividades.index'],
                 ['icon' => 'fa-solid fa-user-tie', 'label' => trans_key('menu.Propietarios'), 'route' => 'propietarios.index'],
                 ['icon' => 'fa-solid fa-truck', 'label' => trans_key('menu.Proveedores'), 'route' => 'proveedores.index'],
             ],

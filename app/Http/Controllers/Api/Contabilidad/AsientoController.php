@@ -6,6 +6,7 @@ use App\Exceptions\AsientoInvalidoException;
 use App\Exceptions\CuentaContableDesconocidaException;
 use App\Exceptions\EjercicioCerradoException;
 use App\Exceptions\EjercicioContableDesconocidoException;
+use App\Exceptions\ProyectoContableDesconocidoException;
 use App\Exceptions\SubcuentasAgotadasException;
 use App\Exceptions\TerceroContableDesconocidoException;
 use App\Http\Controllers\Controller;
@@ -29,7 +30,8 @@ class AsientoController extends Controller
         } catch (EjercicioCerradoException|SubcuentasAgotadasException $e) {
             return $this->fallo($e, 409);
         } catch (AsientoInvalidoException|CuentaContableDesconocidaException
-            |EjercicioContableDesconocidoException|TerceroContableDesconocidoException $e) {
+            |EjercicioContableDesconocidoException|TerceroContableDesconocidoException
+            |ProyectoContableDesconocidoException $e) {
             return $this->fallo($e, 422);
         }
 
@@ -45,7 +47,7 @@ class AsientoController extends Controller
 
     private function comoArray(AsientoContable $asiento): array
     {
-        $asiento->load(['apuntesContables.cuentaContable', 'ejercicioContable']);
+        $asiento->load(['apuntesContables.cuentaContable', 'apuntesContables.proyectoContable', 'ejercicioContable']);
 
         return [
             'id'         => $asiento->id,
@@ -61,6 +63,7 @@ class AsientoController extends Controller
             ],
             'lineas' => $asiento->apuntesContables->map(fn ($apunte): array => [
                 'cuenta'   => $apunte->cuentaContable?->codigo,
+                'proyecto' => $apunte->proyecto_contable_id,
                 'debe'     => $apunte->debe,
                 'haber'    => $apunte->haber,
                 'concepto' => $apunte->concepto,

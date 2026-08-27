@@ -20,6 +20,7 @@ final readonly class DatosApunte
         public ?string $cuenta = null,
         public ?DatosTercero $tercero = null,
         public ?string $concepto = null,
+        public ?int $proyecto = null,
     ) {
     }
 
@@ -31,6 +32,7 @@ final readonly class DatosApunte
             cuenta: isset($datos['cuenta']) ? (string) $datos['cuenta'] : null,
             tercero: isset($datos['tercero']) ? DatosTercero::desdeArray($datos['tercero']) : null,
             concepto: $datos['concepto'] ?? null,
+            proyecto: isset($datos['proyecto']) ? (int) $datos['proyecto'] : null,
         );
     }
 }

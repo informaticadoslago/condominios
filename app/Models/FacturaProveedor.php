@@ -12,6 +12,7 @@ class FacturaProveedor extends Model
     protected $fillable = [
         'documento_id',
         'proveedor_id',
+        'actividad_id',
         'numero_factura',
         'fecha_factura',
         'importe',
@@ -60,5 +61,10 @@ class FacturaProveedor extends Model
     public function proveedor()
     {
         return $this->belongsTo(Proveedor::class);
+    }
+
+    public function actividad()
+    {
+        return $this->belongsTo(Actividad::class);
     }
 }

@@ -5,8 +5,10 @@ namespace App\Livewire\AsientosContables;
 use App\Models\AsientoContable;
 use App\Models\CuentaContable;
 use App\Models\EjercicioContable;
+use App\Models\ProyectoContable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -28,7 +30,15 @@ class Formulario extends Component
     public ?string $fecha = null;
     public string $concepto = '';
 
-    /** [['_key', '_cuenta_texto', 'cuenta_contable_id', 'debe', 'haber', 'concepto'], ...] */
+    /**
+     * Atajo de UI, nada más: no existe columna de proyecto en el asiento, solo en cada
+     * apunte. Elegirlo aquí rellena todas las líneas de golpe (ver
+     * updatedProyectoContableIdCabecera()); cada línea se puede seguir corrigiendo por
+     * separado en su propio selector.
+     */
+    public ?int $proyecto_contable_id_cabecera = null;
+
+    /** [['_key', '_cuenta_texto', 'cuenta_contable_id', 'proyecto_contable_id', 'debe', 'haber', 'concepto'], ...] */
     public array $apuntes = [];
 
     /** Resultados del buscador de cuentas, indexados por la '_key' de la línea que busca. */
@@ -97,7 +107,18 @@ class Formulario extends Component
     {
         // Sin puntos: la clave se usa en rutas tipo "resultadosCuentas.<clave>" y un
         // punto en la propia clave rompería esa ruta.
-        return ['_key' => Str::random(10), '_cuenta_texto' => '', 'cuenta_contable_id' => null, 'debe' => 0, 'haber' => 0, 'concepto' => ''];
+        return [
+            '_key' => Str::random(10), '_cuenta_texto' => '', 'cuenta_contable_id' => null,
+            'proyecto_contable_id' => $this->proyecto_contable_id_cabecera, 'debe' => 0, 'haber' => 0, 'concepto' => '',
+        ];
+    }
+
+    /** El atajo de cabecera rellena todas las líneas existentes; las nuevas ya nacen con él (lineaVacia()). */
+    public function updatedProyectoContableIdCabecera(): void
+    {
+        foreach ($this->apuntes as $i => $apunte) {
+            $this->apuntes[$i]['proyecto_contable_id'] = $this->proyecto_contable_id_cabecera;
+        }
     }
 
     /** Buscador del autocompletado de Cuenta: solo cuentas hoja activas de esta empresa, por código o nombre. */
@@ -165,6 +186,10 @@ class Formulario extends Component
             'concepto'                      => ['required', 'string', 'max:255'],
             'apuntes'                       => ['required', 'array', 'min:2'],
             'apuntes.*.cuenta_contable_id'  => ['required', 'exists:cuenta_contables,id'],
+            'apuntes.*.proyecto_contable_id' => [
+                'nullable',
+                Rule::exists('proyecto_contables', 'id')->where('empresa_contable_id', $this->empresa_contable_id),
+            ],
             'apuntes.*.debe'                => ['required', 'numeric', 'min:0'],
             'apuntes.*.haber'               => ['required', 'numeric', 'min:0'],
             'apuntes.*.concepto'            => ['nullable', 'string', 'max:255'],
@@ -191,6 +216,7 @@ class Formulario extends Component
             'fecha'                        => __('fecha'),
             'concepto'                     => __('concepto'),
             'apuntes.*.cuenta_contable_id' => __('cuenta'),
+            'apuntes.*.proyecto_contable_id' => __('proyecto'),
             'apuntes.*.debe'               => __('debe'),
             'apuntes.*.haber'              => __('haber'),
         ];
@@ -262,10 +288,11 @@ class Formulario extends Component
 
             foreach ($data['apuntes'] as $apunte) {
                 $asiento->apuntesContables()->create([
-                    'cuenta_contable_id' => $apunte['cuenta_contable_id'],
-                    'debe'               => $this->aCentimos($apunte['debe'] ?? 0),
-                    'haber'              => $this->aCentimos($apunte['haber'] ?? 0),
-                    'concepto'           => $apunte['concepto'] ?: null,
+                    'cuenta_contable_id'   => $apunte['cuenta_contable_id'],
+                    'proyecto_contable_id' => $apunte['proyecto_contable_id'] ?: null,
+                    'debe'                 => $this->aCentimos($apunte['debe'] ?? 0),
+                    'haber'                => $this->aCentimos($apunte['haber'] ?? 0),
+                    'concepto'             => $apunte['concepto'] ?: null,
                 ]);
             }
         });
@@ -279,6 +306,7 @@ class Formulario extends Component
     {
         return view('livewire.asientos-contables.formulario', [
             'ejercicio' => $this->ejercicio(),
+            'proyectos' => ProyectoContable::where('empresa_contable_id', $this->empresa_contable_id)->orderBy('nombre')->pluck('nombre', 'id'),
         ]);
     }
 }

@@ -9,6 +9,7 @@ use App\Livewire\Traits\ConBajaPorEstado;
 use App\Livewire\Traits\ConFichaInicio;
 use App\Models\AccesoDirecto;
 use App\Models\Comunidad;
+use App\Services\Actividades\EnlaceContableActividad;
 use App\Models\CuentaContablePlantilla;
 use App\Services\ComisionesBancarias\AsegurarTiposComisionBancaria;
 use App\Services\Comunidades\EnlaceContableComunidad;
@@ -217,6 +218,13 @@ class Lista extends ListaComponent
         foreach ($comunidad->cuentasBancarias as $cuenta) {
             $cuenta->setRelation('titular', $comunidad);
             app(EnlaceContableComunidad::class)->asignarCuentaBancaria($cuenta);
+        }
+
+        // Igual con las actividades que ya tuviera la comunidad: la nueva, si se da de
+        // alta a partir de ahora, ya se enlaza sola (Actividad::booted()).
+        foreach ($comunidad->actividades as $actividad) {
+            $actividad->setRelation('comunidad', $comunidad);
+            app(EnlaceContableActividad::class)->asignarProyecto($actividad);
         }
 
         $this->dispatch('toast-success', ['title' => $empresa->wasRecentlyCreated

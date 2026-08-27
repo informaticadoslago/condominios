@@ -232,6 +232,7 @@ return [
         'nombre_rol' => 'super-admin',
         'email' => env('SUPERADMIN_EMAIL', 'admin@ejemplo.com'),
         'login' => env('SUPERADMIN_LOGIN', 'superadmin'),
+        'password' => env('SUPERADMIN_PASSWORD', 'Aa123456'),
     ],
 
     'tipos' => [

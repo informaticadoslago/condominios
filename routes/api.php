@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Contabilidad\AsientoController;
 use App\Http\Controllers\Api\Contabilidad\CuentaIngresoController;
 use App\Http\Controllers\Api\Contabilidad\EjercicioContableController;
 use App\Http\Controllers\Api\Contabilidad\EmpresaContableController;
+use App\Http\Controllers\Api\Contabilidad\ProyectoContableController;
 use App\Http\Controllers\Api\Contabilidad\TerceroContableController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -31,4 +32,7 @@ Route::middleware('auth:sanctum')->prefix('contabilidad')->name('api.contabilida
     // Alta del concepto por el que se cobra —el presupuesto del año, cada derrama— y
     // devuelve su subcuenta de ingresos, 75000001 o 75010001.
     Route::post('cuentas-ingreso', [CuentaIngresoController::class, 'store'])->name('cuentas-ingreso.store');
+    // Alta de la dimensión analítica de una actividad (una torre, un negocio) y
+    // devuelve su id, el que se manda luego en `proyecto` en cada línea de asiento.
+    Route::post('proyectos', [ProyectoContableController::class, 'store'])->name('proyectos.store');
 });

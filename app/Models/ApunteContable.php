@@ -10,7 +10,7 @@ class ApunteContable extends Model
     protected $table = 'apunte_contables';
 
     protected $fillable = [
-        'asiento_contable_id', 'cuenta_contable_id', 'debe', 'haber', 'concepto',
+        'asiento_contable_id', 'cuenta_contable_id', 'proyecto_contable_id', 'debe', 'haber', 'concepto',
     ];
 
     // 'debe' y 'haber' son céntimos enteros, y se quedan así en todo el modelo: los
@@ -40,6 +40,11 @@ class ApunteContable extends Model
     public function cuentaContable()
     {
         return $this->belongsTo(CuentaContable::class);
+    }
+
+    public function proyectoContable()
+    {
+        return $this->belongsTo(ProyectoContable::class);
     }
 
     /**

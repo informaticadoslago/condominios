@@ -39,7 +39,7 @@ final class EnlazarFacturasContabilidad
      */
     public function ejecutar(array $facturaIds): array
     {
-        $facturas = FacturaProveedor::with(['proveedor.persona.comunidad', 'proveedor.tipo'])
+        $facturas = FacturaProveedor::with(['proveedor.persona.comunidad', 'proveedor.tipo', 'actividad'])
             ->whereIn('id', $facturaIds)
             ->whereNull('asiento_contable')
             ->get();
@@ -98,6 +98,9 @@ final class EnlazarFacturasContabilidad
         $empresaId   = $persona->comunidad->empresa_contable_id;
         $cuentaGasto = $proveedor->tipo->cuenta_gasto;
         $fecha       = $this->fecha($factura);
+        // Sin actividad (comunidad de una sola, o gasto compartido sin marcar), el
+        // apunte queda sin proyecto: eso es lo correcto, no un descuido.
+        $proyectoId  = $factura->actividad?->proyecto_contable_id;
 
         // La contabilidad trabaja en céntimos enteros; la factura, en euros con dos
         // decimales. La conversión se hace aquí, en la frontera.
@@ -110,7 +113,7 @@ final class EnlazarFacturasContabilidad
         ));
 
         $lineas = [
-            new DatosApunte(debe: $centimos, cuenta: $cuentaGasto),
+            new DatosApunte(debe: $centimos, cuenta: $cuentaGasto, proyecto: $proyectoId),
             // Por tercero, no por cuenta: el acreedor que no tenga subcuenta la estrena
             // aquí, que es lo normal la primera vez que se le contabiliza una factura.
             new DatosApunte(haber: $centimos, tercero: new DatosTercero(
@@ -119,7 +122,7 @@ final class EnlazarFacturasContabilidad
                 clase: 'acreedor',
                 nif: $persona->documento_identificativo,
                 razonSocial: $persona->razon_social ?: $persona->nombre_completo,
-            )),
+            ), proyecto: $proyectoId),
         ];
 
         $asiento = DB::transaction(fn () => $this->asientos->ejecutar(new DatosAsiento(

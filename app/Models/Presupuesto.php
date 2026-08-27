@@ -16,6 +16,7 @@ class Presupuesto extends Model
 
     protected $fillable = [
         'comunidad_id',
+        'actividad_id',
         'nombre',
         'anho',
         'tipo_presupuesto_id',
@@ -43,6 +44,11 @@ class Presupuesto extends Model
     public function comunidad()
     {
         return $this->belongsTo(Comunidad::class);
+    }
+
+    public function actividad()
+    {
+        return $this->belongsTo(Actividad::class);
     }
 
     public function estado()

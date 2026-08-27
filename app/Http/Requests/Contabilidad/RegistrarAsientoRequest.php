@@ -61,6 +61,7 @@ class RegistrarAsientoRequest extends FormRequest
             'lineas.*.haber'                => ['nullable', 'integer'],
             'lineas.*.concepto'             => ['nullable', 'string', 'max:255'],
             'lineas.*.cuenta'               => ['nullable', 'string', 'max:8'],
+            'lineas.*.proyecto'             => ['nullable', 'integer'],
             'lineas.*.tercero'              => ['nullable', 'array'],
             'lineas.*.tercero.tipo'         => ['required_with:lineas.*.tercero', 'string', 'max:50'],
             'lineas.*.tercero.id'           => ['required_with:lineas.*.tercero', 'string', 'max:100'],

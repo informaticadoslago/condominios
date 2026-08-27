@@ -8,6 +8,7 @@ use App\Exceptions\EjercicioCerradoException;
 use App\Exceptions\EjercicioContableDesconocidoException;
 use App\Livewire\ListaComponent;
 use App\Livewire\Traits\ConSeleccionMultiple;
+use App\Models\Actividad;
 use App\Models\Documento;
 use App\Models\FacturaProveedor;
 use App\Models\PagoFactura;
@@ -187,6 +188,29 @@ class Lista extends ListaComponent
         $factura->save();
 
         $this->dispatch('toast-success', ['title' => __('Factura corregida')]);
+    }
+
+    /**
+     * Cambia a qué actividad pertenece esta factura. Solo antes de contabilizarla: una
+     * vez asentada, el proyecto ya viajó al apunte y cambiarlo aquí dejaría la factura
+     * diciendo una cosa y el asiento otra.
+     */
+    public function actualizarActividad($facturaId, $actividadId)
+    {
+        $factura = FacturaProveedor::whereHas('proveedor.persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+            ->find($facturaId);
+
+        if (! $factura || $factura->asiento_contable) {
+            return;
+        }
+
+        $actividadId = $actividadId !== '' ? (int) $actividadId : null;
+
+        if ($actividadId !== null && ! Actividad::where('id', $actividadId)->where('comunidad_id', session('comunidad_actual_id'))->exists()) {
+            return;
+        }
+
+        $factura->update(['actividad_id' => $actividadId]);
     }
 
     protected function filtroCif(): array
@@ -684,6 +708,9 @@ class Lista extends ListaComponent
 
         $this->sincronizarSeleccionVisible($items);
 
-        return view('livewire.facturas.lista', compact('items'));
+        return view('livewire.facturas.lista', [
+            'items'       => $items,
+            'actividades' => Actividad::where('comunidad_id', session('comunidad_actual_id'))->orderBy('nombre')->pluck('nombre', 'id'),
+        ]);
     }
 }
