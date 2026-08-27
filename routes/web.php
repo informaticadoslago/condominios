@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BackupDescargaController;
 use App\Http\Controllers\ComunidadContextoController;
+use App\Http\Controllers\SociedadContextoController;
 use App\Http\Controllers\ConfirmarCorreoPropietarioController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
@@ -31,6 +32,7 @@ use App\Livewire\ComisionesBancarias\Formulario as ComisionesBancariasFormulario
 use App\Livewire\ComisionesBancarias\Lista as ComisionesBancariasLista;
 use App\Livewire\MovimientosBancarios\Lista as MovimientosBancariosLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
+use App\Livewire\Sociedades\Lista as SociedadesLista;
 use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
 use App\Livewire\EjerciciosContables\Lista as EjerciciosContablesLista;
@@ -93,6 +95,10 @@ Route::middleware([
     Route::get('/comunidad/{comunidad}/entrar', [ComunidadContextoController::class, 'entrar'])->name('comunidad.entrar');
     Route::get('/comunidad/salir', [ComunidadContextoController::class, 'salir'])->name('comunidad.salir');
 
+    // Cambio de contexto: entrar/salir de una sociedad
+    Route::get('/sociedad/{sociedad}/entrar', [SociedadContextoController::class, 'entrar'])->name('sociedad.entrar');
+    Route::get('/sociedad/salir', [SociedadContextoController::class, 'salir'])->name('sociedad.salir');
+
     // Rutas de Administración del Sistema
     Route::prefix('administracion-sistema')->name('sysadmin.')->group(function () {
         Route::get('/personas', PersonasLista::class)
@@ -129,6 +135,7 @@ Route::middleware([
     });
 
     Route::get('/comunidades', ComunidadesLista::class)->name('comunidades.index');
+    Route::get('/sociedades', SociedadesLista::class)->name('sociedades.index');
 
     // Rutas de una comunidad: exigen comunidad activa en sesión y acceso a ella.
     Route::middleware('comunidad.activa')->group(function () {
@@ -163,6 +170,15 @@ Route::middleware([
         Route::get('/presupuestos/{presupuesto}/reparto', PresupuestosReparto::class)->name('presupuestos.reparto');
         Route::get('/presupuestos/{presupuesto}/reparto/pdf', PresupuestoRepartoPdfController::class)->name('presupuestos.reparto.pdf');
         Route::get('/recibos', RecibosLista::class)->name('recibos.index');
+    });
+
+    // Rutas de una sociedad: exigen sociedad activa en sesión y acceso a ella.
+    Route::middleware('sociedad.activa')->group(function () {
+        Route::get('/dashboard-sociedad', function () {
+            return view('dashboard-sociedad', [
+                'sociedad' => \App\Models\Sociedad::find(session('sociedad_actual_id')),
+            ]);
+        })->name('dashboard-sociedad');
     });
 
     // Gestión contable: módulo independiente de comunidades (empresas por CIF).

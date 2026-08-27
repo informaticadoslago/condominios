@@ -195,6 +195,25 @@ class User extends Authenticatable
     }
 
     /**
+     * Sociedades en las que este usuario puede entrar: todas si tiene el rol
+     * "global-sociedad" (aparte del "global" de comunidades/empresas contables),
+     * o solo aquellas cuyo rol puerta (Sociedad::nombreRol()) tenga.
+     */
+    public function sociedadesAccesibles()
+    {
+        if ($this->hasRole('global-sociedad')) {
+            return Sociedad::activa()->get();
+        }
+
+        $ids = $this->roles()
+            ->where('name', 'like', 'sociedad-%')
+            ->pluck('name')
+            ->map(fn ($nombre) => (int) str_replace('sociedad-', '', $nombre));
+
+        return Sociedad::activa()->whereIn('id', $ids)->get();
+    }
+
+    /**
      * Si puede operar por la API en esa empresa contable. Son dos cosas distintas y
      * hacen falta las dos: el ROL, que es quién es hoy este usuario y se le puede
      * quitar, y la HABILIDAD del token con el que llama, que es la empresa que eligió

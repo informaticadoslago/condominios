@@ -69,6 +69,10 @@ class PermisosYRolesInicialSeeder extends Seeder
             'comunidad-delete',
             'comunidad-edit',
             'comunidad-list',
+            'sociedad-create',
+            'sociedad-delete',
+            'sociedad-edit',
+            'sociedad-list',
             // Entradas del menú principal: gestión de comunidades y gestión contable.
             'gestion-comunidad',
         ];
@@ -152,6 +156,10 @@ class PermisosYRolesInicialSeeder extends Seeder
         // Rol puerta de entrada: quien lo tenga accede a TODAS las comunidades, sin
         // permisos propios (esos los dan los demás roles).
         $this->crearRol('global');
+
+        // Igual que 'global', pero solo para sociedades: son ámbitos separados, no un
+        // superconjunto de 'global'.
+        $this->crearRol('global-sociedad');
 
         $permisos_usuario = [
             'usuario-perfil',

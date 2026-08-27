@@ -37,6 +37,10 @@
             ? \App\Models\EmpresaContable::find(session('empresa_contable_actual_id'))
             : null;
 
+        $sociedadActual = session('sociedad_actual_id')
+            ? \App\Models\Sociedad::find(session('sociedad_actual_id'))
+            : null;
+
         if ($empresaContableActual) {
             // Dentro de una empresa contable: menú dedicado a su gestión contable,
             // exclusivo (ya no es la pantalla principal con gestión administrativa +
@@ -44,6 +48,8 @@
             $menuLateral = config('menu_contable');
         } elseif ($comunidadActual) {
             $menuLateral = config('menu_comunidad');
+        } elseif ($sociedadActual) {
+            $menuLateral = config('menu_sociedad');
         } else {
             $menuLateral = config('sidebar');
             $comunidadesAccesibles = auth()->user()->comunidadesAccesibles();
@@ -63,6 +69,28 @@
                                     'icon'  => 'fa-solid fa-city',
                                     'label' => $c->nombre,
                                     'href'  => route('comunidad.entrar', $c),
+                                ])->all(),
+                            ],
+                        ],
+                    ],
+                ]);
+            }
+
+            $sociedadesAccesibles = auth()->user()->sociedadesAccesibles();
+
+            if ($sociedadesAccesibles->count()) {
+                array_splice($menuLateral['content'], 1, 0, [
+                    [
+                        'type'  => 'nav',
+                        'items' => [
+                            [
+                                'type'  => 'group',
+                                'icon'  => 'fa-solid fa-industry',
+                                'label' => trans_key('menu.Sociedades'),
+                                'items' => $sociedadesAccesibles->map(fn ($s) => [
+                                    'icon'  => 'fa-solid fa-industry',
+                                    'label' => $s->nombre,
+                                    'href'  => route('sociedad.entrar', $s),
                                 ])->all(),
                             ],
                         ],

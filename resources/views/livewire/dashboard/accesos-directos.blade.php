@@ -9,20 +9,30 @@
                 </button>
             </div>
 
-            {{-- Fichas de entrada: comunidades en azul, empresas contables en ámbar.
-                 Se arrastran siempre (al cubo para quitarlas, sobre otra para colocarla
-                 antes), sin necesidad de entrar en el modo Ordenar. --}}
+            {{-- Fichas de entrada: comunidades en azul, sociedades en verde, empresas
+                 contables en ámbar. Se arrastran siempre (al cubo para quitarlas, sobre
+                 otra para colocarla antes), sin necesidad de entrar en el modo Ordenar. --}}
             @if ($this->fichas->count())
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     @foreach ($this->fichas as $f)
                         @php
-                            $esComunidad = $f->tipo === \App\Models\AccesoDirecto::TIPO_COMUNIDAD;
-                            $colorFicha = $esComunidad
-                                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-400'
-                                : 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800 hover:border-amber-400';
-                            $colorIcono = $esComunidad
-                                ? 'text-blue-600 dark:text-blue-300'
-                                : 'text-amber-600 dark:text-amber-300';
+                            [$etiquetaFicha, $colorFicha, $colorIcono] = match ($f->tipo) {
+                                \App\Models\AccesoDirecto::TIPO_COMUNIDAD => [
+                                    __('Comunidad'),
+                                    'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-400',
+                                    'text-blue-600 dark:text-blue-300',
+                                ],
+                                \App\Models\AccesoDirecto::TIPO_SOCIEDAD => [
+                                    __('Sociedad'),
+                                    'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 hover:border-green-400',
+                                    'text-green-600 dark:text-green-300',
+                                ],
+                                default => [
+                                    __('Contabilidad'),
+                                    'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800 hover:border-amber-400',
+                                    'text-amber-600 dark:text-amber-300',
+                                ],
+                            };
                         @endphp
                         <a href="{{ $f->url }}" draggable="true" wire:key="ficha-{{ $f->id }}"
                             x-on:dragstart="$event.dataTransfer.setData('text/plain', '{{ $f->id }}')"
@@ -33,7 +43,7 @@
                             <span class="flex flex-col">
                                 {{-- El color solo no dice de qué es la ficha: el titulillo sí. --}}
                                 <span class="text-xs font-medium uppercase tracking-wide {{ $colorIcono }}">
-                                    {{ $esComunidad ? __('Comunidad') : __('Contabilidad') }}
+                                    {{ $etiquetaFicha }}
                                 </span>
                                 <span class="text-base font-semibold text-gray-800 dark:text-gray-100 mayusculas">
                                     {{ $f->nombre }}

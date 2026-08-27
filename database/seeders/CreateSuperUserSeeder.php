@@ -46,7 +46,7 @@ class CreateSuperUserSeeder extends Seeder
                 'estado_id'         => EstadoUsuario::USUARIO_INACTIVO,
                 'estado'         => EstadoUsuario::USUARIO_INACTIVO,
             ]);
-        $user->syncRoles([config('doslago.superadmin.nombre_rol'), 'user', 'global']);
+        $user->syncRoles([config('doslago.superadmin.nombre_rol'), 'user', 'global', 'global-sociedad']);
 
         $this->command->info('Creando  Admin con TODOS los permisos.');
 
@@ -78,7 +78,7 @@ class CreateSuperUserSeeder extends Seeder
             'estado'         => EstadoUsuario::USUARIO_ACTIVO,
         ]);
 
-        $user->syncRoles([$superadmin_rol_name, 'user', 'global']);
+        $user->syncRoles([$superadmin_rol_name, 'user', 'global', 'global-sociedad']);
 
         $this->command->info('Autorizado Admin con TODOS los permisos.');
         $this->command->info($user->password . '<--->' . Hash::check('Aa123456', $user->password));

@@ -19,10 +19,13 @@ class AccesoDirecto extends Model
     /** Ficha de entrada a una empresa contable. */
     public const TIPO_EMPRESA_CONTABLE = 'empresa_contable';
 
-    /** Fichas de entrada (comunidad o empresa contable), las que van con color propio. */
+    /** Ficha de entrada a una sociedad. */
+    public const TIPO_SOCIEDAD = 'sociedad';
+
+    /** Fichas de entrada (comunidad, empresa contable o sociedad), las que van con color propio. */
     public function scopeFichas($query)
     {
-        return $query->whereIn('tipo', [self::TIPO_COMUNIDAD, self::TIPO_EMPRESA_CONTABLE]);
+        return $query->whereIn('tipo', [self::TIPO_COMUNIDAD, self::TIPO_EMPRESA_CONTABLE, self::TIPO_SOCIEDAD]);
     }
 
     public function scopeDeMenu($query)

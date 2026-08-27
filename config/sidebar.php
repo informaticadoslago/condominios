@@ -25,6 +25,8 @@ return [
                     'items' => [
                         ['icon' => 'fa-solid fa-city', 'label' => trans_key('menu.Comunidades'), 'route' => 'comunidades.index',
                             'can' => 'comunidad-list'],
+                        ['icon' => 'fa-solid fa-industry', 'label' => trans_key('menu.Sociedades'), 'route' => 'sociedades.index',
+                            'can' => 'sociedad-list'],
                     ],
                 ],
                 [
