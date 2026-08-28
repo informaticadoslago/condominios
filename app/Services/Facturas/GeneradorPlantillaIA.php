@@ -25,23 +25,46 @@ class GeneradorPlantillaIA
         TipoCampoPlantillaFactura::IMPORTE        => 'importe',
     ];
 
+    /** Campos propios de sociedad (desglose de IVA), además de los de arriba. */
+    protected const CAMPOS_CON_ANCLA_IVA = [
+        TipoCampoPlantillaFactura::IMPORTE_BASE  => 'importe_base',
+        TipoCampoPlantillaFactura::IMPORTE_TOTAL => 'importe_total',
+    ];
+
     /**
      * @return array{razon_social: ?string, cif: ?string, campos: array<int, array{ancla: string, valor: string}>}
      */
     public function generar(string $texto, ?string $cifPropio = null): array
+    {
+        return $this->generarInterno($texto, $cifPropio, conIva: false);
+    }
+
+    /**
+     * Igual que generar(), pero además pide base/total y las cuotas de IVA (una o varias,
+     * ninguna factura tiene por qué traerlas todas). Ver [[project-modulo-contable]] / IVA
+     * en sociedad.
+     */
+    public function generarSociedad(string $texto, ?string $cifPropio = null): array
+    {
+        return $this->generarInterno($texto, $cifPropio, conIva: true);
+    }
+
+    protected function generarInterno(string $texto, ?string $cifPropio, bool $conIva): array
     {
         $clave = config('services.anthropic.key');
         if (! $clave) {
             throw new GeneracionPlantillaIAException(__('No hay ninguna clave de API de Anthropic configurada (ANTHROPIC_API_KEY).'));
         }
 
-        $respuesta = $this->llamarApi($texto, $cifPropio, $clave);
+        $respuesta = $this->llamarApi($texto, $cifPropio, $clave, $conIva);
         $valores   = $this->extraerValoresDeRespuesta($respuesta);
 
         $extractor = new ExtractorPosicional();
         $campos    = [];
 
-        foreach (self::CAMPOS_CON_ANCLA as $tipoCampoId => $clavePayload) {
+        $camposSimples = $conIva ? self::CAMPOS_CON_ANCLA + self::CAMPOS_CON_ANCLA_IVA : self::CAMPOS_CON_ANCLA;
+
+        foreach ($camposSimples as $tipoCampoId => $clavePayload) {
             $valor = $valores[$clavePayload] ?? null;
             if (! $valor) {
                 continue;
@@ -53,6 +76,25 @@ class GeneradorPlantillaIA
             }
         }
 
+        if ($conIva) {
+            $cuotas = [];
+            foreach ($valores['cuotas_iva'] ?? [] as $cuota) {
+                $valor = $cuota['importe'] ?? null;
+                if (! $valor || ! isset($cuota['tipo_iva'])) {
+                    continue;
+                }
+
+                $ancla = $this->calcularAncla($extractor, $texto, $valor);
+                if ($ancla !== null) {
+                    $cuotas[] = $ancla + ['tipo_iva' => (float) $cuota['tipo_iva']];
+                }
+            }
+
+            if ($cuotas) {
+                $campos[TipoCampoPlantillaFactura::CUOTA_IVA] = $cuotas;
+            }
+        }
+
         return [
             'razon_social' => $this->siEsLiteral($texto, $valores['razon_social'] ?? null),
             'cif'          => $this->siEsLiteral($texto, $valores['cif'] ?? null),
@@ -60,9 +102,35 @@ class GeneradorPlantillaIA
         ];
     }
 
-    protected function llamarApi(string $texto, ?string $cifPropio, string $clave): array
+    protected function llamarApi(string $texto, ?string $cifPropio, string $clave, bool $conIva = false): array
     {
         $descripcionCif = $cifPropio ? "El CIF del CLIENTE (a excluir) es {$cifPropio}." : '';
+
+        $propiedades = [
+            'razon_social'   => ['type' => 'string', 'description' => 'Razón social del proveedor (quien emite), copiada literal.'],
+            'cif'            => ['type' => 'string', 'description' => 'CIF/NIF del proveedor (quien emite), copiado literal.'],
+            'numero_factura' => ['type' => 'string', 'description' => 'Número de factura, copiado literal.'],
+            'fecha'          => ['type' => 'string', 'description' => 'Fecha de emisión de la factura, copiada literal.'],
+            'importe'        => ['type' => 'string', 'description' => 'Importe TOTAL de la factura, copiado literal.'],
+        ];
+
+        if ($conIva) {
+            unset($propiedades['importe']);
+            $propiedades['importe_base']  = ['type' => 'string', 'description' => 'Base imponible (importe sin IVA), copiada literal.'];
+            $propiedades['importe_total'] = ['type' => 'string', 'description' => 'Importe TOTAL de la factura (base + IVA), copiado literal.'];
+            $propiedades['cuotas_iva']    = [
+                'type'        => 'array',
+                'description' => 'Una entrada por cada tipo de IVA que aparezca en la factura (puede haber una o varias, o ninguna si está exenta).',
+                'items'       => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'tipo_iva' => ['type' => 'number', 'description' => 'Porcentaje de IVA de esta cuota, ej. 21, 10, 4, 0.'],
+                        'importe'  => ['type' => 'string', 'description' => 'Cuota de IVA (el importe, no la base), copiada literal.'],
+                    ],
+                    'required' => ['tipo_iva', 'importe'],
+                ],
+            ];
+        }
 
         try {
             $response = Http::withHeaders([
@@ -81,14 +149,8 @@ class GeneradorPlantillaIA
                         .'no aparece literalmente en el texto, omítelo.',
                     'input_schema' => [
                         'type'       => 'object',
-                        'properties' => [
-                            'razon_social'   => ['type' => 'string', 'description' => 'Razón social del proveedor (quien emite), copiada literal.'],
-                            'cif'            => ['type' => 'string', 'description' => 'CIF/NIF del proveedor (quien emite), copiado literal.'],
-                            'numero_factura' => ['type' => 'string', 'description' => 'Número de factura, copiado literal.'],
-                            'fecha'          => ['type' => 'string', 'description' => 'Fecha de emisión de la factura, copiada literal.'],
-                            'importe'        => ['type' => 'string', 'description' => 'Importe TOTAL de la factura, copiado literal.'],
-                        ],
-                        'required' => [],
+                        'properties' => $propiedades,
+                        'required'   => [],
                     ],
                 ]],
                 'tool_choice' => ['type' => 'tool', 'name' => 'extraer_valores_factura'],

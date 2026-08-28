@@ -16,6 +16,10 @@
     <x-slot name="content">
         <x-dosl.tabla>
             <x-slot name="botonera">
+                <x-secondary-button type="button" id="btn-analizar-factura-sociedad"
+                    wire:click="$dispatch('abrir-analizar-factura-sociedad')" title="{{ __('Analizar factura') }}">
+                    <i class="fa-solid fa-file-invoice mr-1"></i>{{ __('Analizar factura') }}
+                </x-secondary-button>
                 @include('livewire.parciales.selector-columnas')
                 <x-secondary-button type="button" wire:click="borrarFiltro" title="{{ __('Borrar filtro') }}">
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>{{ __('Borrar filtro') }}
@@ -113,6 +117,9 @@
 
         @livewire('sociedades.proveedores.ver')
         @livewire('sociedades.proveedores.formulario')
+        @livewire('sociedades.proveedores.analizar-factura')
+        @livewire('sociedades.proveedores.resultado-factura')
+        @livewire('sociedades.proveedores.marcar-plantilla-factura')
         @include('livewire.parciales.modal-historial-estado')
     </x-slot>
 </x-botonera-page>

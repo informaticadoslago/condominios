@@ -7,6 +7,7 @@ return [
     'Cerrar sociedad' => 'Cerrar sociedad',
     'Cerrar empresa contable' => 'Cerrar empresa contable',
     'Comunidades' => 'Comunidades',
+    'Compras' => 'Compras',
     'Sociedades' => 'Sociedades',
     'Configuracion' => 'Configuración',
     'Copias de seguridad' => 'Copias de seguridad',

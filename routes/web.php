@@ -34,6 +34,7 @@ use App\Livewire\ComisionesBancarias\Lista as ComisionesBancariasLista;
 use App\Livewire\MovimientosBancarios\Lista as MovimientosBancariosLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
 use App\Livewire\Sociedades\Lista as SociedadesLista;
+use App\Livewire\Sociedades\Facturas\Lista as SociedadFacturasLista;
 use App\Livewire\Sociedades\Proveedores\Lista as SociedadProveedoresLista;
 use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
@@ -140,6 +141,12 @@ Route::middleware([
     Route::get('/comunidades', ComunidadesLista::class)->name('comunidades.index');
     Route::get('/sociedades', SociedadesLista::class)->name('sociedades.index');
 
+    // Documento de un proveedor, de comunidad o de sociedad: el propio controlador
+    // distingue de cuál es y contra qué sesión comprobarlo (Proveedor::perteneceAlContextoActivo),
+    // así que no puede vivir dentro del grupo exclusivo de comunidad.activa.
+    Route::get('/documentos/{documento}/descargar', DocumentoDescargaController::class)->name('documentos.download');
+    Route::get('/documentos/{documento}/ver', DocumentoVistaController::class)->name('documentos.ver');
+
     // Rutas de una comunidad: exigen comunidad activa en sesión y acceso a ella.
     Route::middleware('comunidad.activa')->group(function () {
         Route::get('/dashboard-comunidad', function () {
@@ -154,8 +161,6 @@ Route::middleware([
         Route::get('/facturas', FacturasLista::class)->name('facturas.index');
         // Alta de facturas en serie, sin papel (la importación de PDFs sigue en la lista).
         Route::get('/facturas/nueva', FacturasCrear::class)->name('facturas.crear');
-        Route::get('/documentos/{documento}/descargar', DocumentoDescargaController::class)->name('documentos.download');
-        Route::get('/documentos/{documento}/ver', DocumentoVistaController::class)->name('documentos.ver');
         // Plantilla en blanco del mandato SEPA, para imprimir o mandar al propietario.
         Route::get('/mandatos-sepa/plantilla/{personaComunidad}', MandatoSepaPlantillaController::class)->name('mandatos-sepa.plantilla');
         Route::get('/remesas', RemesasLista::class)->name('remesas.index');
@@ -185,6 +190,7 @@ Route::middleware([
         })->name('dashboard-sociedad');
 
         Route::get('/sociedad-proveedores', SociedadProveedoresLista::class)->name('sociedad-proveedores.index');
+        Route::get('/sociedad-facturas', SociedadFacturasLista::class)->name('sociedad-facturas.index');
     });
 
     // Gestión contable: módulo independiente de comunidades (empresas por CIF).

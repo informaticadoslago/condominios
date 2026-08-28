@@ -13,7 +13,10 @@ class TipoCampoPlantillaFactura extends Model
     FECHA = 2,
     IMPORTE = 3,
     CIF = 4,
-    RAZON_SOCIAL = 5;
+    RAZON_SOCIAL = 5,
+    IMPORTE_BASE = 6,
+    IMPORTE_TOTAL = 7,
+    CUOTA_IVA = 8;
 
     protected $fillable = ['descripcion'];
 }

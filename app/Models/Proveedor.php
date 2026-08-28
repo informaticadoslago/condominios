@@ -63,4 +63,19 @@ class Proveedor extends Model
     {
         return $this->hasMany(FacturaProveedor::class);
     }
+
+    public function facturasSociedad()
+    {
+        return $this->hasMany(FacturaProveedorSociedad::class, 'proveedor_id');
+    }
+
+    /** Este proveedor es de la comunidad/sociedad que hay ahora mismo en sesión (según de qué plugin sea). */
+    public function perteneceAlContextoActivo(): bool
+    {
+        return match ($this->persona_type) {
+            PersonaComunidad::class => $this->persona?->comunidad_id == session('comunidad_actual_id'),
+            PersonaSociedad::class  => $this->persona?->sociedad_id == session('sociedad_actual_id'),
+            default => false,
+        };
+    }
 }

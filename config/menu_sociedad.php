@@ -16,7 +16,15 @@ return [
             'type'  => 'nav',
             'items' => [
                 ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.dashboard'), 'route' => 'dashboard-sociedad'],
-                ['icon' => 'fa-solid fa-truck', 'label' => trans_key('menu.Proveedores'), 'route' => 'sociedad-proveedores.index'],
+                [
+                    'type'  => 'group',
+                    'icon'  => 'fa-solid fa-cart-shopping',
+                    'label' => trans_key('menu.Compras'),
+                    'items' => [
+                        ['icon' => 'fa-solid fa-truck', 'label' => trans_key('menu.Proveedores'), 'route' => 'sociedad-proveedores.index'],
+                        ['icon' => 'fa-solid fa-file-invoice', 'label' => trans_key('menu.Facturas'), 'route' => 'sociedad-facturas.index'],
+                    ],
+                ],
             ],
         ],
         ['type' => 'spacer'],

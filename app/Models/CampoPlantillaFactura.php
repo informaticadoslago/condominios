@@ -11,6 +11,7 @@ class CampoPlantillaFactura extends Model
     protected $fillable = [
         'plantilla_factura_id',
         'tipo_campo_plantilla_factura_id',
+        'tipo_iva',
         'texto_ancla',
         'valor_ejemplo',
         'delta_columna',
