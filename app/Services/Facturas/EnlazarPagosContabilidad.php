@@ -4,6 +4,7 @@ namespace App\Services\Facturas;
 
 use App\Models\EjercicioContable;
 use App\Models\PagoFactura;
+use App\Models\PersonaComunidad;
 use App\Services\Comunidades\EnlaceContableComunidad;
 use App\Services\Contabilidad\DatosApunte;
 use App\Services\Contabilidad\DatosAsiento;
@@ -43,7 +44,7 @@ final class EnlazarPagosContabilidad
     {
         $pagos = PagoFactura::with([
             'cuentaBancaria',
-            'factura.proveedor.persona.comunidad',
+            'factura.proveedor.persona' => fn ($query) => $query->morphWith([PersonaComunidad::class => ['comunidad']]),
         ])
             ->whereIn('id', $pagoIds)
             ->whereNull('asiento_contable')
@@ -67,7 +68,7 @@ final class EnlazarPagosContabilidad
     {
         $pagos = PagoFactura::with([
             'cuentaBancaria',
-            'factura.proveedor.persona.comunidad',
+            'factura.proveedor.persona' => fn ($query) => $query->morphWith([PersonaComunidad::class => ['comunidad']]),
             'factura.actividad',
         ])
             ->whereIn('id', $pagoIds)

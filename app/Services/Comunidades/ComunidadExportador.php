@@ -84,7 +84,7 @@ class ComunidadExportador extends ExportadorZip
         $propietarios   = Propietario::whereIn('persona_comunidad_id', $personaComunidadIds)->get();
         $propietarioIds = $propietarios->pluck('id');
 
-        $proveedores   = Proveedor::whereIn('persona_comunidad_id', $personaComunidadIds)->get();
+        $proveedores   = Proveedor::deComunidad($comunidad->id)->get();
         $proveedorIds  = $proveedores->pluck('id');
 
         $presupuestos   = Presupuesto::where('comunidad_id', $comunidad->id)->get();

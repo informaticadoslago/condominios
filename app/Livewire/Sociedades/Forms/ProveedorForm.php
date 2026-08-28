@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Livewire\Forms;
+namespace App\Livewire\Sociedades\Forms;
 
 use App\Models\Pais;
-use App\Models\PersonaComunidad;
+use App\Models\PersonaSociedad;
 use App\Models\Proveedor;
 use App\Models\TipoDocumentoIdentificativo;
+use App\Models\TipoProveedorSociedad;
 use App\Models\TipoGenero;
-use App\Models\TipoProveedor;
 use App\Rules\IsCifRule;
 use App\Rules\IsNieRule;
 use App\Rules\IsNifRule;
@@ -18,9 +18,9 @@ use Livewire\Form;
 class ProveedorForm extends Form
 {
     public ?Proveedor $proveedor = null;
-    public ?PersonaComunidad $persona = null;
+    public ?PersonaSociedad $persona = null;
 
-    public ?int $comunidad_id = null;
+    public ?int $sociedad_id = null;
 
     // --- Datos de persona (fiscales) ---
     public $razon_social;
@@ -45,7 +45,7 @@ class ProveedorForm extends Form
     public bool $es_tipo_documento_cif = false;
 
     // Alta: primero se comprueba el documento. Si la persona ya existe en esta
-    // comunidad (y no es proveedor todavía) se reutiliza tal cual; si no existe,
+    // sociedad (y no es proveedor todavía) se reutiliza tal cual; si no existe,
     // se piden sus datos.
     public bool $documentoComprobado = false;
     public bool $personaExistente    = false;
@@ -109,10 +109,10 @@ class ProveedorForm extends Form
         }
 
         // Es del proveedor, no de la persona: se pide aunque la persona ya existiera.
-        $rules['tipo_proveedor_id'] = ['required', 'exists:tipo_proveedores,id'];
+        $rules['tipo_proveedor_id'] = ['required', 'exists:tipo_proveedores_sociedad,id'];
 
-        $rules['documento_identificativo'][] = Rule::unique('personas_comunidad', 'documento_identificativo')
-            ->where(fn ($q) => $q->where('comunidad_id', $this->comunidad_id))
+        $rules['documento_identificativo'][] = Rule::unique('personas_sociedad', 'documento_identificativo')
+            ->where(fn ($q) => $q->where('sociedad_id', $this->sociedad_id))
             ->ignore($this->persona_id);
 
         return $rules;
@@ -129,19 +129,19 @@ class ProveedorForm extends Form
         ];
     }
 
-    /** Paso 1 del alta: mira si el documento ya pertenece a una persona de esta comunidad. */
+    /** Paso 1 del alta: mira si el documento ya pertenece a una persona de esta sociedad. */
     public function comprobarDocumento()
     {
         $this->validate($this->reglasDocumento());
 
         $this->es_tipo_documento_cif = TipoDocumentoIdentificativo::isTipoDocumento($this->tipo_documento_id, TipoDocumentoIdentificativo::TIPO_JURIDICA);
 
-        $persona = PersonaComunidad::where('comunidad_id', $this->comunidad_id)
+        $persona = PersonaSociedad::where('sociedad_id', $this->sociedad_id)
             ->where('documento_identificativo', $this->documento_identificativo)
             ->first();
 
         if ($persona) {
-            if (Proveedor::where('persona_type', PersonaComunidad::class)->where('persona_id', $persona->id)->exists()) {
+            if (Proveedor::where('persona_type', PersonaSociedad::class)->where('persona_id', $persona->id)->exists()) {
                 $this->addError('documento_identificativo', __('Esta persona ya está dada de alta como proveedor.'));
 
                 return;
@@ -175,8 +175,8 @@ class ProveedorForm extends Form
     private function datosPersona(): array
     {
         return [
-            'comunidad_id'             => $this->comunidad_id,
-            'nombre'                   => $this->nombre ?? '', // personas_comunidad.nombre es NOT NULL
+            'sociedad_id'              => $this->sociedad_id,
+            'nombre'                   => $this->nombre ?? '', // personas_sociedad.nombre es NOT NULL
             'apellido1'                => $this->apellido1,
             'apellido2'                => $this->apellido2,
             'razon_social'             => $this->razon_social,
@@ -196,7 +196,7 @@ class ProveedorForm extends Form
 
         $this->persona                  = $persona;
         $this->persona_id               = $persona->id;
-        $this->comunidad_id             = $persona->comunidad_id;
+        $this->sociedad_id              = $persona->sociedad_id;
         $this->nombre                   = $persona->nombre;
         $this->apellido1                = $persona->apellido1;
         $this->apellido2                = $persona->apellido2;
@@ -216,15 +216,15 @@ class ProveedorForm extends Form
     public function store($validated): Proveedor
     {
         if ($this->personaExistente && $this->persona_id) {
-            $persona = PersonaComunidad::findOrFail($this->persona_id);
+            $persona = PersonaSociedad::findOrFail($this->persona_id);
         } else {
-            $persona = PersonaComunidad::create($this->datosPersona());
+            $persona = PersonaSociedad::create($this->datosPersona());
         }
 
         $proveedor = Proveedor::create([
-            'persona_type' => PersonaComunidad::class,
+            'persona_type' => PersonaSociedad::class,
             'persona_id'   => $persona->id,
-            'tipo_type'    => TipoProveedor::class,
+            'tipo_type'    => TipoProveedorSociedad::class,
             'tipo_id'      => $this->tipo_proveedor_id,
         ]);
         $proveedor->setRelation('persona', $persona);
@@ -240,7 +240,7 @@ class ProveedorForm extends Form
     {
         $this->persona->update($this->datosPersona());
         $this->proveedor->update([
-            'tipo_type' => TipoProveedor::class,
+            'tipo_type' => TipoProveedorSociedad::class,
             'tipo_id'   => $this->tipo_proveedor_id,
         ]);
 

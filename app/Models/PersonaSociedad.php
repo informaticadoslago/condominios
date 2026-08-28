@@ -34,7 +34,7 @@ class PersonaSociedad extends Model
 
     public function proveedor()
     {
-        return $this->hasOne(SociedadProveedor::class);
+        return $this->morphOne(Proveedor::class, 'persona');
     }
 
     public function trabajador()

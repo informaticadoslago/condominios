@@ -9,6 +9,7 @@ use App\Models\Pais;
 use App\Models\PersonaComunidad;
 use App\Models\Proveedor;
 use App\Models\TipoDocumentoIdentificativo;
+use App\Models\TipoProveedor;
 use App\Models\TipoGenero;
 use App\Rules\Includes\ValidadorDocumentoId;
 
@@ -53,10 +54,11 @@ class AltaProveedorDesdeFactura
 
         if ($persona) {
             // El tipo solo se pone al crearlo: al que ya estaba no se le toca.
-            $proveedor = Proveedor::where('persona_comunidad_id', $persona->id)->first()
+            $proveedor = Proveedor::where('persona_type', PersonaComunidad::class)->where('persona_id', $persona->id)->first()
                 ?? Proveedor::create([
-                    'persona_comunidad_id' => $persona->id,
-                    'tipo_proveedor_id'    => $tipoProveedorId,
+                    'persona_type' => PersonaComunidad::class,
+                    'persona_id'   => $persona->id,
+                    ...$this->datosTipo($tipoProveedorId),
                 ]);
         } else {
             $persona = PersonaComunidad::create([
@@ -71,8 +73,9 @@ class AltaProveedorDesdeFactura
             ]);
 
             $proveedor = Proveedor::create([
-                'persona_comunidad_id' => $persona->id,
-                'tipo_proveedor_id'    => $tipoProveedorId,
+                'persona_type' => PersonaComunidad::class,
+                'persona_id'   => $persona->id,
+                ...$this->datosTipo($tipoProveedorId),
             ]);
             $creado = true;
         }
@@ -206,7 +209,7 @@ class AltaProveedorDesdeFactura
             ->where('documento_identificativo', $this->normalizarDocumento($documento))
             ->first();
 
-        return $persona && Proveedor::where('persona_comunidad_id', $persona->id)->exists();
+        return $persona && Proveedor::where('persona_type', PersonaComunidad::class)->where('persona_id', $persona->id)->exists();
     }
 
     public function existeDuplicada(int $comunidadId, string $documento, ?string $numeroFactura, ?string $fecha = null): bool
@@ -221,7 +224,7 @@ class AltaProveedorDesdeFactura
             ->where('documento_identificativo', $documento)
             ->first();
 
-        $proveedor = $persona ? Proveedor::where('persona_comunidad_id', $persona->id)->first() : null;
+        $proveedor = $persona ? Proveedor::where('persona_type', PersonaComunidad::class)->where('persona_id', $persona->id)->first() : null;
 
         if (! $proveedor) {
             return false;
@@ -230,6 +233,14 @@ class AltaProveedorDesdeFactura
         return FacturaProveedor::where('proveedor_id', $proveedor->id)
             ->where('numero_factura', $numeroFactura)
             ->exists();
+    }
+
+    /** @return array{tipo_type?: string, tipo_id?: int} */
+    private function datosTipo(?int $tipoProveedorId): array
+    {
+        return $tipoProveedorId !== null
+            ? ['tipo_type' => TipoProveedor::class, 'tipo_id' => $tipoProveedorId]
+            : [];
     }
 
     protected function normalizarDocumento(string $documento): string

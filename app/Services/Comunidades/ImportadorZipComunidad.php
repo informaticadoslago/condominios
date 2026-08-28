@@ -375,8 +375,11 @@ class ImportadorZipComunidad
                 break;
 
             case 'propietarios':
-            case 'proveedores':
                 $this->remapearColumna($datos, 'persona_comunidad_id', 'personas_comunidad', $mapaIds);
+                break;
+
+            case 'proveedores':
+                $this->remapearColumna($datos, 'persona_id', 'personas_comunidad', $mapaIds);
                 break;
 
             case 'cuentas_bancarias':

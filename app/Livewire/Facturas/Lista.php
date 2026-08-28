@@ -12,6 +12,7 @@ use App\Models\Actividad;
 use App\Models\Documento;
 use App\Models\FacturaProveedor;
 use App\Models\PagoFactura;
+use App\Models\PersonaComunidad;
 use App\Services\Facturas\AdjuntarSoporteFactura;
 use App\Services\Facturas\AltaProveedorDesdeFactura;
 use App\Services\Facturas\EnlazarFacturasContabilidad;
@@ -197,7 +198,7 @@ class Lista extends ListaComponent
      */
     public function actualizarActividad($facturaId, $actividadId)
     {
-        $factura = FacturaProveedor::whereHas('proveedor.persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+        $factura = FacturaProveedor::whereHas('proveedor', fn ($q) => $q->deComunidad(session('comunidad_actual_id')))
             ->find($facturaId);
 
         if (! $factura || $factura->asiento_contable) {
@@ -220,8 +221,9 @@ class Lista extends ListaComponent
             'etiqueta' => __('CIF'),
             'tipo'     => 'texto',
             'aplicar'  => fn ($query, $valor) => $query->whereHas(
-                'proveedor.persona',
-                fn ($p) => $p->where('documento_identificativo', 'like', "%{$valor}%")
+                'proveedor',
+                fn ($q) => $q->whereHasMorph('persona', [PersonaComunidad::class],
+                    fn ($p) => $p->where('documento_identificativo', 'like', "%{$valor}%"))
             ),
         ];
     }
@@ -233,11 +235,12 @@ class Lista extends ListaComponent
             'etiqueta' => __('Razón social'),
             'tipo'     => 'texto',
             'aplicar'  => fn ($query, $valor) => $query->whereHas(
-                'proveedor.persona',
-                fn ($p) => $p->where('razon_social', 'like', "%{$valor}%")
+                'proveedor',
+                fn ($q) => $q->whereHasMorph('persona', [PersonaComunidad::class], fn ($p) => $p
+                    ->where('razon_social', 'like', "%{$valor}%")
                     ->orWhere('nombre', 'like', "%{$valor}%")
                     ->orWhere('apellido1', 'like', "%{$valor}%")
-                    ->orWhere('apellido2', 'like', "%{$valor}%")
+                    ->orWhere('apellido2', 'like', "%{$valor}%"))
             ),
         ];
     }
@@ -341,7 +344,10 @@ class Lista extends ListaComponent
      */
     public function contabilizar($facturaId, EnlazarFacturasContabilidad $enlazar)
     {
-        $factura = FacturaProveedor::with(['proveedor.persona.comunidad', 'proveedor.tipo'])->find($facturaId);
+        $factura = FacturaProveedor::with([
+            'proveedor.persona' => fn ($query) => $query->morphWith([PersonaComunidad::class => ['comunidad']]),
+            'proveedor.tipo',
+        ])->find($facturaId);
         if (! $factura) {
             return;
         }
@@ -390,7 +396,10 @@ class Lista extends ListaComponent
         EnlazarFacturasContabilidad $enlazar,
         EnlazarPagosContabilidad $enlazarPagos,
     ) {
-        $factura = FacturaProveedor::with(['proveedor.persona.comunidad', 'proveedor.tipo'])->find($id);
+        $factura = FacturaProveedor::with([
+            'proveedor.persona' => fn ($query) => $query->morphWith([PersonaComunidad::class => ['comunidad']]),
+            'proveedor.tipo',
+        ])->find($id);
         if (! $factura) {
             return;
         }
@@ -434,7 +443,7 @@ class Lista extends ListaComponent
             // Para saber si a la fila le falta algo por asentar sin preguntar una vez
             // por factura.
             ->withCount(['pagos as pagos_sin_asentar_count' => fn ($q) => $q->whereNull('asiento_contable')])
-            ->whereHas('proveedor.persona', fn ($p) => $p->where('comunidad_id', session('comunidad_actual_id')))
+            ->whereHas('proveedor', fn ($q) => $q->deComunidad(session('comunidad_actual_id')))
             // Ver solo seleccionados manda también sobre la búsqueda: aunque una factura ya
             // no case con el texto buscado, tiene que poder verse para actuar sobre ella.
             ->when($search && ! $this->verSoloSeleccionados, function ($q) use ($search) {
@@ -442,12 +451,12 @@ class Lista extends ListaComponent
                 // desengancha del whereHas de comunidad de arriba y se ve gente de otras.
                 $q->where(function ($q2) use ($search) {
                     $q2->where('numero_factura', 'like', "%{$search}%")
-                        ->orWhereHas('proveedor.persona', fn ($p) => $p
+                        ->orWhereHas('proveedor', fn ($q3) => $q3->whereHasMorph('persona', [PersonaComunidad::class], fn ($p) => $p
                             ->where('razon_social', 'like', "%{$search}%")
                             ->orWhere('nombre', 'like', "%{$search}%")
                             ->orWhere('apellido1', 'like', "%{$search}%")
                             ->orWhere('apellido2', 'like', "%{$search}%")
-                            ->orWhere('documento_identificativo', 'like', "%{$search}%"));
+                            ->orWhere('documento_identificativo', 'like', "%{$search}%")));
                 });
             });
     }
@@ -618,7 +627,7 @@ class Lista extends ListaComponent
             'pagoLoteFecha' => __('Fecha de pago'),
         ]);
 
-        $facturas = FacturaProveedor::with('proveedor.persona.comunidad')
+        $facturas = FacturaProveedor::with(['proveedor.persona' => fn ($query) => $query->morphWith([PersonaComunidad::class => ['comunidad']])])
             ->whereIn('id', $this->pagoLoteIds)
             ->get();
 

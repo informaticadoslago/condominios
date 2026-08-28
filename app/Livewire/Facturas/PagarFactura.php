@@ -7,6 +7,7 @@ use App\Exceptions\CuentaContableDesconocidaException;
 use App\Exceptions\EjercicioCerradoException;
 use App\Exceptions\EjercicioContableDesconocidoException;
 use App\Models\FacturaProveedor;
+use App\Models\PersonaComunidad;
 use App\Services\Facturas\RegistrarPagoFactura;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -57,7 +58,9 @@ class PagarFactura extends Component
             'importe' => __('importe'),
         ]);
 
-        $factura = FacturaProveedor::with('proveedor.persona.comunidad')->find($this->facturaId);
+        $factura = FacturaProveedor::with([
+            'proveedor.persona' => fn ($query) => $query->morphWith([PersonaComunidad::class => ['comunidad']]),
+        ])->find($this->facturaId);
         if (! $factura) {
             return;
         }

@@ -57,7 +57,7 @@ class ComunidadEliminador
 
         $personaComunidadIds = PersonaComunidad::where('comunidad_id', $comunidad->id)->pluck('id');
         $propietarioIds      = Propietario::whereIn('persona_comunidad_id', $personaComunidadIds)->pluck('id');
-        $proveedorIds        = Proveedor::whereIn('persona_comunidad_id', $personaComunidadIds)->pluck('id');
+        $proveedorIds        = Proveedor::deComunidad($comunidad->id)->pluck('id');
 
         $presupuestoIds = Presupuesto::where('comunidad_id', $comunidad->id)->pluck('id');
 
@@ -133,7 +133,7 @@ class ComunidadEliminador
         // 15-17. Directivos, propietarios, proveedores.
         ComunidadDirectivo::where('comunidad_id', $comunidad->id)->delete();
         Propietario::whereIn('persona_comunidad_id', $personaComunidadIds)->delete();
-        Proveedor::whereIn('persona_comunidad_id', $personaComunidadIds)->delete();
+        Proveedor::whereIn('id', $proveedorIds)->delete();
 
         // 18-20. Resto de tablas colgadas directamente de la comunidad.
         Inmueble::where('comunidad_id', $comunidad->id)->delete();

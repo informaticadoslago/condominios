@@ -16,6 +16,7 @@ return [
             'type'  => 'nav',
             'items' => [
                 ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.dashboard'), 'route' => 'dashboard-sociedad'],
+                ['icon' => 'fa-solid fa-truck', 'label' => trans_key('menu.Proveedores'), 'route' => 'sociedad-proveedores.index'],
             ],
         ],
         ['type' => 'spacer'],

@@ -93,9 +93,13 @@ class Sociedad extends Model
         return $this->hasMany(SociedadCliente::class);
     }
 
+    /**
+     * No es una relación Eloquent: Proveedor cuelga de PersonaSociedad vía
+     * persona_type/persona_id. Usar como $sociedad->proveedores()->get(), no como propiedad.
+     */
     public function proveedores()
     {
-        return $this->hasMany(SociedadProveedor::class);
+        return Proveedor::deSociedad($this->id);
     }
 
     public function trabajadores()

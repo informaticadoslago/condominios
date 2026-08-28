@@ -152,7 +152,7 @@ class Crear extends Component
             ->first();
 
         $proveedor = $persona
-            ? Proveedor::where('persona_comunidad_id', $persona->id)->first()
+            ? Proveedor::where('persona_type', PersonaComunidad::class)->where('persona_id', $persona->id)->first()
             : null;
 
         // Documento correcto pero de nadie: se pregunta con SweetAlert y, si dice que sí,

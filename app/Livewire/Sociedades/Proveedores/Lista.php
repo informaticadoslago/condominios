@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Livewire\Proveedores;
+namespace App\Livewire\Sociedades\Proveedores;
 
 use App\Livewire\ListaComponent;
 use App\Livewire\Traits\ConBajaPorEstado;
 use App\Livewire\Traits\ConFiltroEstado;
 use App\Livewire\Traits\ConHistorialEstadoModal;
 use App\Models\Estado;
-use App\Models\PersonaComunidad;
 use App\Models\PlantillaFactura;
 use App\Models\Proveedor;
 use Livewire\Attributes\On;
@@ -64,14 +63,14 @@ class Lista extends ListaComponent
     /**
      * Se reimplementan en vez de dejar el ConBajaPorEstado del trait tal cual: un
      * proveedor no se puede borrar (por eso existe el estado de baja), y la baja/
-     * reactivación solo puede tocar proveedores de la comunidad activa — el trait
+     * reactivación solo puede tocar proveedores de la sociedad activa — el trait
      * genérico busca por id a secas, sin ese scope.
      */
     #[On('ejecutarBaja')]
     public function ejecutarBaja($id)
     {
         $proveedor = Proveedor::whereKey($id)
-            ->deComunidad(session('comunidad_actual_id'))
+            ->deSociedad(session('sociedad_actual_id'))
             ->first();
 
         if ($proveedor) {
@@ -84,7 +83,7 @@ class Lista extends ListaComponent
     public function ejecutarReactivar($id)
     {
         $proveedor = Proveedor::whereKey($id)
-            ->deComunidad(session('comunidad_actual_id'))
+            ->deSociedad(session('sociedad_actual_id'))
             ->first();
 
         if ($proveedor) {
@@ -95,16 +94,16 @@ class Lista extends ListaComponent
 
     /**
      * Vía de escape para un proveedor de baja que sobra del todo (duplicado, prueba...):
-     * borra el proveedor, sus documentos (con el PDF del disco, uno a uno para que
-     * dispare el evento que los borra) y la plantilla de su CIF. No tiene botón propio
-     * a propósito — se dispara con mayús+clic sobre "Reactivar" (ver blade) para que no
-     * sea un botón más al lado de "Dar de baja" tentando a pulsarlo sin querer.
+     * borra el proveedor y sus documentos (con el PDF del disco, uno a uno para que
+     * dispare el evento que los borra). No tiene botón propio a propósito — se dispara
+     * con mayús+clic sobre "Reactivar" (ver blade) para que no sea un botón más al lado
+     * de "Dar de baja" tentando a pulsarlo sin querer.
      */
     public function confirmarBorrarDefinitivo($id)
     {
         $this->dispatch('swalConfirm', [
             'title'              => __('¿Borrar este proveedor definitivamente?'),
-            'text'               => __('Se borran también todos sus documentos (con el PDF del disco) y la plantilla de extracción. Esta acción NO se puede deshacer.'),
+            'text'               => __('Se borran también todos sus documentos (con el PDF del disco). Esta acción NO se puede deshacer.'),
             'icon'               => 'warning',
             'showCancelButton'   => true,
             'confirmButtonColor' => '#d33',
@@ -121,7 +120,7 @@ class Lista extends ListaComponent
     public function ejecutarBorrarDefinitivo($id)
     {
         $proveedor = Proveedor::with(['persona', 'documentos'])
-            ->deComunidad(session('comunidad_actual_id'))
+            ->deSociedad(session('sociedad_actual_id'))
             ->find($id);
 
         if (! $proveedor) {
@@ -142,10 +141,9 @@ class Lista extends ListaComponent
             PlantillaFactura::where('cif', $cif)->delete();
         }
 
-        // Las facturas_proveedores ya se han ido en cascada al borrar sus documentos.
         $proveedor->delete();
 
-        $this->dispatch('toast-success', ['title' => __('Proveedor, documentos y plantilla borrados')]);
+        $this->dispatch('toast-success', ['title' => __('Proveedor y documentos borrados')]);
     }
 
     #[On('borrarDefinitivoCancelado')]
@@ -161,16 +159,16 @@ class Lista extends ListaComponent
         $items = $this->aplicarFiltros(
             Proveedor::with(['persona', 'estado'])
                 ->withCount('historialEstados')
-                ->deComunidad(session('comunidad_actual_id'))
+                ->deSociedad(session('sociedad_actual_id'))
         )
             ->when($search, function ($q) use ($search) {
-                $q->whereHasMorph('persona', [PersonaComunidad::class], fn ($p) => $p
+                $q->whereHasMorph('persona', [\App\Models\PersonaSociedad::class], fn ($p) => $p
                     ->buscarNombreCompleto($search)
                     ->orWhere('documento_identificativo', 'like', "%{$search}%"));
             })
             ->orderBy($this->sort, $this->direction)
             ->paginate($this->lineasXPagina);
 
-        return view('livewire.proveedores.lista', compact('items'));
+        return view('livewire.sociedades.proveedores.lista', compact('items'));
     }
 }

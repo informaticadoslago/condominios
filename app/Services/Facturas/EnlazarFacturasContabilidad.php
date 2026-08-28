@@ -4,6 +4,7 @@ namespace App\Services\Facturas;
 
 use App\Models\EjercicioContable;
 use App\Models\FacturaProveedor;
+use App\Models\PersonaComunidad;
 use App\Services\Contabilidad\DatosApunte;
 use App\Services\Contabilidad\DatosAsiento;
 use App\Services\Contabilidad\DatosTercero;
@@ -39,7 +40,11 @@ final class EnlazarFacturasContabilidad
      */
     public function ejecutar(array $facturaIds): array
     {
-        $facturas = FacturaProveedor::with(['proveedor.persona.comunidad', 'proveedor.tipo', 'actividad'])
+        $facturas = FacturaProveedor::with([
+            'proveedor.persona' => fn ($query) => $query->morphWith([PersonaComunidad::class => ['comunidad']]),
+            'proveedor.tipo',
+            'actividad',
+        ])
             ->whereIn('id', $facturaIds)
             ->whereNull('asiento_contable')
             ->get();

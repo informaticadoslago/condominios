@@ -32,6 +32,11 @@ class PersonaComunidad extends Model
         return $this->hasOne(Propietario::class, 'persona_comunidad_id');
     }
 
+    public function proveedor()
+    {
+        return $this->morphOne(Proveedor::class, 'persona');
+    }
+
     public function tipoDocumentoIdentificativo()
     {
         return $this->belongsTo(TipoDocumentoIdentificativo::class, 'tipo_documento_id');

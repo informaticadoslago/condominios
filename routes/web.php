@@ -34,6 +34,7 @@ use App\Livewire\ComisionesBancarias\Lista as ComisionesBancariasLista;
 use App\Livewire\MovimientosBancarios\Lista as MovimientosBancariosLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
 use App\Livewire\Sociedades\Lista as SociedadesLista;
+use App\Livewire\Sociedades\Proveedores\Lista as SociedadProveedoresLista;
 use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
 use App\Livewire\EjerciciosContables\Lista as EjerciciosContablesLista;
@@ -182,6 +183,8 @@ Route::middleware([
                 'sociedad' => \App\Models\Sociedad::find(session('sociedad_actual_id')),
             ]);
         })->name('dashboard-sociedad');
+
+        Route::get('/sociedad-proveedores', SociedadProveedoresLista::class)->name('sociedad-proveedores.index');
     });
 
     // Gestión contable: módulo independiente de comunidades (empresas por CIF).

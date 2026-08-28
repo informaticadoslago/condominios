@@ -138,8 +138,29 @@ más abajo—: al copiar, la de la plantilla pisa el nombre de la común, siempr
 |---|---|---|
 | `47200000` | H.P., IVA soportado | Activo |
 | `47700000` | H.P., IVA repercutido | Pasivo |
-| `60000000` | Compras | Gasto |
+| `60000000` | Compras de mercaderías | Gasto |
+| `60100000` | Compras de materias primas | Gasto |
+| `60200000` | Compras de otros aprovisionamientos | Gasto |
+| `60700000` | Trabajos realizados por otras empresas | Gasto |
+| `62100000` | Arrendamientos y cánones | Gasto |
+| `62400000` | Transportes | Gasto |
+| `62700000` | Publicidad, propaganda y relaciones públicas | Gasto |
+| `63100000` | Otros tributos | Gasto |
 | `70000000` | Ventas / prestación de servicios | Ingreso |
+
+El subgrupo 60 distingue el tipo de compra (mercaderías que se revenden tal cual,
+materias primas que se transforman, trabajos de terceros...); el 62 se completa con
+tres cuentas que faltaban en la común (621/624/627 — 622/623/625/626/628/629 ya están
+ahí y se heredan solas). La 631 es la única del subgrupo 63 que aplica a una factura de
+proveedor: 630/634/636/638 son de la liquidación del Impuesto de Sociedades, no de
+compras/gastos corrientes.
+
+Pendiente de implementar: el tipo de proveedor de una sociedad debe poder elegir
+cualquiera de estas cuentas de gasto/compra, y de ahí saldría el pasivo del asiento —
+subgrupo 60 va contra **400** (proveedor), cualquier otra (62x, 63x) contra **410**
+(acreedor). Hoy `TipoProveedor` solo guarda una `cuenta_gasto` y no distingue clase; el
+enlace contable (`EnlazarFacturasContabilidad`) da por hecho que todo proveedor es
+acreedor 410.
 
 La contabilidad es genérica y no sabe qué es una cuota, una derrama ni un IVA: solo mueve
 céntimos entre códigos que le dan. El día que entre otro origen se añade otra plantilla al
