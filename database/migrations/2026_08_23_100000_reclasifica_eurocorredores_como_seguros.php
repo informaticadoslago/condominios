@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\DB;
  * Corrige la factura de Eurocorredores del 28/05/2026 (718,51 €), que se contabilizó
  * contra 62300000 (Profesionales) en vez de la cuenta de seguros, porque el proveedor
  * no tenía un tipo "Seguros" al que asignarse. Localiza cada fila por su contenido, no
- * por id, porque los ids de desarrollo y producción no coinciden.
+ * por id, porque los ids de desarrollo y producción no coinciden. Si no existe ningún
+ * proveedor Eurocorredores (base de datos de test recién creada), no hace nada.
  */
 return new class extends Migration
 {
@@ -34,7 +35,10 @@ return new class extends Migration
                 ->select('proveedores.id')
                 ->get();
 
-            if ($proveedor->count() !== 1) {
+            if ($proveedor->count() === 0) {
+                return;
+            }
+            if ($proveedor->count() > 1) {
                 throw new \RuntimeException('Se esperaba un único proveedor Eurocorredores, encontrados: '.$proveedor->count());
             }
             $proveedorId = $proveedor->first()->id;
