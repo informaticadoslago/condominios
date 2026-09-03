@@ -11,6 +11,7 @@ use App\Http\Controllers\MovimientosContablesPdfController;
 use App\Http\Controllers\PresupuestoConceptosPdfController;
 use App\Http\Controllers\PresupuestoRepartoPdfController;
 use App\Http\Controllers\RemesaFicheroController;
+use App\Http\Controllers\RemesaInformePdfController;
 use App\Livewire\Remesas\Lista as RemesasLista;
 use App\Http\Controllers\EmpresaContableContextoController;
 use App\Livewire\AdministracionSistema\Backups\Lista as BackupsLista;
@@ -150,6 +151,7 @@ Route::middleware([
         Route::get('/mandatos-sepa/plantilla/{personaComunidad}', MandatoSepaPlantillaController::class)->name('mandatos-sepa.plantilla');
         Route::get('/remesas', RemesasLista::class)->name('remesas.index');
         Route::get('/remesas/{remesa}/fichero', RemesaFicheroController::class)->name('remesas.fichero');
+        Route::get('/remesas/{remesa}/informe', RemesaInformePdfController::class)->name('remesas.informe');
         Route::get('/comisiones-bancarias', ComisionesBancariasLista::class)->name('comisiones-bancarias.index');
         Route::get('/comisiones-bancarias/nueva', ComisionesBancariasFormulario::class)->name('comisiones-bancarias.crear');
         Route::get('/movimientos-bancarios', MovimientosBancariosLista::class)->name('movimientos-bancarios.index');
