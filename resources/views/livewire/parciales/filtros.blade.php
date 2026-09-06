@@ -1,6 +1,9 @@
 @php
     $definiciones = $this->definicionesFiltro();
     $hayTexto     = collect($definiciones)->contains(fn ($filtro) => in_array($filtro['tipo'], ['texto', 'fecha'], true));
+    // El navegador autorrellena por `name`/etiqueta, no por wire:model: sin un `name` propio
+    // y distinto en cada list, un campo "Nombre" hereda el autofill del usuario logueado.
+    $prefijoFiltro = 'filtro_' . $this->getId();
     // Las fechas siempre a su propia línea: mezcladas con selects, el ancho variable de
     // estos hace que el punto de corte del flex-wrap cambie de un filtro a otro.
     $primeraFecha = collect($definiciones)->search(fn ($filtro) => $filtro['tipo'] === 'fecha');
@@ -25,11 +28,13 @@
                         @endforeach
                     </select>
                 @elseif ($filtro['tipo'] === 'fecha')
-                    <x-input type="date" wire:model="filtros.{{ $filtro['clave'] }}" wire:keydown.enter="aplicarFiltro"
+                    <x-input type="date" name="{{ $prefijoFiltro }}_{{ $filtro['clave'] }}" autocomplete="off"
+                        wire:model="filtros.{{ $filtro['clave'] }}" wire:keydown.enter="aplicarFiltro"
                         :disabled="$verSoloSeleccionados ?? false"
                         class="disabled:opacity-50 disabled:cursor-not-allowed" />
                 @else
-                    <x-input wire:model="filtros.{{ $filtro['clave'] }}" wire:keydown.enter="aplicarFiltro"
+                    <x-input name="{{ $prefijoFiltro }}_{{ $filtro['clave'] }}" autocomplete="off"
+                        wire:model="filtros.{{ $filtro['clave'] }}" wire:keydown.enter="aplicarFiltro"
                         :disabled="$verSoloSeleccionados ?? false"
                         class="disabled:opacity-50 disabled:cursor-not-allowed" />
                 @endif
