@@ -466,6 +466,7 @@ un solo sitio para no chocar entre módulos:
 | Hecho | `diario` | `referencia` | Servicio |
 |---|---|---|---|
 | Emisión de un vencimiento de recibos | `REC` | `recibos` · `<presupuesto>:<fecha>` · `emision` | [`EnlazarRecibosContabilidad`](../app/Services/Recibos/EnlazarRecibosContabilidad.php) |
+| Recibo saldado con el saldo a favor del propio propietario (forma de pago Compensación) | `REC` | `cobros` · `<propietario>:<fecha>:<huella>` · `compensacion` | [`EnlazarCobrosContabilidad::enlazarCompensacion`](../app/Services/Recibos/EnlazarCobrosContabilidad.php) |
 | Factura de proveedor | `FAC` | `facturas` · `<id de la factura>` · `registro` | [`EnlazarFacturasContabilidad`](../app/Services/Facturas/EnlazarFacturasContabilidad.php) |
 | Pago de una factura | `PAG` | `pagos_facturas` · `<id del pago>` · `pago` | [`EnlazarPagosContabilidad`](../app/Services/Facturas/EnlazarPagosContabilidad.php) |
 

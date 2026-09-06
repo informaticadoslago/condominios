@@ -16,6 +16,7 @@ class FormasDePagoSeeder extends Seeder
             ['descripcion' => 'Recibo bancario', 'estado_id' => 1],
             ['descripcion' => 'Efectivo', 'estado_id' => 2],
             ['descripcion' => 'Transferencia', 'estado_id' => 1],
+            ['descripcion' => 'Compensación', 'estado_id' => 1],
         ]);
 
         $this->command->info('Formas de pago cargadas correctamente: 2 registros.');

@@ -6,6 +6,7 @@ use App\Models\Cobro;
 use App\Models\Comunidad;
 use App\Models\CuentaBancaria;
 use App\Models\EjercicioContable;
+use App\Models\FormaDePago;
 use App\Models\TipoComisionBancaria;
 use App\Services\Contabilidad\DatosApunte;
 use App\Services\Contabilidad\DatosAsiento;
@@ -30,6 +31,12 @@ use Illuminate\Support\Facades\DB;
  * cargo real, con su factura), así que su contrapartida es la cuenta de gastos bancarios,
  * no el banco: se debe al propietario y se abona esa cuenta de gasto, para que cuando
  * entre el cargo real de la comisión quede neteado con lo ya repercutido.
+ *
+ * La compensación (forma de pago Compensación) es la excepción a lo anterior: es un
+ * cobro normal y corriente, tecleado a mano igual que una transferencia o el efectivo,
+ * pero no representa dinero nuevo —salda el recibo con el saldo a favor que el
+ * propietario ya tenía por haber pagado de más en su día—, así que su contrapartida no
+ * es el banco sino la propia subcuenta del propietario.
  *
  * Se puede volver a lanzar sin miedo: los cobros ya enlazados se saltan, y si aun así
  * llegara dos veces el mismo grupo exacto, la contabilidad reconoce la referencia y
@@ -107,10 +114,14 @@ final class EnlazarCobrosContabilidad
     {
         $empresaId = $this->comunidad($cobro)?->empresa_contable_id;
 
+        // La compensación no mueve tesorería —es el propietario contra sí mismo—, así
+        // que no le exige cuenta bancaria.
+        $esCompensacion = $cobro->forma_de_pago_id === FormaDePago::COMPENSACION;
+
         if ((float) $cobro->importe == 0
             || $empresaId === null
             || $this->cuentaContablePropietario($cobro) === null
-            || $this->cuentaTesoreria($cobro)?->cuenta_contable === null) {
+            || (! $esCompensacion && $this->cuentaTesoreria($cobro)?->cuenta_contable === null)) {
             return false;
         }
 
@@ -182,6 +193,15 @@ final class EnlazarCobrosContabilidad
      */
     private function clave(Cobro $cobro): string
     {
+        // Aparte del resto: aunque comparta propietario y fecha con otro cobro normal
+        // del mismo día, no es el mismo hecho contable —no entra el mismo dinero por el
+        // mismo sitio— y tiene que ir a enlazarCompensacion(), no al flujo con tesorería.
+        if ($cobro->forma_de_pago_id === FormaDePago::COMPENSACION) {
+            $propietarioId = $cobro->recibo?->propietario_id ?? $cobro->propietario_id;
+
+            return 'compensacion|'.$propietarioId.'|'.$cobro->fecha->toDateString();
+        }
+
         if ($cobro->esDevolucion()) {
             return 'devolucion|'.$cobro->id;
         }
@@ -209,6 +229,10 @@ final class EnlazarCobrosContabilidad
         $empresaId = $this->comunidad($primero)?->empresa_contable_id;
         $fecha     = $primero->fecha->toDateString();
         $propietarioId = $conRecibo->recibo?->propietario_id ?? $primero->propietario_id;
+
+        if ($primero->forma_de_pago_id === FormaDePago::COMPENSACION) {
+            return $this->enlazarCompensacion($grupo, $conRecibo, $empresaId, $fecha, $propietarioId);
+        }
 
         if ($primero->esDevolucion()) {
             return $this->enlazarDevolucion($primero, $empresaId, $fecha);
@@ -260,6 +284,60 @@ final class EnlazarCobrosContabilidad
     private function huella(Collection $grupo): string
     {
         return (string) crc32($grupo->pluck('id')->sort()->implode(','));
+    }
+
+    /**
+     * El saldo a favor que el propietario ya tenía salda ahora este recibo (o varios,
+     * si se compensó más de uno el mismo día): no entra dinero nuevo por banco, así que
+     * la contrapartida es la misma subcuenta del propietario, no la tesorería. El saldo
+     * de esa cuenta ya venía correcto desde que se contabilizaron por separado la
+     * emisión de estos recibos y el cobro de más que dejó el sobrante; este asiento no
+     * lo cambia —las líneas se cancelan entre sí—, solo deja constancia en el mayor de
+     * qué recibos se saldaron con saldo a favor.
+     *
+     * @param  Collection<int, Cobro>  $grupo
+     */
+    private function enlazarCompensacion(Collection $grupo, Cobro $conRecibo, int $empresaId, string $fecha, int $propietarioId): int
+    {
+        $cuenta = $this->cuentaContablePropietario($conRecibo);
+
+        $lineas = [];
+        $total  = 0;
+
+        foreach ($grupo as $cobro) {
+            $centimos = (int) round((float) $cobro->importe * 100);
+            $total += $centimos;
+
+            $lineas[] = new DatosApunte(
+                haber: $centimos,
+                cuenta: $cuenta,
+                concepto: trim(sprintf('%s %s', $cobro->recibo?->inmueble?->planta, $cobro->recibo?->inmueble?->puerta)) ?: null,
+            );
+        }
+
+        // Contrapartida: la misma cuenta del propietario, no tesorería —no ha entrado
+        // dinero nuevo, es su propio saldo a favor el que salda esto—. El concepto lo
+        // teclea quien cobra, en el propio modal; sin él, la línea queda sin concepto.
+        $lineas[] = new DatosApunte(debe: $total, cuenta: $cuenta, concepto: $grupo->first()->concepto);
+
+        $asiento = DB::transaction(fn () => $this->asientos->ejecutar(new DatosAsiento(
+            empresaContableId: $empresaId,
+            ejercicio: EjercicioContable::nombrePara($empresaId, $fecha),
+            fecha: $fecha,
+            concepto: trim(sprintf('Compensación %s', $conRecibo->recibo?->presupuesto?->nombre ?? '')),
+            lineas: $lineas,
+            diario: 'REC',
+            // El hecho es aplicar el saldo a favor a ESTOS recibos: reenviar el mismo
+            // grupo devuelve el mismo asiento, pero otra compensación del mismo
+            // propietario el mismo día es un hecho distinto y saca un asiento propio.
+            referenciaTipo: 'cobros',
+            referenciaId: $propietarioId.':'.$fecha.':'.$this->huella($grupo),
+            evento: 'compensacion',
+        )));
+
+        Cobro::whereIn('id', $grupo->pluck('id'))->update(['asiento_contable' => $asiento->id]);
+
+        return $grupo->count();
     }
 
     /**

@@ -27,9 +27,9 @@ class RegistrarCobro
      * Devuelve null si no había nada que cobrar (ya estaba pagado, o se llamó dos veces
      * sobre el mismo recibo), para que el llamante pueda contar cuántos cobró de verdad.
      */
-    public function registrar(int $reciboId, string $fecha, int $formaDePagoId, ?float $importe = null, ?int $lineaRemesaId = null): ?Cobro
+    public function registrar(int $reciboId, string $fecha, int $formaDePagoId, ?float $importe = null, ?int $lineaRemesaId = null, ?string $concepto = null): ?Cobro
     {
-        return DB::transaction(function () use ($reciboId, $fecha, $formaDePagoId, $importe, $lineaRemesaId) {
+        return DB::transaction(function () use ($reciboId, $fecha, $formaDePagoId, $importe, $lineaRemesaId, $concepto) {
             // Bloqueada la fila: dos usuarios cobrando el mismo recibo a la vez leerían
             // el mismo pendiente y lo cobrarían dos veces.
             $recibo = Recibo::whereKey($reciboId)->lockForUpdate()->first();
@@ -55,6 +55,7 @@ class RegistrarCobro
                 'linea_remesa_id'  => $lineaRemesaId,
                 'fecha'            => $fecha,
                 'importe'          => $importe,
+                'concepto'         => $concepto,
             ]);
 
             $recibo->importe_pagado = (float) $recibo->importe_pagado + $importe;

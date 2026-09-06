@@ -13,7 +13,10 @@ class FormaDePago extends Model
     const
     RECIBO_BANCARIO = 1,
     EFECTIVO = 2,
-    TRANSFERENCIA = 3;
+    TRANSFERENCIA = 3,
+    // Salda un recibo con el saldo a favor que el propietario ya tenía, sin dinero
+    // nuevo por banco (ver EnlazarCobrosContabilidad::enlazarCompensacion).
+    COMPENSACION = 4;
 
     protected $table = 'formas_de_pago';
 

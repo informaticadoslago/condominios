@@ -310,13 +310,21 @@
 
                 <div class="mb-4">
                     <x-label for="cobroFormaDePagoId">{{ __('Forma de pago') }}:</x-label>
-                    <x-select id="cobroFormaDePagoId" class="block mt-1 w-full py-3" wire:model="cobroFormaDePagoId">
+                    <x-select id="cobroFormaDePagoId" class="block mt-1 w-full py-3" wire:model.live="cobroFormaDePagoId">
                         @foreach ($formasDePago as $id => $descripcion)
                             <option value="{{ $id }}">{{ $descripcion }}</option>
                         @endforeach
                     </x-select>
                     <x-input-error for="cobroFormaDePagoId" class="mt-1" />
                 </div>
+
+                @if ((int) $cobroFormaDePagoId === \App\Models\FormaDePago::COMPENSACION)
+                    <div class="mb-4">
+                        <x-label for="cobroConcepto">{{ __('Concepto') }}:</x-label>
+                        <x-input class="block mt-1 w-full" type="text" id="cobroConcepto" wire:model="cobroConcepto" maxlength="255" />
+                        <x-input-error for="cobroConcepto" class="mt-1" />
+                    </div>
+                @endif
 
                 <div>
                     <x-label for="cobroImporte">{{ __('Importe recibido (opcional, para comprobar)') }}:</x-label>

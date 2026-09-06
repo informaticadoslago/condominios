@@ -31,6 +31,9 @@ class Cobro extends Model
         'linea_remesa_id',
         'fecha',
         'importe',
+        // Solo se teclea con Compensación; el resto de formas de pago ya se explican
+        // solas. Es lo que EnlazarCobrosContabilidad pone en la contrapartida del asiento.
+        'concepto',
         // Asiento en el que entró; lo pone EnlazarCobrosContabilidad.
         'asiento_contable',
     ];

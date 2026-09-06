@@ -48,6 +48,9 @@ class Lista extends ListaComponent
      */
     public ?string $cobroImporte = null;
 
+    /** Solo se pide con Compensación: el resto de formas de pago ya se explican solas. */
+    public ?string $cobroConcepto = null;
+
     public bool $avisoTransferenciaAbierto = false;
 
     /** [['id','inmueble','propietario','correo','validado','saldo'], ...], congelado al abrir. */
@@ -327,6 +330,7 @@ class Lista extends ListaComponent
 
         $this->cobroFecha    = now()->toDateString();
         $this->cobroImporte  = null;
+        $this->cobroConcepto = null;
         $this->cobroAbierto  = true;
     }
 
@@ -337,23 +341,28 @@ class Lista extends ListaComponent
             'cobroFecha'         => ['required', 'date'],
             'cobroFormaDePagoId' => ['required', 'exists:formas_de_pago,id'],
             'cobroImporte'       => ['nullable', 'numeric', 'min:0'],
+            'cobroConcepto'      => ['nullable', 'string', 'max:255'],
         ], attributes: [
             'cobroFecha'         => __('Fecha del cobro'),
             'cobroFormaDePagoId' => __('Forma de pago'),
             'cobroImporte'       => __('Importe recibido'),
+            'cobroConcepto'      => __('Concepto'),
         ]);
 
         $sobrante = 0.0;
 
         // Un solo recibo con importe tecleado: se registra ese importe tal cual, aunque
         // supere (o el recibo ya esté cobrado del todo) — es la vía para meter un pago
-        // de más, que deja el saldo en negativo (a favor del propietario).
+        // de más, que deja el saldo en negativo (a favor del propietario). También es la
+        // vía para saldar con Compensación: se teclea la fecha, la forma de pago
+        // Compensación y el importe a mano, y el recibo queda con ese saldo pendiente.
         if (count($this->cobroIds) === 1 && $this->cobroImporte !== null && $this->cobroImporte !== '') {
             $cobro    = $registrarCobro->registrar(
                 (int) $this->cobroIds[0],
                 $this->cobroFecha,
                 $this->cobroFormaDePagoId,
                 (float) $this->cobroImporte,
+                concepto: $this->cobroFormaDePagoId === FormaDePago::COMPENSACION ? $this->cobroConcepto : null,
             );
             $cobrados = $cobro ? 1 : 0;
         } elseif ($this->cobroImporte !== null && $this->cobroImporte !== '') {
@@ -389,9 +398,10 @@ class Lista extends ListaComponent
             }
         }
 
-        $this->cobroAbierto = false;
-        $this->cobroIds     = [];
-        $this->cobroImporte = null;
+        $this->cobroAbierto  = false;
+        $this->cobroIds      = [];
+        $this->cobroImporte  = null;
+        $this->cobroConcepto = null;
         $this->limpiarSeleccion();
 
         $titulo = $cobrados
