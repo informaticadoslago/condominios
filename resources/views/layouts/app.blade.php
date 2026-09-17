@@ -37,7 +37,15 @@
             ? \App\Models\EmpresaContable::find(session('empresa_contable_actual_id'))
             : null;
 
-        if ($empresaContableActual) {
+        $horarioActual = session('horario_actual_id')
+            ? \App\Models\Horario::find(session('horario_actual_id'))
+            : null;
+
+        if ($horarioActual) {
+            // Entorno totalmente independiente de comunidad y empresa contable:
+            // si está activo, su menú manda por encima de cualquier otro.
+            $menuLateral = config('menu_horario');
+        } elseif ($empresaContableActual) {
             // Dentro de una empresa contable: menú dedicado a su gestión contable,
             // exclusivo (ya no es la pantalla principal con gestión administrativa +
             // gestión contable). Tiene prioridad sobre estar dentro de una comunidad.
@@ -85,6 +93,28 @@
                                     'icon'  => 'fa-solid fa-calculator',
                                     'label' => $e->razon_social,
                                     'href'  => route('empresa-contable.entrar', $e),
+                                ])->all(),
+                            ],
+                        ],
+                    ],
+                ]);
+            }
+
+            $horariosAccesibles = auth()->user()->horariosAccesibles();
+
+            if ($horariosAccesibles->count()) {
+                array_splice($menuLateral['content'], 1, 0, [
+                    [
+                        'type'  => 'nav',
+                        'items' => [
+                            [
+                                'type'  => 'group',
+                                'icon'  => 'fa-solid fa-clock',
+                                'label' => trans_key('menu.Horarios'),
+                                'items' => $horariosAccesibles->map(fn ($h) => [
+                                    'icon'  => 'fa-solid fa-clock',
+                                    'label' => $h->nombre,
+                                    'href'  => route('horario.entrar', $h),
                                 ])->all(),
                             ],
                         ],

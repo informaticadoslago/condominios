@@ -6,6 +6,7 @@ use App\Http\Controllers\ConfirmarCorreoPropietarioController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
+use App\Http\Controllers\HorarioContextoController;
 use App\Http\Controllers\MandatoSepaPlantillaController;
 use App\Http\Controllers\MovimientosContablesPdfController;
 use App\Http\Controllers\PresupuestoConceptosPdfController;
@@ -50,6 +51,7 @@ use App\Livewire\Propietarios\Lista as PropietariosLista;
 use App\Livewire\Proveedores\Lista as ProveedoresLista;
 use App\Livewire\Maestros\FormasDePago\Lista as FormasDePagoLista;
 use App\Livewire\Maestros\Paises\Lista as PaisesLista;
+use App\Livewire\Horarios\Lista as HorariosLista;
 use App\Livewire\Maestros\Periodicidades\Lista as PeriodicidadesLista;
 use App\Livewire\Presupuestos\Conceptos as PresupuestosConceptos;
 use App\Livewire\Presupuestos\Lista as PresupuestosLista;
@@ -93,6 +95,19 @@ Route::middleware([
     // Cambio de contexto: entrar/salir de una comunidad
     Route::get('/comunidad/{comunidad}/entrar', [ComunidadContextoController::class, 'entrar'])->name('comunidad.entrar');
     Route::get('/comunidad/salir', [ComunidadContextoController::class, 'salir'])->name('comunidad.salir');
+
+    // Cambio de contexto: entrar/salir de un horario (entorno independiente de
+    // comunidad y empresa contable)
+    Route::get('/horario/{horario}/entrar', [HorarioContextoController::class, 'entrar'])->name('horario.entrar');
+    Route::get('/horario/salir', [HorarioContextoController::class, 'salir'])->name('horario.salir');
+
+    Route::middleware('horario.activa')->group(function () {
+        Route::get('/dashboard-horario', function () {
+            return view('dashboard-horario', [
+                'horario' => \App\Models\Horario::find(session('horario_actual_id')),
+            ]);
+        })->name('dashboard-horario');
+    });
 
     // Rutas de Administración del Sistema
     Route::prefix('administracion-sistema')->name('sysadmin.')->group(function () {
@@ -198,6 +213,9 @@ Route::middleware([
     Route::get('/formas-de-pago', FormasDePagoLista::class)->name('formas-de-pago.index');
     Route::get('/paises', PaisesLista::class)->name('paises.index');
     Route::get('/periodicidades', PeriodicidadesLista::class)->name('periodicidades.index');
+
+    // Gestión horaria
+    Route::get('/horarios', HorariosLista::class)->name('horarios.index');
 
     // Catálogos simples (mismo par Lista/Formulario, ver config/catalogos.php)
     Route::get('/catalogos/tipo-ocupaciones', CatalogosLista::class)->defaults('clave', 'tipo-ocupaciones')->name('catalogos.tipo-ocupaciones');

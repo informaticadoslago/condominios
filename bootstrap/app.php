@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'comunidad.activa' => \App\Http\Middleware\ComunidadActivaValida::class,
             'empresa-contable.activa' => \App\Http\Middleware\EmpresaContableActivaValida::class,
+            'horario.activa' => \App\Http\Middleware\HorarioActivoValido::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

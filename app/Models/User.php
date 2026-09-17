@@ -195,6 +195,24 @@ class User extends Authenticatable
     }
 
     /**
+     * Horarios en los que este usuario puede entrar: todos si tiene el rol
+     * "global", o solo aquellos cuyo rol puerta (Horario::nombreRol()) tenga.
+     */
+    public function horariosAccesibles()
+    {
+        if ($this->hasRole('global')) {
+            return Horario::all();
+        }
+
+        $ids = $this->roles()
+            ->where('name', 'like', 'horario-%')
+            ->pluck('name')
+            ->map(fn ($nombre) => (int) str_replace('horario-', '', $nombre));
+
+        return Horario::whereIn('id', $ids)->get();
+    }
+
+    /**
      * Si puede operar por la API en esa empresa contable. Son dos cosas distintas y
      * hacen falta las dos: el ROL, que es quién es hoy este usuario y se le puede
      * quitar, y la HABILIDAD del token con el que llama, que es la empresa que eligió

@@ -41,6 +41,14 @@ return [
                 ],
                 [
                     'type'  => 'group',
+                    'icon'  => 'fa-solid fa-clock',
+                    'label' => trans_key('menu.Gestión horaria'),
+                    'items' => [
+                        ['icon' => 'fa-solid fa-clock', 'label' => trans_key('menu.Horarios'), 'route' => 'horarios.index'],
+                    ],
+                ],
+                [
+                    'type'  => 'group',
                     'icon'  => 'fa-solid fa-building-columns',
                     'label' => trans_key('menu.Maestros'),
                     'can'   => 'menu-maestros',

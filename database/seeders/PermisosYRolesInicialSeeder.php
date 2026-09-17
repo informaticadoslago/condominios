@@ -1,6 +1,9 @@
 <?php
 namespace Database\Seeders;
 
+use App\Models\Comunidad;
+use App\Models\EmpresaContable;
+use App\Models\Horario;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -157,5 +160,27 @@ class PermisosYRolesInicialSeeder extends Seeder
             'usuario-perfil',
         ];
         $this->asignarPermisos('user', $permisos_usuario, true);
+
+        $this->recrearRolesPuerta();
+    }
+
+    /**
+     * El delete() de arriba se lleva por delante los roles puerta (comunidad-{id},
+     * empresa-contable-{id}, horario-{id}): no los gestiona este seeder, así que sin esto
+     * cada reseed dejaría a todos los usuarios sin acceso a lo que ya tenían creado.
+     */
+    private function recrearRolesPuerta(): void
+    {
+        Comunidad::all()->each(fn (Comunidad $comunidad) => Role::firstOrCreate(
+            ['name' => $comunidad->nombreRol(), 'guard_name' => 'web']
+        ));
+
+        EmpresaContable::all()->each(fn (EmpresaContable $empresaContable) => Role::firstOrCreate(
+            ['name' => $empresaContable->nombreRol(), 'guard_name' => 'web']
+        ));
+
+        Horario::all()->each(fn (Horario $horario) => Role::firstOrCreate(
+            ['name' => $horario->nombreRol(), 'guard_name' => 'web']
+        ));
     }
 }
