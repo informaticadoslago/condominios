@@ -9,12 +9,22 @@ class Horario extends Model
 {
     protected $table = 'horarios';
 
-    protected $fillable = ['nombre'];
+    protected $fillable = ['nombre', 'duracion_sesion_minutos'];
 
     /** Nombre del rol de acceso a este horario (puerta de entrada, no permisos). */
     public function nombreRol(): string
     {
         return 'horario-'.$this->id;
+    }
+
+    public function dias()
+    {
+        return $this->hasMany(HorarioDia::class);
+    }
+
+    public function sesiones()
+    {
+        return $this->hasMany(HorarioSesion::class);
     }
 
     protected static function booted(): void

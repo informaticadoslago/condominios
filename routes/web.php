@@ -7,6 +7,7 @@ use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
 use App\Http\Controllers\HorarioContextoController;
+use App\Http\Controllers\HorarioRejillaPdfController;
 use App\Http\Controllers\MandatoSepaPlantillaController;
 use App\Http\Controllers\MovimientosContablesPdfController;
 use App\Http\Controllers\PresupuestoConceptosPdfController;
@@ -52,6 +53,9 @@ use App\Livewire\Proveedores\Lista as ProveedoresLista;
 use App\Livewire\Maestros\FormasDePago\Lista as FormasDePagoLista;
 use App\Livewire\Maestros\Paises\Lista as PaisesLista;
 use App\Livewire\Horarios\Lista as HorariosLista;
+use App\Livewire\Horarios\DiasSesiones as HorariosDiasSesiones;
+use App\Livewire\Horarios\Rejilla as HorariosRejilla;
+use App\Livewire\Asignaturas\Lista as AsignaturasLista;
 use App\Livewire\Maestros\Periodicidades\Lista as PeriodicidadesLista;
 use App\Livewire\Presupuestos\Conceptos as PresupuestosConceptos;
 use App\Livewire\Presupuestos\Lista as PresupuestosLista;
@@ -107,6 +111,11 @@ Route::middleware([
                 'horario' => \App\Models\Horario::find(session('horario_actual_id')),
             ]);
         })->name('dashboard-horario');
+
+        Route::get('/asignaturas', AsignaturasLista::class)->name('asignaturas.index');
+        Route::get('/dias-sesiones', HorariosDiasSesiones::class)->name('dias-sesiones.edit');
+        Route::get('/rejilla', HorariosRejilla::class)->name('rejilla.edit');
+        Route::get('/rejilla/pdf', HorarioRejillaPdfController::class)->name('rejilla.pdf');
     });
 
     // Rutas de Administración del Sistema
