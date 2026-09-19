@@ -4,6 +4,7 @@ namespace Database\Seeders;
 use App\Models\Comunidad;
 use App\Models\EmpresaContable;
 use App\Models\Horario;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -152,9 +153,18 @@ class PermisosYRolesInicialSeeder extends Seeder
 
         $this->crearpermisos($permisos_noadmin);
 
-        // Rol puerta de entrada: quien lo tenga accede a TODAS las comunidades, sin
-        // permisos propios (esos los dan los demás roles).
-        $this->crearRol('global');
+        // Roles puerta de entrada: quien tenga cada uno accede a TODAS las comunidades,
+        // empresas contables u horarios de ese apartado respectivamente, sin permisos
+        // propios (esos los dan los demás roles).
+        $this->crearRol('global-comunidad');
+        $this->crearRol('global-contabilidad');
+        $this->crearRol('global-horario');
+
+        // El super-admin se salva del borrado de roles de arriba, pero sus
+        // asignaciones de rol NO: hay que devolverle aquí los roles puerta.
+        User::role(config('doslago.superadmin.nombre_rol'))->get()->each(
+            fn (User $user) => $user->assignRole(['global-comunidad', 'global-contabilidad', 'global-horario'])
+        );
 
         $permisos_usuario = [
             'usuario-perfil',

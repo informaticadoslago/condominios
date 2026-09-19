@@ -159,11 +159,11 @@ class User extends Authenticatable
 
     /**
      * Comunidades en las que este usuario puede entrar: todas si tiene el rol
-     * "global", o solo aquellas cuyo rol puerta (Comunidad::nombreRol()) tenga.
+     * "global-comunidad", o solo aquellas cuyo rol puerta (Comunidad::nombreRol()) tenga.
      */
     public function comunidadesAccesibles()
     {
-        if ($this->hasRole('global')) {
+        if ($this->hasRole('global-comunidad')) {
             return Comunidad::activa()->get();
         }
 
@@ -177,12 +177,12 @@ class User extends Authenticatable
 
     /**
      * Empresas contables en las que este usuario puede entrar: todas si tiene el
-     * rol "global", o solo aquellas cuyo rol puerta (EmpresaContable::nombreRol())
-     * tenga.
+     * rol "global-contabilidad", o solo aquellas cuyo rol puerta
+     * (EmpresaContable::nombreRol()) tenga.
      */
     public function empresasContablesAccesibles()
     {
-        if ($this->hasRole('global')) {
+        if ($this->hasRole('global-contabilidad')) {
             return EmpresaContable::all();
         }
 
@@ -196,11 +196,11 @@ class User extends Authenticatable
 
     /**
      * Horarios en los que este usuario puede entrar: todos si tiene el rol
-     * "global", o solo aquellos cuyo rol puerta (Horario::nombreRol()) tenga.
+     * "global-horario", o solo aquellos cuyo rol puerta (Horario::nombreRol()) tenga.
      */
     public function horariosAccesibles()
     {
-        if ($this->hasRole('global')) {
+        if ($this->hasRole('global-horario')) {
             return Horario::all();
         }
 
