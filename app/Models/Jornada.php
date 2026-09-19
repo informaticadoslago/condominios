@@ -114,7 +114,16 @@ class Jornada extends Model
                     $slots[] = $slot;
                 } else {
                     $fila = (int) round((self::minutosDesdeMedianoche($slot['hora']) - $minutosReferencia) / $duracionSesionMinutos);
-                    $slots[max(0, $fila)] = $slot;
+                    $fila = max(0, $fila);
+
+                    // El recreo suele durar menos que una sesión, así que puede redondear
+                    // a la misma fila que la sesión siguiente: en vez de sobrescribirlo,
+                    // desplazamos a la primera fila libre.
+                    while (isset($slots[$fila])) {
+                        $fila++;
+                    }
+
+                    $slots[$fila] = $slot;
                 }
 
                 if ($slot['tipo'] === 'sesion') {
