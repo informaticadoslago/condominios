@@ -35,6 +35,7 @@
                         <table class="table-striped w-full table-auto text-sm text-left">
                             <thead class="font-medium border-b">
                                 <tr>
+                                    <th class="py-3 px-4">{{ __('Horas') }}</th>
                                     @foreach ($diasConfig as $dia => $config)
                                         <th class="py-3 px-4">{{ $config['nombre'] }}</th>
                                     @endforeach
@@ -43,26 +44,28 @@
                             <tbody class="divide-y">
                                 @for ($fila = 0; $fila < $maxSlots; $fila++)
                                     <tr wire:key="fila-{{ $fila }}">
+                                        <td class="px-2 py-2 align-top text-xs font-semibold whitespace-nowrap">
+                                            @if ($horasFilas[$fila] ?? null)
+                                                {{ $horasFilas[$fila]['inicio'] }}–{{ $horasFilas[$fila]['fin'] }}
+                                            @endif
+                                        </td>
                                         @foreach ($diasConfig as $dia => $config)
                                             @php($slot = $config['slots'][$fila] ?? null)
                                             <td class="px-2 py-2 align-top">
                                                 @if (! $slot)
-                                                    {{-- este día ya no tiene más filas --}}
+                                                    {{-- este día no tiene sesión a esta hora --}}
                                                 @elseif ($slot['tipo'] === 'recreo')
                                                     <div class="rounded px-2 py-1 text-xs text-center bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                                                        <div class="font-semibold">{{ $slot['hora'] }}</div>
-                                                        <div>{{ __('Recreo') }} ({{ $slot['duracion'] }} min)</div>
+                                                        {{ __('Recreo') }}
                                                     </div>
                                                 @elseif (isset($asignaciones[$dia][$slot['numero']]))
                                                     <div class="rounded px-2 py-1 text-xs"
                                                         style="background-color: {{ $asignaciones[$dia][$slot['numero']]['fondo'] }}; color: {{ $asignaciones[$dia][$slot['numero']]['texto'] }};">
-                                                        <div class="font-semibold">{{ $slot['hora'] }}</div>
-                                                        <div>{{ $asignaciones[$dia][$slot['numero']]['nombre'] }}</div>
+                                                        {{ $asignaciones[$dia][$slot['numero']]['nombre'] }}
                                                     </div>
                                                 @else
                                                     <div class="rounded px-2 py-1 text-xs text-gray-400 dark:text-gray-500">
-                                                        <div class="font-semibold">{{ $slot['hora'] }}</div>
-                                                        <div>—</div>
+                                                        —
                                                     </div>
                                                 @endif
                                             </td>

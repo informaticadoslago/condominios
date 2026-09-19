@@ -21,11 +21,13 @@
         th, td { padding: 3pt 4pt; }
         thead th { border-bottom: 0.6pt solid #000; text-align: center; }
         td.celda  { text-align: center; vertical-align: top; }
+        td.hora-fila { font-weight: bold; white-space: nowrap; }
         .caja      { border-radius: 3pt; padding: 3pt 4pt; }
-        .caja .hora   { display: block; font-weight: bold; font-size: 7.5pt; }
         .caja.vacia   { color: #999; }
         .caja.recreo  { background-color: #e5e5e5; color: #555; }
         tbody tr td { border-bottom: 0.3pt solid #ccc; }
+        /* Rayado suave: gris clarito en las filas impares, blanco en las pares. */
+        tbody tr:nth-child(odd) { background-color: rgb(241, 241, 242); }
     </style>
 </head>
 <body>
@@ -55,6 +57,7 @@
     <table>
         <thead>
             <tr>
+                <th>{{ __('Horas') }}</th>
                 @foreach ($diasConfig as $config)
                     <th>{{ $config['nombre'] }}</th>
                 @endforeach
@@ -63,24 +66,26 @@
         <tbody>
             @for ($fila = 0; $fila < $maxSlots; $fila++)
                 <tr>
+                    <td class="celda hora-fila">
+                        @if ($horasFilas[$fila] ?? null)
+                            {{ $horasFilas[$fila]['inicio'] }}–{{ $horasFilas[$fila]['fin'] }}
+                        @endif
+                    </td>
                     @foreach ($diasConfig as $dia => $config)
                         @php($slot = $config['slots'][$fila] ?? null)
                         <td class="celda">
                             @if ($slot)
                                 @if ($slot['tipo'] === 'recreo')
                                     <div class="caja recreo">
-                                        <span class="hora">{{ $slot['hora'] }}</span>
-                                        {{ __('Recreo') }} ({{ $slot['duracion'] }} min)
+                                        {{ __('Recreo') }}
                                     </div>
                                 @elseif (isset($asignaciones[$dia][$slot['numero']]))
                                     <div class="caja"
                                         style="background-color: {{ $asignaciones[$dia][$slot['numero']]['fondo'] }}; color: {{ $asignaciones[$dia][$slot['numero']]['texto'] }};">
-                                        <span class="hora">{{ $slot['hora'] }}</span>
                                         {{ $asignaciones[$dia][$slot['numero']]['nombre'] }}
                                     </div>
                                 @else
                                     <div class="caja vacia">
-                                        <span class="hora">{{ $slot['hora'] }}</span>
                                         —
                                     </div>
                                 @endif

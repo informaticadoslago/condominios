@@ -52,6 +52,8 @@ class Rejilla extends Component
             }
         }
 
-        return view('livewire.horarios.rejilla', compact('diasConfig', 'maxSlots', 'asignaciones'));
+        $horasFilas = Jornada::horasPorFila($diasConfig, $maxSlots, $this->horario?->duracion_sesion_minutos ?? 0);
+
+        return view('livewire.horarios.rejilla', compact('diasConfig', 'maxSlots', 'asignaciones', 'horasFilas'));
     }
 }

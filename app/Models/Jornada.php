@@ -127,4 +127,39 @@ class Jornada extends Model
 
         return ['slots' => $slots, 'num_sesiones' => $sesion - 1, 'total_filas' => $totalFilas];
     }
+
+    /**
+     * Para cada fila de la rejilla, la hora de inicio y fin del primer slot que haya en
+     * esa fila en cualquiera de los días: con alinear_horas todos los días coinciden en
+     * esa hora, así que es exacto; sin alinear_horas es solo orientativo (la hora del
+     * primer día que tenga algo en esa fila, que puede no coincidir con los demás).
+     *
+     * @param  array<int, array{nombre: string, slots: array<int, array>}>  $diasConfig
+     * @return array<int, array{inicio: string, fin: string}|null>
+     */
+    public static function horasPorFila(array $diasConfig, int $totalFilas, int $duracionSesionMinutos): array
+    {
+        $horas = [];
+
+        for ($fila = 0; $fila < $totalFilas; $fila++) {
+            $horas[$fila] = null;
+
+            foreach ($diasConfig as $config) {
+                $slot = $config['slots'][$fila] ?? null;
+
+                if (! $slot) {
+                    continue;
+                }
+
+                $duracion = $slot['tipo'] === 'recreo' ? $slot['duracion'] : $duracionSesionMinutos;
+                $fin = Carbon::createFromFormat('H:i', $slot['hora'])->addMinutes($duracion)->format('H:i');
+
+                $horas[$fila] = ['inicio' => $slot['hora'], 'fin' => $fin];
+
+                break;
+            }
+        }
+
+        return $horas;
+    }
 }

@@ -47,6 +47,8 @@ class HorarioRejillaPdfController extends Controller
             }
         }
 
+        $horasFilas = Jornada::horasPorFila($diasConfig, $maxSlots, $horario->duracion_sesion_minutos ?? 0);
+
         // Hasta 5 columnas de día caben en vertical; con 6 o 7 (semana completa) hace
         // falta apaisado para que no se queden estrechas.
         $orientacion = count($diasConfig) <= 5 ? 'portrait' : 'landscape';
@@ -56,6 +58,7 @@ class HorarioRejillaPdfController extends Controller
             'diasConfig' => $diasConfig,
             'maxSlots' => $maxSlots,
             'asignaciones' => $asignaciones,
+            'horasFilas' => $horasFilas,
         ])->setPaper('a4', $orientacion);
 
         return $pdf->stream('horario-'.Str::slug($horario->nombre).'.pdf');
