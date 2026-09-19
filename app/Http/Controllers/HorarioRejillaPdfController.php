@@ -23,15 +23,17 @@ class HorarioRejillaPdfController extends Controller
         $diasConfig = [];
         $maxSlots = 0;
 
+        $minutosReferencia = $horario->alinear_horas ? $horario->minutosReferenciaJornadas() : null;
+
         foreach ($horario->jornadasPorDia() as $diaSemana => $jornadas) {
-            $combinado = Jornada::combinarSlots($jornadas, $horario->duracion_sesion_minutos ?? 0);
+            $combinado = Jornada::combinarSlots($jornadas, $horario->duracion_sesion_minutos ?? 0, $minutosReferencia);
 
             $diasConfig[$diaSemana] = [
                 'nombre' => DiaSemana::from($diaSemana)->nombre(),
                 'slots' => $combinado['slots'],
             ];
 
-            $maxSlots = max($maxSlots, count($combinado['slots']));
+            $maxSlots = max($maxSlots, $combinado['total_filas']);
         }
 
         $asignaciones = [];

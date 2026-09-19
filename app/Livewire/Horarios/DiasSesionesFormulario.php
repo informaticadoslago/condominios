@@ -18,6 +18,13 @@ class DiasSesionesFormulario extends Component
     public ?int $duracionSesionMinutos = null;
 
     /**
+     * Por defecto (false), cada día lista sus sesiones seguidas desde su propia fila 0.
+     * Con esto a true, la rejilla alinea horizontalmente la misma hora real en los 7
+     * días, dejando huecos donde ese día no hay clase a esa hora.
+     */
+    public bool $alinearHoras = false;
+
+    /**
      * Lista de jornadas: cada una es ['nombre' => string, 'hora_inicio' => 'H:i'|null,
      * 'num_sesiones' => int|null, 'recreo_antes_de_sesion' => int|null,
      * 'recreo_duracion_minutos' => int|null, 'dias' => [dia_semana => bool]].
@@ -56,6 +63,7 @@ class DiasSesionesFormulario extends Component
         $horario = Horario::with('jornadas')->find($this->horarioId);
 
         $this->duracionSesionMinutos = $horario->duracion_sesion_minutos;
+        $this->alinearHoras = $horario->alinear_horas;
 
         $this->jornadas = $horario->jornadas->sortBy('hora_inicio')->values()->map(fn (Jornada $jornada) => [
             'nombre' => $jornada->nombre,
@@ -167,7 +175,10 @@ class DiasSesionesFormulario extends Component
         $this->validate();
 
         DB::transaction(function () {
-            Horario::whereKey($this->horarioId)->update(['duracion_sesion_minutos' => $this->duracionSesionMinutos]);
+            Horario::whereKey($this->horarioId)->update([
+                'duracion_sesion_minutos' => $this->duracionSesionMinutos,
+                'alinear_horas' => $this->alinearHoras,
+            ]);
 
             Jornada::where('horario_id', $this->horarioId)->delete();
 

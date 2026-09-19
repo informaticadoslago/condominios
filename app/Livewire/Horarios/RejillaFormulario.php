@@ -47,8 +47,10 @@ class RejillaFormulario extends Component
         $this->maxSlots = 0;
         $this->asignaciones = [];
 
+        $minutosReferencia = $horario->alinear_horas ? $horario->minutosReferenciaJornadas() : null;
+
         foreach ($horario->jornadasPorDia() as $diaSemana => $jornadas) {
-            $combinado = Jornada::combinarSlots($jornadas, $horario->duracion_sesion_minutos ?? 0);
+            $combinado = Jornada::combinarSlots($jornadas, $horario->duracion_sesion_minutos ?? 0, $minutosReferencia);
 
             $this->diasConfig[$diaSemana] = [
                 'nombre' => DiaSemana::from($diaSemana)->nombre(),
@@ -56,7 +58,7 @@ class RejillaFormulario extends Component
                 'slots' => $combinado['slots'],
             ];
 
-            $this->maxSlots = max($this->maxSlots, count($combinado['slots']));
+            $this->maxSlots = max($this->maxSlots, $combinado['total_filas']);
 
             $this->asignaciones[$diaSemana] = array_fill(1, $combinado['num_sesiones'], '');
         }

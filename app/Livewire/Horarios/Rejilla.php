@@ -28,15 +28,17 @@ class Rejilla extends Component
         $diasConfig = [];
         $maxSlots = 0;
 
+        $minutosReferencia = $this->horario?->alinear_horas ? $this->horario->minutosReferenciaJornadas() : null;
+
         foreach ($this->horario?->jornadasPorDia() ?? collect() as $diaSemana => $jornadas) {
-            $combinado = Jornada::combinarSlots($jornadas, $this->horario->duracion_sesion_minutos ?? 0);
+            $combinado = Jornada::combinarSlots($jornadas, $this->horario->duracion_sesion_minutos ?? 0, $minutosReferencia);
 
             $diasConfig[$diaSemana] = [
                 'nombre' => DiaSemana::from($diaSemana)->nombre(),
                 'slots' => $combinado['slots'],
             ];
 
-            $maxSlots = max($maxSlots, count($combinado['slots']));
+            $maxSlots = max($maxSlots, $combinado['total_filas']);
         }
 
         $asignaciones = [];

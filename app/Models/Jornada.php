@@ -80,23 +80,42 @@ class Jornada extends Model
         return $slots;
     }
 
+    /** Minutos desde medianoche de una hora 'H:i' o 'H:i:s', para comparar horas entre sí. */
+    public static function minutosDesdeMedianoche(string $hora): int
+    {
+        [$horas, $minutos] = explode(':', substr($hora, 0, 5));
+
+        return ((int) $horas) * 60 + (int) $minutos;
+    }
+
     /**
      * Combina las jornadas de un mismo día (p.ej. mañana y tarde) en una sola lista,
      * ordenada por hora de inicio (no deberían solaparse, pero si pasa, quedan en el
      * orden en que empiezan). La numeración de sesión es continua a lo largo del día
      * completo: la 2ª jornada sigue donde la dejó la 1ª, no vuelve a la sesión 1.
      *
+     * Sin $minutosReferencia, cada día empieza en su propia fila 0 (comportamiento por
+     * defecto). Con $minutosReferencia (los minutos desde medianoche de la hora más
+     * temprana de todo el horario), cada sesión se coloca en la fila que le toca por
+     * hora real en vez de por orden: así la misma hora cae en la misma fila en los 7
+     * días, dejando huecos (filas sin sesión) donde ese día no hay clase a esa hora.
+     *
      * @param  Collection<int, self>  $jornadas  del mismo día, en cualquier orden
-     * @return array{slots: array<int, array>, num_sesiones: int}
+     * @return array{slots: array<int, array>, num_sesiones: int, total_filas: int}
      */
-    public static function combinarSlots($jornadas, int $duracionSesionMinutos): array
+    public static function combinarSlots($jornadas, int $duracionSesionMinutos, ?int $minutosReferencia = null): array
     {
         $slots = [];
         $sesion = 1;
 
         foreach ($jornadas->sortBy('hora_inicio') as $jornada) {
             foreach ($jornada->calcularSlots($duracionSesionMinutos, $sesion) as $slot) {
-                $slots[] = $slot;
+                if ($minutosReferencia === null || $duracionSesionMinutos <= 0) {
+                    $slots[] = $slot;
+                } else {
+                    $fila = (int) round((self::minutosDesdeMedianoche($slot['hora']) - $minutosReferencia) / $duracionSesionMinutos);
+                    $slots[max(0, $fila)] = $slot;
+                }
 
                 if ($slot['tipo'] === 'sesion') {
                     $sesion++;
@@ -104,6 +123,8 @@ class Jornada extends Model
             }
         }
 
-        return ['slots' => $slots, 'num_sesiones' => $sesion - 1];
+        $totalFilas = empty($slots) ? 0 : max(array_keys($slots)) + 1;
+
+        return ['slots' => $slots, 'num_sesiones' => $sesion - 1, 'total_filas' => $totalFilas];
     }
 }

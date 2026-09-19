@@ -11,6 +11,16 @@
             <x-input-error for="duracionSesionMinutos" class="mt-2" />
         </div>
 
+        <div class="mb-6">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" wire:model="alinearHoras" />
+                <span>{{ __('Ordenar por horas con hueco') }}</span>
+            </label>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {{ __('Alinea la misma hora en los 7 días del horario semanal, dejando huecos (sin sesión) donde ese día no hay clase a esa hora.') }}
+            </p>
+        </div>
+
         <div class="mb-2 flex items-center justify-between">
             <x-label :value="__('Jornadas')" />
             <button type="button" class="btn btn-editar text-xs" wire:click="agregarJornada"

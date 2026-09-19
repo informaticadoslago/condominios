@@ -10,7 +10,11 @@ class Horario extends Model
 {
     protected $table = 'horarios';
 
-    protected $fillable = ['nombre', 'duracion_sesion_minutos'];
+    protected $fillable = ['nombre', 'duracion_sesion_minutos', 'alinear_horas'];
+
+    protected $casts = [
+        'alinear_horas' => 'boolean',
+    ];
 
     /** Nombre del rol de acceso a este horario (puerta de entrada, no permisos). */
     public function nombreRol(): string
@@ -47,6 +51,19 @@ class Horario extends Model
         ksort($porDia);
 
         return collect($porDia)->map(fn (array $jornadas) => collect($jornadas));
+    }
+
+    /**
+     * Minutos desde medianoche de la hora de inicio más temprana entre todas las
+     * jornadas del horario, o null si no tiene ninguna. Es la referencia para alinear
+     * horizontalmente la misma hora en los 7 días (ver alinear_horas y
+     * Jornada::combinarSlots()). Requiere la relación 'jornadas' cargada.
+     */
+    public function minutosReferenciaJornadas(): ?int
+    {
+        $horaMasTemprana = $this->jornadas->min('hora_inicio');
+
+        return $horaMasTemprana ? Jornada::minutosDesdeMedianoche($horaMasTemprana) : null;
     }
 
     protected static function booted(): void
