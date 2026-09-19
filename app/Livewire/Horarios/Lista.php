@@ -6,9 +6,8 @@ use App\Livewire\ListaComponent;
 use App\Livewire\Traits\ConFichaInicio;
 use App\Models\AccesoDirecto;
 use App\Models\Horario;
-use Illuminate\Support\Facades\DB;
+use App\Services\Horarios\HorarioEliminador;
 use Livewire\Attributes\On;
-use Spatie\Permission\Models\Role;
 
 class Lista extends ListaComponent
 {
@@ -63,7 +62,7 @@ class Lista extends ListaComponent
     }
 
     #[On('ejecutarBorrarHorario')]
-    public function borrar(int $id): void
+    public function borrar(int $id, HorarioEliminador $eliminador): void
     {
         $horario = Horario::find($id);
 
@@ -71,15 +70,15 @@ class Lista extends ListaComponent
             return;
         }
 
-        DB::transaction(function () use ($horario) {
-            $url = route('horario.entrar', $horario, false);
-
-            AccesoDirecto::where('tipo', AccesoDirecto::TIPO_HORARIO)->where('url', $url)->delete();
-            Role::where('name', $horario->nombreRol())->delete();
-            $horario->delete();
-        });
+        $eliminador->eliminar($horario);
 
         $this->dispatch('toast-success', ['title' => __('Horario borrado')]);
+    }
+
+    #[On('horario-importado')]
+    public function refrescarImportacion()
+    {
+        // el evento fuerza el re-render de la lista
     }
 
     public function render()

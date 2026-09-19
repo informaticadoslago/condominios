@@ -15,6 +15,13 @@
 
     <x-slot name="content">
         <x-dosl.tabla>
+            <x-slot name="botonera">
+                <x-secondary-button type="button" id="btn-importar-horario"
+                    wire:click="$dispatch('abrir-importar-horario')" title="{{ __('Importar') }}">
+                    <i class="fa-solid fa-file-import mr-1"></i>{{ __('Importar') }}
+                </x-secondary-button>
+            </x-slot>
+
             <div class="py-3 px-6 flex items-center">
                 @include('livewire.parciales.lineas_x_pagina')
                 @include('livewire.parciales.buscador', ['placeholder' => "Nombre"])
@@ -70,5 +77,6 @@
         </x-dosl.tabla>
 
         @livewire('horarios.formulario')
+        @livewire('horarios.importar-zip')
     </x-slot>
 </x-botonera-page>
