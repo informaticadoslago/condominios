@@ -28,6 +28,15 @@ enum DiaSemana: int
         return ucfirst(Carbon::now()->startOfWeek()->addDays($this->value - 1)->isoFormat('dddd'));
     }
 
+    /** Una letra por día para mostrarlos compactos (p.ej. la lista de días de una jornada). */
+    public function abreviatura(): string
+    {
+        return match ($this) {
+            self::MIERCOLES => 'X',
+            default => mb_strtoupper(mb_substr($this->nombre(), 0, 1)),
+        };
+    }
+
     /** El día de una fecha concreta (para saber qué grupos tienen clase ese día). */
     public static function deFecha(Carbon $fecha): self
     {

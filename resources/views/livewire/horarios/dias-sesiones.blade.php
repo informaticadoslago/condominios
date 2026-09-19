@@ -3,7 +3,7 @@
         {{ __('Días y sesiones') }}
     </x-slot>
     <x-slot name="subtitulo">
-        {{ __('Qué días hay clase y cuántas sesiones tiene cada uno') }}
+        {{ __('Las jornadas del horario: a qué hora empiezan, cuántas sesiones tienen y qué días se dan') }}
     </x-slot>
     <x-slot name="botonera">
         <x-button type="button" class="btn btn-editar" id="btn-editar-dias-sesiones"
@@ -21,35 +21,34 @@
                 </div>
             </div>
 
-            <div class="mb-6">
-                <x-label :value="__('Días de clase')" />
-                <div class="mt-1">{{ $dias->isEmpty() ? '—' : $tipoDiasLabel }}</div>
-            </div>
-
-            @if ($dias->isEmpty())
-                <div class="py-3 text-gray-500 dark:text-gray-400">{{ __('Todavía no hay días configurados.') }}</div>
+            @if ($jornadas->isEmpty())
+                <div class="py-3 text-gray-500 dark:text-gray-400">{{ __('Todavía no hay ninguna jornada configurada.') }}</div>
             @else
                 <table class="table-striped w-full table-auto text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
-                            <th class="py-3 px-6">{{ __('Día') }}</th>
-                            <th class="py-3 px-6">{{ __('Hora primera sesión') }}</th>
+                            <th class="py-3 px-6">{{ __('Jornada') }}</th>
+                            <th class="py-3 px-6">{{ __('Hora de inicio') }}</th>
                             <th class="py-3 px-6">{{ __('Número de sesiones') }}</th>
                             <th class="py-3 px-6">{{ __('Recreo') }}</th>
+                            <th class="py-3 px-6">{{ __('Días') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
-                        @foreach ($dias as $dia)
-                            <tr wire:key="dia-{{ $dia->dia_semana }}">
-                                <td class="px-6 py-4">{{ $dia->diaSemana()->nombre() }}</td>
-                                <td class="px-6 py-4">{{ substr($dia->hora_primera_sesion, 0, 5) }}</td>
-                                <td class="px-6 py-4">{{ $dia->num_sesiones }}</td>
+                        @foreach ($jornadas as $jornada)
+                            <tr wire:key="jornada-{{ $jornada->id }}">
+                                <td class="px-6 py-4">{{ $jornada->nombre }}</td>
+                                <td class="px-6 py-4">{{ substr($jornada->hora_inicio, 0, 5) }}</td>
+                                <td class="px-6 py-4">{{ $jornada->num_sesiones }}</td>
                                 <td class="px-6 py-4">
-                                    @if ($dia->tieneRecreo())
-                                        {{ __('Antes de la sesión :n (:min min)', ['n' => $dia->recreo_antes_de_sesion, 'min' => $dia->recreo_duracion_minutos]) }}
+                                    @if ($jornada->tieneRecreo())
+                                        {{ __('Antes de la sesión :n (:min min)', ['n' => $jornada->recreo_antes_de_sesion, 'min' => $jornada->recreo_duracion_minutos]) }}
                                     @else
                                         —
                                     @endif
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ collect($jornada->dias_semana)->sort()->map(fn ($dia) => \App\Support\DiaSemana::from($dia)->abreviatura())->implode(' ') }}
                                 </td>
                             </tr>
                         @endforeach

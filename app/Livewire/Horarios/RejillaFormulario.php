@@ -5,6 +5,7 @@ namespace App\Livewire\Horarios;
 use App\Models\Asignatura;
 use App\Models\Horario;
 use App\Models\HorarioSesion;
+use App\Models\Jornada;
 use App\Support\DiaSemana;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
@@ -40,24 +41,24 @@ class RejillaFormulario extends Component
     {
         $this->horarioId = (int) session('horario_actual_id');
 
-        $horario = Horario::with(['dias', 'sesiones'])->find($this->horarioId);
+        $horario = Horario::with(['jornadas', 'sesiones'])->find($this->horarioId);
 
-        $this->diasConfig   = [];
-        $this->maxSlots     = 0;
+        $this->diasConfig = [];
+        $this->maxSlots = 0;
         $this->asignaciones = [];
 
-        foreach ($horario->dias->sortBy('dia_semana') as $dia) {
-            $slots = $dia->calcularSlotsAlineados($horario->duracion_sesion_minutos ?? 0);
+        foreach ($horario->jornadasPorDia() as $diaSemana => $jornadas) {
+            $combinado = Jornada::combinarSlots($jornadas, $horario->duracion_sesion_minutos ?? 0);
 
-            $this->diasConfig[$dia->dia_semana] = [
-                'nombre'       => DiaSemana::from($dia->dia_semana)->nombre(),
-                'num_sesiones' => $dia->num_sesiones,
-                'slots'        => $slots,
+            $this->diasConfig[$diaSemana] = [
+                'nombre' => DiaSemana::from($diaSemana)->nombre(),
+                'num_sesiones' => $combinado['num_sesiones'],
+                'slots' => $combinado['slots'],
             ];
 
-            $this->maxSlots = max($this->maxSlots, count($slots));
+            $this->maxSlots = max($this->maxSlots, count($combinado['slots']));
 
-            $this->asignaciones[$dia->dia_semana] = array_fill(1, $dia->num_sesiones, '');
+            $this->asignaciones[$diaSemana] = array_fill(1, $combinado['num_sesiones'], '');
         }
 
         foreach ($horario->sesiones as $sesion) {

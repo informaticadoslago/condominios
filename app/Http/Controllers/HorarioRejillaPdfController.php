@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Horario;
+use App\Models\Jornada;
 use App\Support\DiaSemana;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
@@ -17,20 +18,20 @@ class HorarioRejillaPdfController extends Controller
 {
     public function __invoke(): Response
     {
-        $horario = Horario::with(['dias', 'sesiones.asignatura'])->findOrFail(session('horario_actual_id'));
+        $horario = Horario::with(['jornadas', 'sesiones.asignatura'])->findOrFail(session('horario_actual_id'));
 
         $diasConfig = [];
-        $maxSlots   = 0;
+        $maxSlots = 0;
 
-        foreach ($horario->dias->sortBy('dia_semana') as $dia) {
-            $slots = $dia->calcularSlotsAlineados($horario->duracion_sesion_minutos ?? 0);
+        foreach ($horario->jornadasPorDia() as $diaSemana => $jornadas) {
+            $combinado = Jornada::combinarSlots($jornadas, $horario->duracion_sesion_minutos ?? 0);
 
-            $diasConfig[$dia->dia_semana] = [
-                'nombre' => DiaSemana::from($dia->dia_semana)->nombre(),
-                'slots'  => $slots,
+            $diasConfig[$diaSemana] = [
+                'nombre' => DiaSemana::from($diaSemana)->nombre(),
+                'slots' => $combinado['slots'],
             ];
 
-            $maxSlots = max($maxSlots, count($slots));
+            $maxSlots = max($maxSlots, count($combinado['slots']));
         }
 
         $asignaciones = [];
@@ -38,8 +39,8 @@ class HorarioRejillaPdfController extends Controller
             if ($sesion->asignatura) {
                 $asignaciones[$sesion->dia_semana][$sesion->sesion_numero] = [
                     'nombre' => $sesion->asignatura->nombre,
-                    'fondo'  => $sesion->asignatura->colorFondo(),
-                    'texto'  => $sesion->asignatura->colorTexto(),
+                    'fondo' => $sesion->asignatura->colorFondo(),
+                    'texto' => $sesion->asignatura->colorTexto(),
                 ];
             }
         }
@@ -49,9 +50,9 @@ class HorarioRejillaPdfController extends Controller
         $orientacion = count($diasConfig) <= 5 ? 'portrait' : 'landscape';
 
         $pdf = Pdf::loadView('pdf.horario-semanal', [
-            'horario'      => $horario,
-            'diasConfig'   => $diasConfig,
-            'maxSlots'     => $maxSlots,
+            'horario' => $horario,
+            'diasConfig' => $diasConfig,
+            'maxSlots' => $maxSlots,
             'asignaciones' => $asignaciones,
         ])->setPaper('a4', $orientacion);
 

@@ -3,10 +3,9 @@
 namespace App\Livewire\Horarios;
 
 use App\Models\Horario;
-use App\Models\HorarioDia;
+use App\Models\Jornada;
 use App\Support\DiaSemana;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -16,38 +15,37 @@ class DiasSesionesFormulario extends Component
 
     public int $horarioId;
 
-    public string $tipoDias = 'lunes_viernes';
-
-    /**
-     * [dia_semana => ['activo' => bool, 'hora_primera_sesion' => 'H:i'|null, 'num_sesiones' => int|null,
-     * 'recreo_antes_de_sesion' => int|null, 'recreo_duracion_minutos' => int|null]].
-     * Los dos campos de recreo van juntos: los dos vacíos = ese día no tiene recreo.
-     */
-    public array $dias = [];
-
     public ?int $duracionSesionMinutos = null;
 
     /**
-     * El componente se pinta en la página aunque el modal esté cerrado (@livewire lo
-     * incluye siempre), así que el blade necesita las 7 claves de $dias desde el primer
-     * render, no solo cuando abrirModal() las rellena de verdad.
+     * Lista de jornadas: cada una es ['nombre' => string, 'hora_inicio' => 'H:i'|null,
+     * 'num_sesiones' => int|null, 'recreo_antes_de_sesion' => int|null,
+     * 'recreo_duracion_minutos' => int|null, 'dias' => [dia_semana => bool]].
+     * Los dos campos de recreo van juntos: los dos vacíos = esa jornada no tiene recreo.
      */
-    public function mount(): void
-    {
-        $this->dias = collect(DiaSemana::cases())->mapWithKeys(fn (DiaSemana $dia) => [
-            $dia->value => $this->diaVacio(),
-        ])->all();
-    }
+    public array $jornadas = [];
 
-    protected function diaVacio(): array
+    protected function jornadaVacia(): array
     {
         return [
-            'activo'                  => false,
-            'hora_primera_sesion'     => null,
-            'num_sesiones'            => null,
-            'recreo_antes_de_sesion'  => null,
+            'nombre' => '',
+            'hora_inicio' => null,
+            'num_sesiones' => null,
+            'recreo_antes_de_sesion' => null,
             'recreo_duracion_minutos' => null,
+            'dias' => collect(DiaSemana::cases())->mapWithKeys(fn (DiaSemana $dia) => [$dia->value => false])->all(),
         ];
+    }
+
+    public function agregarJornada(): void
+    {
+        $this->jornadas[] = $this->jornadaVacia();
+    }
+
+    public function quitarJornada(int $indice): void
+    {
+        unset($this->jornadas[$indice]);
+        $this->jornadas = array_values($this->jornadas);
     }
 
     #[On('abrir-editar-dias-sesiones')]
@@ -55,98 +53,64 @@ class DiasSesionesFormulario extends Component
     {
         $this->horarioId = (int) session('horario_actual_id');
 
-        $horario = Horario::with('dias')->find($this->horarioId);
+        $horario = Horario::with('jornadas')->find($this->horarioId);
 
         $this->duracionSesionMinutos = $horario->duracion_sesion_minutos;
 
-        $this->dias = collect(DiaSemana::cases())->mapWithKeys(fn (DiaSemana $dia) => [
-            $dia->value => $this->diaVacio(),
+        $this->jornadas = $horario->jornadas->sortBy('hora_inicio')->values()->map(fn (Jornada $jornada) => [
+            'nombre' => $jornada->nombre,
+            'hora_inicio' => substr($jornada->hora_inicio, 0, 5),
+            'num_sesiones' => $jornada->num_sesiones,
+            'recreo_antes_de_sesion' => $jornada->recreo_antes_de_sesion,
+            'recreo_duracion_minutos' => $jornada->recreo_duracion_minutos,
+            'dias' => collect(DiaSemana::cases())->mapWithKeys(
+                fn (DiaSemana $dia) => [$dia->value => in_array($dia->value, $jornada->dias_semana, true)]
+            )->all(),
         ])->all();
 
-        foreach ($horario->dias as $horarioDia) {
-            $this->dias[$horarioDia->dia_semana] = [
-                'activo'                  => true,
-                'hora_primera_sesion'     => substr($horarioDia->hora_primera_sesion, 0, 5),
-                'num_sesiones'            => $horarioDia->num_sesiones,
-                'recreo_antes_de_sesion'  => $horarioDia->recreo_antes_de_sesion,
-                'recreo_duracion_minutos' => $horarioDia->recreo_duracion_minutos,
-            ];
-        }
+        if (empty($this->jornadas)) {
+            // Horario recién creado, sin configurar todavía: arrancamos con una jornada
+            // de lunes a viernes en vez de una lista vacía.
+            $jornada = $this->jornadaVacia();
+            $jornada['nombre'] = __('Mañana');
 
-        if ($horario->dias->isEmpty()) {
-            // Horario recién creado, sin configurar todavía: arrancamos con un preset
-            // razonable en vez de dejar los siete días desmarcados.
-            $this->tipoDias = 'lunes_viernes';
-            $this->aplicarPreset('lunes_viernes');
-        } else {
-            $this->tipoDias = $this->detectarTipoDias();
+            foreach ($jornada['dias'] as $dia => &$activo) {
+                $activo = $dia <= 5;
+            }
+            unset($activo);
+
+            $this->jornadas = [$jornada];
         }
 
         $this->resetValidation();
         $this->abrir = true;
     }
 
-    protected function detectarTipoDias(): string
-    {
-        $activos = collect($this->dias)->filter(fn ($config) => $config['activo'])->keys()->sort()->values()->all();
-
-        if ($activos === [1, 2, 3, 4, 5]) {
-            return 'lunes_viernes';
-        }
-
-        if ($activos === [1, 2, 3, 4, 5, 6, 7]) {
-            return 'lunes_domingo';
-        }
-
-        return 'personalizado';
-    }
-
-    public function updatedTipoDias($valor): void
-    {
-        $this->aplicarPreset($valor);
-    }
-
-    /** 'personalizado' no toca nada: el usuario marca los checkboxes él mismo. */
-    protected function aplicarPreset(string $tipo): void
-    {
-        if ($tipo === 'lunes_viernes') {
-            foreach ($this->dias as $dia => &$config) {
-                $config['activo'] = $dia <= 5;
-            }
-            unset($config);
-        } elseif ($tipo === 'lunes_domingo') {
-            foreach ($this->dias as $dia => &$config) {
-                $config['activo'] = true;
-            }
-            unset($config);
-        }
-    }
-
     protected function rules(): array
     {
         $rules = [
             'duracionSesionMinutos' => ['required', 'integer', 'min:1'],
-            'tipoDias'              => ['required', Rule::in(['lunes_viernes', 'lunes_domingo', 'personalizado'])],
         ];
 
-        foreach ($this->dias as $dia => $config) {
-            if ($config['activo']) {
-                $rules["dias.$dia.hora_primera_sesion"] = ['required', 'date_format:H:i'];
-                $rules["dias.$dia.num_sesiones"]         = ['required', 'integer', 'min:1', 'max:20'];
+        foreach ($this->jornadas as $indice => $jornada) {
+            $prefijo = "jornadas.$indice";
 
-                // El recreo es opcional, pero si se pone uno de los dos campos hace
-                // falta el otro. "Antes de la sesión X" solo tiene sentido con sesiones
-                // a los dos lados: al menos la 1ª y 2ª antes (min:2) y como mucho la
-                // última del día (max: num_sesiones de ESE día).
-                $rules["dias.$dia.recreo_antes_de_sesion"] = [
-                    'nullable', 'integer', 'min:2', 'max:'.($config['num_sesiones'] ?: 20),
-                    'required_with:dias.'.$dia.'.recreo_duracion_minutos',
-                ];
-                $rules["dias.$dia.recreo_duracion_minutos"] = [
-                    'nullable', 'integer', 'min:1',
-                    'required_with:dias.'.$dia.'.recreo_antes_de_sesion',
-                ];
-            }
+            $rules["$prefijo.nombre"] = ['required', 'string', 'max:100'];
+            $rules["$prefijo.hora_inicio"] = ['required', 'date_format:H:i'];
+            $rules["$prefijo.num_sesiones"] = ['required', 'integer', 'min:1', 'max:20'];
+
+            // El recreo es opcional, pero si se pone uno de los dos campos hace falta el
+            // otro. "Antes de la sesión X" solo tiene sentido con sesiones a los dos
+            // lados: al menos la 1ª y 2ª antes (min:2) y como mucho la última de la
+            // jornada (max: num_sesiones de esa jornada).
+            $rules["$prefijo.recreo_antes_de_sesion"] = [
+                'nullable', 'integer', 'min:2', 'max:'.($jornada['num_sesiones'] ?: 20),
+                "required_with:$prefijo.recreo_duracion_minutos",
+            ];
+            $rules["$prefijo.recreo_duracion_minutos"] = [
+                'nullable', 'integer', 'min:1',
+                "required_with:$prefijo.recreo_antes_de_sesion",
+            ];
         }
 
         return $rules;
@@ -155,10 +119,11 @@ class DiasSesionesFormulario extends Component
     protected function messages(): array
     {
         return [
-            'required'    => 'Debe rellenar :attribute',
-            'integer'     => ':attribute debe ser un número entero',
-            'min'         => ':attribute debe ser como mínimo :min',
-            'max'         => ':attribute debe ser como máximo :max',
+            'required' => 'Debe rellenar :attribute',
+            'string' => ':attribute debe ser texto',
+            'integer' => ':attribute debe ser un número entero',
+            'min' => ':attribute debe ser como mínimo :min',
+            'max' => ':attribute debe ser como máximo :max',
             'date_format' => ':attribute no es una hora válida',
         ];
     }
@@ -169,11 +134,15 @@ class DiasSesionesFormulario extends Component
             'duracionSesionMinutos' => __('duración de la sesión'),
         ];
 
-        foreach (DiaSemana::cases() as $dia) {
-            $attrs["dias.{$dia->value}.hora_primera_sesion"]     = $dia->nombre().' — '.__('hora de la primera sesión');
-            $attrs["dias.{$dia->value}.num_sesiones"]            = $dia->nombre().' — '.__('número de sesiones');
-            $attrs["dias.{$dia->value}.recreo_antes_de_sesion"]  = $dia->nombre().' — '.__('recreo antes de la sesión');
-            $attrs["dias.{$dia->value}.recreo_duracion_minutos"] = $dia->nombre().' — '.__('duración del recreo');
+        foreach (array_keys($this->jornadas) as $indice) {
+            $prefijo = "jornadas.$indice";
+            $numero = $indice + 1;
+
+            $attrs["$prefijo.nombre"] = __('jornada :n — nombre', ['n' => $numero]);
+            $attrs["$prefijo.hora_inicio"] = __('jornada :n — hora de inicio', ['n' => $numero]);
+            $attrs["$prefijo.num_sesiones"] = __('jornada :n — número de sesiones', ['n' => $numero]);
+            $attrs["$prefijo.recreo_antes_de_sesion"] = __('jornada :n — recreo antes de la sesión', ['n' => $numero]);
+            $attrs["$prefijo.recreo_duracion_minutos"] = __('jornada :n — duración del recreo', ['n' => $numero]);
         }
 
         return $attrs;
@@ -181,10 +150,18 @@ class DiasSesionesFormulario extends Component
 
     public function guardar()
     {
-        if (! collect($this->dias)->contains(fn ($config) => $config['activo'])) {
-            $this->addError('tipoDias', __('Selecciona al menos un día con clase.'));
+        if (empty($this->jornadas)) {
+            $this->addError('jornadas', __('Añade al menos una jornada.'));
 
             return;
+        }
+
+        foreach ($this->jornadas as $indice => $jornada) {
+            if (! in_array(true, $jornada['dias'], true)) {
+                $this->addError("jornadas.$indice.nombre", __('Selecciona al menos un día para esta jornada.'));
+
+                return;
+            }
         }
 
         $this->validate();
@@ -192,20 +169,20 @@ class DiasSesionesFormulario extends Component
         DB::transaction(function () {
             Horario::whereKey($this->horarioId)->update(['duracion_sesion_minutos' => $this->duracionSesionMinutos]);
 
-            foreach ($this->dias as $dia => $config) {
-                if ($config['activo']) {
-                    HorarioDia::updateOrCreate(
-                        ['horario_id' => $this->horarioId, 'dia_semana' => $dia],
-                        [
-                            'hora_primera_sesion'     => $config['hora_primera_sesion'],
-                            'num_sesiones'            => $config['num_sesiones'],
-                            'recreo_antes_de_sesion'  => $config['recreo_antes_de_sesion'] ?: null,
-                            'recreo_duracion_minutos' => $config['recreo_duracion_minutos'] ?: null,
-                        ],
-                    );
-                } else {
-                    HorarioDia::where('horario_id', $this->horarioId)->where('dia_semana', $dia)->delete();
-                }
+            Jornada::where('horario_id', $this->horarioId)->delete();
+
+            foreach ($this->jornadas as $jornada) {
+                $diasSemana = collect($jornada['dias'])->filter()->keys()->values()->all();
+
+                Jornada::create([
+                    'horario_id' => $this->horarioId,
+                    'nombre' => $jornada['nombre'],
+                    'hora_inicio' => $jornada['hora_inicio'],
+                    'num_sesiones' => $jornada['num_sesiones'],
+                    'recreo_antes_de_sesion' => $jornada['recreo_antes_de_sesion'] ?: null,
+                    'recreo_duracion_minutos' => $jornada['recreo_duracion_minutos'] ?: null,
+                    'dias_semana' => $diasSemana,
+                ]);
             }
         });
 
