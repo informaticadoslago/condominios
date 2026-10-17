@@ -62,6 +62,7 @@ return [
                         ['icon' => 'fa-solid fa-house-chimney', 'label' => trans_key('menu.Tipos de inmueble'), 'route' => 'catalogos.tipo-inmuebles'],
                         ['icon' => 'fa-solid fa-book', 'label' => trans_key('menu.Tipos de cuenta contable'), 'route' => 'catalogos.tipo-cuenta-contables'],
                         ['icon' => 'fa-solid fa-file-signature', 'label' => trans_key('menu.Estados de presupuesto'), 'route' => 'catalogos.tipo-estado-presupuestos'],
+                        ['icon' => 'fa-solid fa-people-group', 'label' => trans_key('menu.Tipos de directivo'), 'route' => 'catalogos.tipo-directivo-comunidades'],
                     ],
                 ],
                 [

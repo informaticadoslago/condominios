@@ -11,7 +11,7 @@ class ComunidadDirectivo extends Model
     protected $fillable = [
         'comunidad_id',
         'persona_comunidad_id',
-        'puesto',
+        'tipo_directivo_comunidad_id',
         'fecha_inicio',
         'fecha_fin',
     ];
@@ -29,5 +29,10 @@ class ComunidadDirectivo extends Model
     public function persona()
     {
         return $this->belongsTo(PersonaComunidad::class, 'persona_comunidad_id');
+    }
+
+    public function tipoDirectivo()
+    {
+        return $this->belongsTo(TipoDirectivoComunidad::class, 'tipo_directivo_comunidad_id');
     }
 }

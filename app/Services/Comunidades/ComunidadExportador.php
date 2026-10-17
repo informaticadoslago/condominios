@@ -246,7 +246,7 @@ class ComunidadExportador extends ExportadorZip
         `tipo_documento_identificativos`, `tipo_generos`, `tipo_direcciones`, `tipo_contactos`,
         `tipo_ocupaciones`, `tipo_inmuebles`, `formas_de_pago`, `entidades_bancarias`,
         `tipo_estado_presupuestos`, `tipo_presupuestos`, `tipo_periodicidad_pagos`,
-        `tipo_estado_recibos`, `tipo_documentos`.
+        `tipo_estado_recibos`, `tipo_documentos`, `tipo_directivo_comunidades`.
 
         Si el sistema destino no usa los mismos ids para estos catálogos, hay que traducirlos a
         mano al reconstruir (`estado_id`, `tipo_documento_id`, `forma_de_pago_id`,

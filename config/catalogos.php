@@ -24,6 +24,11 @@ return [
         'titulo'    => 'Estados de presupuesto',
         'subtitulo' => 'Provisional, Presentado, Aprobado...',
     ],
+    'tipo-directivo-comunidades' => [
+        'modelo'    => \App\Models\TipoDirectivoComunidad::class,
+        'titulo'    => 'Tipos de directivo',
+        'subtitulo' => 'Puestos de la directiva de las comunidades (presidente, secretario...)',
+    ],
 
     // Bloqueado: lo usan como estado_id muchos otros catálogos (incluidos los 4 de
     // arriba). Sin alta ni baja/borrado, solo lectura de las filas que ya existen.

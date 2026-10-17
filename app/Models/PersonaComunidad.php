@@ -87,9 +87,15 @@ class PersonaComunidad extends Model
         });
     }
 
+    /** Quien nació este día o antes ya es mayor de edad. */
+    public static function fechaMayoriaDeEdad(): string
+    {
+        return now()->subYears(18)->toDateString();
+    }
+
     public function scopeMayorDeEdad($query)
     {
-        return $query->where('fecha_nacimiento', '<=', now()->subYears(18)->toDateString());
+        return $query->where('fecha_nacimiento', '<=', self::fechaMayoriaDeEdad());
     }
 
     public function scopeBuscarNombreCompleto($q, ?string $search)

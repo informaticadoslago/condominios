@@ -34,6 +34,7 @@ use App\Livewire\ComisionesBancarias\Formulario as ComisionesBancariasFormulario
 use App\Livewire\ComisionesBancarias\Lista as ComisionesBancariasLista;
 use App\Livewire\MovimientosBancarios\Lista as MovimientosBancariosLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
+use App\Livewire\Directivos\Lista as DirectivosLista;
 use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
 use App\Livewire\EjerciciosContables\Lista as EjerciciosContablesLista;
@@ -189,6 +190,7 @@ Route::middleware([
         Route::get('/presupuestos/{presupuesto}/reparto', PresupuestosReparto::class)->name('presupuestos.reparto');
         Route::get('/presupuestos/{presupuesto}/reparto/pdf', PresupuestoRepartoPdfController::class)->name('presupuestos.reparto.pdf');
         Route::get('/recibos', RecibosLista::class)->name('recibos.index');
+        Route::get('/directivos', DirectivosLista::class)->name('directivos.index');
     });
 
     // Gestión contable: módulo independiente de comunidades (empresas por CIF).
@@ -231,6 +233,7 @@ Route::middleware([
     Route::get('/catalogos/tipo-inmuebles', CatalogosLista::class)->defaults('clave', 'tipo-inmuebles')->name('catalogos.tipo-inmuebles');
     Route::get('/catalogos/tipo-cuenta-contables', CatalogosLista::class)->defaults('clave', 'tipo-cuenta-contables')->name('catalogos.tipo-cuenta-contables');
     Route::get('/catalogos/tipo-estado-presupuestos', CatalogosLista::class)->defaults('clave', 'tipo-estado-presupuestos')->name('catalogos.tipo-estado-presupuestos');
+    Route::get('/catalogos/tipo-directivo-comunidades', CatalogosLista::class)->defaults('clave', 'tipo-directivo-comunidades')->name('catalogos.tipo-directivo-comunidades');
     Route::get('/catalogos/estados', CatalogosLista::class)->defaults('clave', 'estados')->name('catalogos.estados');
 
 });
