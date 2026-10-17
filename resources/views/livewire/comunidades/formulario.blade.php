@@ -21,6 +21,11 @@
                     x-bind:class="pestaña === 'contacto' ? 'border-indigo-600 text-indigo-700 dark:text-indigo-300' : 'border-transparent text-gray-500'">
                     {{ __('Contacto') }}
                 </button>
+                <button type="button" @click="pestaña = 'administrador'"
+                    class="px-2 py-2 font-semibold border-b-2"
+                    x-bind:class="pestaña === 'administrador' ? 'border-indigo-600 text-indigo-700 dark:text-indigo-300' : 'border-transparent text-gray-500'">
+                    {{ __('Administrador') }}
+                </button>
             </div>
 
             <div x-show="pestaña === 'generales'">
@@ -36,6 +41,51 @@
                         forzar-may />
                     <x-input-error for="formulario.cif" class="mt-2" />
                 </div>
+
+                {{-- Dirección del edificio: sale en el membrete y en el destinatario de las cartas. --}}
+                <div class="mt-3 flex w-full gap-4">
+                    <div class="w-4/5">
+                        <x-label for="com-direccion" :value="__('Dirección')" />
+                        <x-input id="com-direccion" class="block mt-1 w-full mayusculas" type="text"
+                            wire:model="formulario.direccion1" placeholder="{{ __('Calle, avenida...') }}" />
+                        <x-input-error for="formulario.direccion1" class="mt-2" />
+                    </div>
+                    <div class="w-1/5">
+                        <x-label for="com-numero" :value="__('Número')" />
+                        <x-input id="com-numero" class="block mt-1 w-full mayusculas" type="text"
+                            wire:model="formulario.numero" />
+                        <x-input-error for="formulario.numero" class="mt-2" />
+                    </div>
+                </div>
+                <div class="mt-3 flex w-full gap-4">
+                    <div class="w-1/5">
+                        <x-label for="com-codigo-postal" :value="__('Código postal')" />
+                        <x-input id="com-codigo-postal" class="block mt-1 w-full" type="text" inputmode="numeric"
+                            maxlength="5" wire:model.live.blur="formulario.codigo_postal" />
+                        <x-input-error for="formulario.codigo_postal" class="mt-2" />
+                    </div>
+                    <div class="w-2/5">
+                        <x-label for="com-provincia" :value="__('Provincia')" />
+                        <x-select id="com-provincia" class="block mt-1 w-full mayusculas" wire:model.live="formulario.provincia_id">
+                            <option value="">{{ __('--') }}</option>
+                            @foreach ($provincias as $provincia)
+                                <option value="{{ $provincia->id }}">{{ $provincia->nombre }}</option>
+                            @endforeach
+                        </x-select>
+                        <x-input-error for="formulario.provincia_id" class="mt-2" />
+                    </div>
+                    <div class="w-2/5">
+                        <x-label for="com-municipio" :value="__('Municipio')" />
+                        <x-select id="com-municipio" class="block mt-1 w-full mayusculas" wire:model="formulario.municipio_id"
+                            :disabled="! $formulario->provincia_id">
+                            <option value="">{{ __('--') }}</option>
+                            @foreach ($municipios as $municipio)
+                                <option value="{{ $municipio->id }}">{{ trim($municipio->nombre) }}</option>
+                            @endforeach
+                        </x-select>
+                        <x-input-error for="formulario.municipio_id" class="mt-2" />
+                    </div>
+                </div>
             </div>
 
             <div x-show="pestaña === 'contacto'" x-cloak>
@@ -47,6 +97,30 @@
                     <p class="text-xs text-gray-500 mt-1">
                         {{ __('Al que se pide escribir en los avisos por correo (cargo, transferencia, devolución) si algo no cuadra.') }}
                     </p>
+                </div>
+            </div>
+
+            {{-- Sin mayúsculas forzadas: sale tal cual en las convocatorias. --}}
+            <div x-show="pestaña === 'administrador'" x-cloak>
+                <div class="mt-1">
+                    <x-label for="com-administrador-nombre" :value="__('Nombre del administrador')" />
+                    <x-input id="com-administrador-nombre" class="block mt-1 w-full" type="text"
+                        wire:model="formulario.administrador_nombre" />
+                    <x-input-error for="formulario.administrador_nombre" class="mt-2" />
+                </div>
+                <div class="mt-3">
+                    <x-label for="com-administrador-oficina" :value="__('Oficina de reunión')" />
+                    <x-input id="com-administrador-oficina" class="block mt-1 w-full" type="text"
+                        wire:model="formulario.administrador_oficina_reunion"
+                        placeholder="las Oficinas de Fincas Lar (Av. García Barbón, 22 – 1º)" />
+                    <x-input-error for="formulario.administrador_oficina_reunion" class="mt-2" />
+                    <p class="text-xs text-gray-500 mt-1">{{ __('Lo que va detrás de «en» en la convocatoria, con su artículo: «…en segunda, en las Oficinas de…, en la población de…».') }}</p>
+                </div>
+                <div class="mt-3">
+                    <x-label for="com-administrador-localidad" :value="__('Localidad')" />
+                    <x-input id="com-administrador-localidad" class="block mt-1 w-full" type="text"
+                        wire:model="formulario.administrador_localidad" />
+                    <x-input-error for="formulario.administrador_localidad" class="mt-2" />
                 </div>
             </div>
 

@@ -6,6 +6,7 @@ use App\Livewire\Forms\ComunidadForm;
 use App\Models\Comunidad;
 use App\Models\CuentaBancaria;
 use App\Models\EntidadBancaria;
+use App\Models\Provincia;
 use App\Services\Comunidades\EnlaceContableComunidad;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -38,6 +39,27 @@ class Formulario extends Component
             ->get()
             ->map(fn ($e) => ['valor' => $e->id, 'etiqueta' => "{$e->codigo} - {$e->descripcion}"])
             ->all();
+    }
+
+    /** Con un código postal completo se sabe la provincia (sus dos primeras cifras). */
+    public function updatedFormularioCodigoPostal($valor): void
+    {
+        if (! preg_match('/^\d{5}$/', trim((string) $valor))) {
+            return;
+        }
+
+        $provincia = Provincia::where('codigo', substr(trim($valor), 0, 2))->first();
+
+        if ($provincia && $provincia->id !== $this->formulario->provincia_id) {
+            $this->formulario->provincia_id = $provincia->id;
+            $this->formulario->municipio_id = null;
+        }
+    }
+
+    /** Cambiar de provincia invalida el municipio ya elegido de la anterior. */
+    public function updatedFormularioProvinciaId(): void
+    {
+        $this->formulario->municipio_id = null;
     }
 
     #[On('abrir-crear-comunidad')]
@@ -136,6 +158,9 @@ class Formulario extends Component
 
     public function render()
     {
-        return view('livewire.comunidades.formulario');
+        return view('livewire.comunidades.formulario', [
+            'provincias' => Provincia::ordenaPorNombre()->get(),
+            'municipios' => $this->formulario->municipios(),
+        ]);
     }
 }
