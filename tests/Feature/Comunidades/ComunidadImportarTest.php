@@ -5,6 +5,7 @@ namespace Tests\Feature\Comunidades;
 use App\Livewire\AdministracionSistema\Comunidades\Importar;
 use App\Models\Comunidad;
 use App\Services\Comunidades\ComunidadExportador;
+use Database\Seeders\FormasDePagoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -34,6 +35,9 @@ class ComunidadImportarTest extends TestCase
         Storage::fake('local');
         Storage::fake(config('documentos.disco'));
 
+        // fakeseed da por cargados los catálogos de DatabaseSeeder; los inmuebles demo
+        // necesitan las formas de pago.
+        $this->seed(FormasDePagoSeeder::class);
         $this->artisan('condominios:fakeseed')->assertExitCode(0);
 
         $this->comunidad = Comunidad::with('persona')->oldest('id')->firstOrFail();
@@ -43,12 +47,11 @@ class ComunidadImportarTest extends TestCase
 
     private function zipExportado(): UploadedFile
     {
-        return new UploadedFile(
-            Storage::disk('coms')->path($this->nombreZip),
+        // fake(): el set() de ficheros de Livewire 4 necesita el $name que solo trae el
+        // UploadedFile de pruebas.
+        return UploadedFile::fake()->createWithContent(
             basename($this->nombreZip),
-            'application/zip',
-            null,
-            true,
+            Storage::disk('coms')->get($this->nombreZip),
         );
     }
 

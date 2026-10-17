@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\FormaDePago;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -11,7 +12,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Con su id fijo (el de la constante): en una base nueva esta migración corre antes
+        // que FormasDePagoSeeder, y sin id se quedaría con el 1, el de Recibo bancario.
         DB::table('formas_de_pago')->insertOrIgnore([
+            'id'          => FormaDePago::COMPENSACION,
             'descripcion' => 'Compensación',
             'estado_id'   => 1,
         ]);

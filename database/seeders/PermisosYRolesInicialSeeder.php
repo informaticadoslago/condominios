@@ -6,6 +6,7 @@ use App\Models\EmpresaContable;
 use App\Models\Horario;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -161,10 +162,14 @@ class PermisosYRolesInicialSeeder extends Seeder
         $this->crearRol('global-horario');
 
         // El super-admin se salva del borrado de roles de arriba, pero sus
-        // asignaciones de rol NO: hay que devolverle aquí los roles puerta.
-        User::role(config('doslago.superadmin.nombre_rol'))->get()->each(
-            fn (User $user) => $user->assignRole(['global-comunidad', 'global-contabilidad', 'global-horario'])
-        );
+        // asignaciones de rol NO: hay que devolverle aquí los roles puerta. En una base
+        // nueva su rol aún no existe (lo crea condominios:install) y User::role()
+        // lanzaría RoleDoesNotExist: entonces no hay nadie a quien devolvérselos.
+        if (Role::where('name', config('doslago.superadmin.nombre_rol'))->exists()) {
+            User::role(config('doslago.superadmin.nombre_rol'))->get()->each(
+                fn (User $user) => $user->assignRole(['global-comunidad', 'global-contabilidad', 'global-horario'])
+            );
+        }
 
         $permisos_usuario = [
             'usuario-perfil',
@@ -178,19 +183,28 @@ class PermisosYRolesInicialSeeder extends Seeder
      * El delete() de arriba se lleva por delante los roles puerta (comunidad-{id},
      * empresa-contable-{id}, horario-{id}): no los gestiona este seeder, así que sin esto
      * cada reseed dejaría a todos los usuarios sin acceso a lo que ya tenían creado.
+     *
+     * En una base nueva este seeder corre desde la migración seed_permisos_roles_y_superadmin,
+     * antes de que existan esas tablas: entonces no hay nada que recrear.
      */
     private function recrearRolesPuerta(): void
     {
-        Comunidad::all()->each(fn (Comunidad $comunidad) => Role::firstOrCreate(
-            ['name' => $comunidad->nombreRol(), 'guard_name' => 'web']
-        ));
+        if (Schema::hasTable('comunidades')) {
+            Comunidad::all()->each(fn (Comunidad $comunidad) => Role::firstOrCreate(
+                ['name' => $comunidad->nombreRol(), 'guard_name' => 'web']
+            ));
+        }
 
-        EmpresaContable::all()->each(fn (EmpresaContable $empresaContable) => Role::firstOrCreate(
-            ['name' => $empresaContable->nombreRol(), 'guard_name' => 'web']
-        ));
+        if (Schema::hasTable('empresas_contables')) {
+            EmpresaContable::all()->each(fn (EmpresaContable $empresaContable) => Role::firstOrCreate(
+                ['name' => $empresaContable->nombreRol(), 'guard_name' => 'web']
+            ));
+        }
 
-        Horario::all()->each(fn (Horario $horario) => Role::firstOrCreate(
-            ['name' => $horario->nombreRol(), 'guard_name' => 'web']
-        ));
+        if (Schema::hasTable('horarios')) {
+            Horario::all()->each(fn (Horario $horario) => Role::firstOrCreate(
+                ['name' => $horario->nombreRol(), 'guard_name' => 'web']
+            ));
+        }
     }
 }
