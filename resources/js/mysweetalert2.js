@@ -52,6 +52,40 @@ window.addEventListener("swalConfirm", function (e) {
     console.log(e.detail[0]);
 });
 
+// wire:confirm con SweetAlert en vez del confirm() del navegador, en toda la app. Livewire no
+// deja redefinir su directiva "confirm", pero cada elemento guarda en __livewire_confirm la
+// función que pregunta, y este hook corre justo después del suyo: se sustituye ahí.
+// El mensaje se parte tras la primera pregunta, como los swalConfirm de los componentes:
+// "¿Revocar este token? Quien lo use..." → título "¿Revocar este token?" y el resto de texto.
+// Con .prompt ("pregunta|respuesta") hay que escribir la respuesta, igual que en Livewire.
+document.addEventListener("livewire:init", () => {
+    Livewire.hook("directive.init", ({ el, directive }) => {
+        if (directive.value !== "confirm") return;
+
+        const conPrompt = directive.modifiers.includes("prompt");
+        const mensaje = directive.expression.replaceAll("\\n", "\n") || "¿Seguro?";
+        const [pregunta, esperado] = conPrompt ? mensaje.split("|") : [mensaje];
+        const [titulo, ...resto] = pregunta.split(/(?<=\?)\s+/);
+
+        el.__livewire_confirm = (action, instead) => {
+            Swal.fire(swalModoOscuro({
+                title: titulo,
+                text: resto.join(" "),
+                icon: "warning",
+                ...(conPrompt ? { input: "text" } : {}),
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#f1c40f",
+                confirmButtonText: "Sí, continuar",
+                cancelButtonText: "Cancelar",
+            })).then((result) => {
+                const confirmado = result.isConfirmed && (!conPrompt || result.value === esperado);
+                confirmado ? action() : instead();
+            });
+        };
+    });
+});
+
 // Como swalConfirm pero con 3 opciones (Confirmar/Denegar/Cancelar), para cuando hay
 // dos acciones posibles además de cancelar (p.ej. "¿activar o dejar en inicial?").
 window.addEventListener("swalConfirmDeny", function (e) {
