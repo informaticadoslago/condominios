@@ -7,6 +7,7 @@ return [
     'Cerrar empresa contable' => 'Cerrar empresa contable',
     'Comunidades' => 'Comunidades',
     'Configuracion' => 'Configuración',
+    'Convocatorias de junta' => 'Convocatorias de junta',
     'Copias de seguridad' => 'Copias de seguridad',
     'Correos enviados' => 'Correos enviados',
     'Pruebas de correo' => 'Pruebas de correo',

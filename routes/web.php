@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\BackupDescargaController;
 use App\Http\Controllers\ComunidadContextoController;
+use App\Http\Controllers\ConvocatoriaJuntaCartaController;
+use App\Http\Controllers\ConvocatoriaJuntaCartaInmuebleController;
 use App\Http\Controllers\ConfirmarCorreoPropietarioController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
@@ -34,6 +36,7 @@ use App\Livewire\ComisionesBancarias\Formulario as ComisionesBancariasFormulario
 use App\Livewire\ComisionesBancarias\Lista as ComisionesBancariasLista;
 use App\Livewire\MovimientosBancarios\Lista as MovimientosBancariosLista;
 use App\Livewire\Comunidades\Lista as ComunidadesLista;
+use App\Livewire\ConvocatoriasJuntas\Lista as ConvocatoriasJuntasLista;
 use App\Livewire\Directivos\Lista as DirectivosLista;
 use App\Livewire\GruposDeReparto\Lista as GruposDeRepartoLista;
 use App\Livewire\CuentasContables\Lista as CuentasContablesLista;
@@ -190,7 +193,10 @@ Route::middleware([
         Route::get('/presupuestos/{presupuesto}/reparto', PresupuestosReparto::class)->name('presupuestos.reparto');
         Route::get('/presupuestos/{presupuesto}/reparto/pdf', PresupuestoRepartoPdfController::class)->name('presupuestos.reparto.pdf');
         Route::get('/recibos', RecibosLista::class)->name('recibos.index');
+        Route::get('/convocatorias-juntas', ConvocatoriasJuntasLista::class)->name('convocatorias-juntas.index');
         Route::get('/directivos', DirectivosLista::class)->name('directivos.index');
+        Route::get('/convocatorias-juntas/{convocatoriaJunta}/carta', ConvocatoriaJuntaCartaController::class)->name('convocatorias-juntas.carta');
+        Route::get('/convocatorias-juntas/{convocatoriaJunta}/carta/{inmueble}', ConvocatoriaJuntaCartaInmuebleController::class)->name('convocatorias-juntas.carta-inmueble');
     });
 
     // Gestión contable: módulo independiente de comunidades (empresas por CIF).

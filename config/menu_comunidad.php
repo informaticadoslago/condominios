@@ -23,6 +23,7 @@ return [
                 ['icon' => 'fa-solid fa-building-columns', 'label' => trans_key('menu.Remesas'), 'route' => 'remesas.index'],
                 ['icon' => 'fa-solid fa-money-check-dollar', 'label' => trans_key('menu.Comisiones bancarias'), 'route' => 'comisiones-bancarias.index'],
                 ['icon' => 'fa-solid fa-list', 'label' => trans_key('menu.Movimientos bancarios'), 'route' => 'movimientos-bancarios.index'],
+                ['icon' => 'fa-solid fa-calendar-check', 'label' => trans_key('menu.Convocatorias de junta'), 'route' => 'convocatorias-juntas.index'],
                 ['type' => 'spacer'],
                 ['icon' => 'fa-solid fa-people-roof', 'label' => trans_key('menu.Grupos de reparto'), 'route' => 'grupos-de-reparto.index'],
                 ['icon' => 'fa-solid fa-user-tie', 'label' => trans_key('menu.Propietarios'), 'route' => 'propietarios.index'],

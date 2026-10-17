@@ -5,6 +5,7 @@ namespace App\Services\Comunidades;
 use App\Models\Comunidad;
 use App\Models\ComunidadDirectivo;
 use App\Models\ConceptoPresupuesto;
+use App\Models\ConvocatoriaJunta;
 use App\Models\Contacto;
 use App\Models\Cobro;
 use App\Models\CorreoEnviado;
@@ -30,6 +31,7 @@ use App\Models\Remesa;
 use App\Models\Titularidad;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
 
@@ -140,6 +142,8 @@ class ComunidadEliminador
         Presupuesto::where('comunidad_id', $comunidad->id)->delete();
         PersonaComunidad::where('comunidad_id', $comunidad->id)->delete();
         GrupoDeReparto::where('comunidad_id', $comunidad->id)->delete();
+        ConvocatoriaJunta::where('comunidad_id', $comunidad->id)->delete();
+        Storage::disk(ConvocatoriaJunta::DISCO_CARTAS)->deleteDirectory(ConvocatoriaJunta::carpetaCartas($comunidad->id));
 
         // 21-22. Rol 'comunidad-{id}' (Comunidad::booted() lo crea al alta; model_has_roles
         // cae solo, tiene ON DELETE CASCADE hacia roles).

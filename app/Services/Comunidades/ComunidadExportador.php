@@ -8,6 +8,7 @@ use App\Models\ComunidadDirectivo;
 use App\Models\ConceptoPresupuesto;
 use App\Models\Contacto;
 use App\Models\Comunidad;
+use App\Models\ConvocatoriaJunta;
 use App\Models\CuentaBancaria;
 use App\Models\Direccion;
 use App\Models\Documento;
@@ -16,6 +17,7 @@ use App\Models\FormaPagoInmueble;
 use App\Models\GrupoDeReparto;
 use App\Models\HistorialEstado;
 use App\Models\Inmueble;
+use App\Models\LineaOrdenDelDia;
 use App\Models\LineaRemesa;
 use App\Models\MandatoSepa;
 use App\Models\PagoFactura;
@@ -77,6 +79,7 @@ class ComunidadExportador extends ExportadorZip
         $inmuebles   = $comunidad->inmuebles()->get();
         $inmuebleIds = $inmuebles->pluck('id');
         $gruposDeReparto = $comunidad->gruposDeReparto()->get();
+        $convocatoriasJuntas = ConvocatoriaJunta::where('comunidad_id', $comunidad->id)->get();
 
         $personasComunidad   = PersonaComunidad::where('comunidad_id', $comunidad->id)->get();
         $personaComunidadIds = $personasComunidad->pluck('id');
@@ -120,6 +123,8 @@ class ComunidadExportador extends ExportadorZip
             'contactos'                => Contacto::where('contactable_type', PersonaComunidad::class)
                 ->whereIn('contactable_id', $personaComunidadIds)->get(),
             'comunidad_directivos'     => ComunidadDirectivo::where('comunidad_id', $comunidad->id)->get(),
+            'convocatorias_juntas'     => $convocatoriasJuntas,
+            'lineas_orden_del_dia'     => LineaOrdenDelDia::whereIn('convocatoria_junta_id', $convocatoriasJuntas->pluck('id'))->get(),
             'propietarios'             => $propietarios,
             'proveedores'              => $proveedores,
             'cuentas_bancarias'        => CuentaBancaria::where(function ($q) use ($comunidad, $propietarioIds, $proveedorIds, $personaComunidadIds) {
@@ -218,7 +223,7 @@ class ComunidadExportador extends ExportadorZip
         1. `personas` (la persona/CIF de la propia comunidad)
         2. `comunidad` (la fila de `comunidades`)
         3. `personas_comunidad`, `direcciones`, `contactos`
-        4. `comunidad_directivos`, `propietarios`, `proveedores`
+        4. `comunidad_directivos`, `convocatorias_juntas`, `lineas_orden_del_dia`, `propietarios`, `proveedores`
         5. `cuentas_bancarias`, `mandatos_sepa`
         6. `inmuebles`, `titularidades`, `formas_pago_inmuebles`
         7. `grupos_de_reparto`, `inmueble_grupo_de_reparto`
@@ -246,12 +251,12 @@ class ComunidadExportador extends ExportadorZip
         `tipo_documento_identificativos`, `tipo_generos`, `tipo_direcciones`, `tipo_contactos`,
         `tipo_ocupaciones`, `tipo_inmuebles`, `formas_de_pago`, `entidades_bancarias`,
         `tipo_estado_presupuestos`, `tipo_presupuestos`, `tipo_periodicidad_pagos`,
-        `tipo_estado_recibos`, `tipo_documentos`, `tipo_directivo_comunidades`.
+        `tipo_estado_recibos`, `tipo_documentos`, `tipo_juntas`, `tipo_directivo_comunidades`.
 
         Si el sistema destino no usa los mismos ids para estos catálogos, hay que traducirlos a
         mano al reconstruir (`estado_id`, `tipo_documento_id`, `forma_de_pago_id`,
         `entidad_bancaria_id`, `documento_pais_id`, `nacionalidad_id`,
-        `genero_id`, `ocupacion_id`, `tipo_inmueble_id`, `periodicidad_id`, etc.).
+        `genero_id`, `ocupacion_id`, `tipo_inmueble_id`, `periodicidad_id`, `tipo_junta_id`, etc.).
         MD;
     }
 }

@@ -266,6 +266,8 @@ class ImportadorZipComunidad
             'direcciones',
             'contactos',
             'comunidad_directivos',
+            'convocatorias_juntas',
+            'lineas_orden_del_dia',
             'propietarios',
             'proveedores',
             'cuentas_bancarias',
@@ -309,6 +311,8 @@ class ImportadorZipComunidad
             'direcciones',
             'contactos',
             'comunidad_directivos',
+            'convocatorias_juntas',
+            'lineas_orden_del_dia',
             'propietarios',
             'proveedores',
             'cuentas_bancarias',
@@ -367,6 +371,14 @@ class ImportadorZipComunidad
                 } elseif (($datos['contactable_type'] ?? null) === 'App\\Models\\PersonaComunidad') {
                     $this->remapearColumna($datos, 'contactable_id', 'personas_comunidad', $mapaIds);
                 }
+                break;
+
+            case 'convocatorias_juntas':
+                $this->remapearColumna($datos, 'comunidad_id', 'comunidades', $mapaIds);
+                break;
+
+            case 'lineas_orden_del_dia':
+                $this->remapearColumna($datos, 'convocatoria_junta_id', 'convocatorias_juntas', $mapaIds);
                 break;
 
             case 'comunidad_directivos':
