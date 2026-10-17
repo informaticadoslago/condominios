@@ -9,7 +9,12 @@ use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
 {
-    use ConBajaPorEstado;
+    // Los confirmar* de abajo sustituyen a los del trait (no son de ListaComponent, así
+    // que parent:: no los encuentra): se les llega por estos alias.
+    use ConBajaPorEstado {
+        confirmarBaja as protected confirmarBajaPorEstado;
+        confirmarReactivar as protected confirmarReactivarPorEstado;
+    }
 
     public string $clave;
     public string $modelo;
@@ -22,14 +27,14 @@ class Lista extends ListaComponent
         return $this->modelo;
     }
 
-    // "estados" es de solo lectura: ninguna acción de baja/reactivar/borrado le aplica,
+    // Un catálogo 'bloqueado' es de solo lectura: ninguna acción de baja/reactivar/borrado le aplica,
     // aunque alguien la dispare a mano (p.ej. desde la consola del navegador).
     public function confirmarBaja($id)
     {
         if ($this->bloqueado) {
             return;
         }
-        parent::confirmarBaja($id);
+        $this->confirmarBajaPorEstado($id);
     }
 
     public function confirmarReactivar($id)
@@ -37,7 +42,7 @@ class Lista extends ListaComponent
         if ($this->bloqueado) {
             return;
         }
-        parent::confirmarReactivar($id);
+        $this->confirmarReactivarPorEstado($id);
     }
 
     public function mount(string $clave)
