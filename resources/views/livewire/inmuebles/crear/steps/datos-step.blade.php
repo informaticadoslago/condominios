@@ -3,15 +3,15 @@
 
     <div class="flex-1 space-y-4">
         <div class="flex w-full">
-            <div class="mt-2 w-[30%]">
+            <div class="mt-2 w-1/4">
                 <x-label for="input-inmueble-comunidad" :value="__('Comunidad')" />
                 <x-input id="input-inmueble-comunidad" class="block mt-1 w-full mayusculas" type="text"
                     value="{{ $comunidadActual?->nombre }}" disabled />
             </div>
-            <div class="mt-2 ml-2 w-[35%]">
+            <div class="mt-2 ml-2 w-1/5">
                 <x-label for="select-inmueble-tipo" :value="__('Tipo de inmueble')" />
                 <x-select id="select-inmueble-tipo" class="block mt-1 w-full mayusculas" name="tipo_inmueble"
-                    wire:model="tipo_inmueble_id">
+                    wire:model.live="tipo_inmueble_id">
                     <option value="">{{ __('--') }}</option>
                     @foreach ($tiposInmueble as $tipo)
                         <option value="{{ $tipo->id }}">{{ $tipo->descripcion }}</option>
@@ -19,7 +19,7 @@
                 </x-select>
                 <x-input-error for="tipo_inmueble_id" class="mt-2" />
             </div>
-            <div class="mt-2 ml-2 w-[35%]">
+            <div class="mt-2 ml-2 w-1/5">
                 <x-label for="select-inmueble-ocupacion" :value="__('Ocupación')" />
                 <x-select id="select-inmueble-ocupacion" class="block mt-1 w-full mayusculas" name="ocupacion"
                     wire:model="ocupacion_id">
@@ -30,19 +30,25 @@
                 </x-select>
                 <x-input-error for="ocupacion_id" class="mt-2" />
             </div>
+            <div class="mt-2 ml-2 w-1/3">
+                <x-label for="input-inmueble-referencia" :value="__('Referencia catastral')" />
+                <x-input id="input-inmueble-referencia" class="block mt-1 w-full mayusculas" type="text"
+                    name="referencia_catastral" wire:model="referencia_catastral" forzar-may />
+                <x-input-error for="referencia_catastral" class="mt-2" />
+            </div>
         </div>
 
         <div class="flex w-full mt-3">
             <div class="w-1/5">
                 <x-label for="input-inmueble-planta" :value="__('Planta')" />
                 <x-input id="input-inmueble-planta" class="block mt-1 w-full" type="number" name="planta"
-                    wire:model="planta" autofocus />
+                    wire:model.live.blur="planta" autofocus />
                 <x-input-error for="planta" class="mt-2" />
             </div>
             <div class="ml-2 w-1/5">
                 <x-label for="input-inmueble-puerta" :value="__('Puerta')" />
                 <x-input id="input-inmueble-puerta" class="block mt-1 w-full mayusculas" type="text" name="puerta"
-                    wire:model="puerta" forzar-may />
+                    wire:model.live.blur="puerta" forzar-may />
                 <x-input-error for="puerta" class="mt-2" />
             </div>
             <div class="ml-2 w-1/5">
@@ -51,11 +57,13 @@
                     wire:model="coeficiente" />
                 <x-input-error for="coeficiente" class="mt-2" />
             </div>
+            {{-- Sin mayúsculas forzadas: sale tal cual en las cartas ("Bajo", "Piso 3º"). --}}
             <div class="ml-2 w-2/5">
-                <x-label for="input-inmueble-referencia" :value="__('Referencia catastral')" />
-                <x-input id="input-inmueble-referencia" class="block mt-1 w-full mayusculas" type="text"
-                    name="referencia_catastral" wire:model="referencia_catastral" forzar-may />
-                <x-input-error for="referencia_catastral" class="mt-2" />
+                <x-label for="input-inmueble-nomenclatura" :value="__('Nomenclatura')" />
+                <x-input id="input-inmueble-nomenclatura" class="block mt-1 w-full" type="text" name="nomenclatura"
+                    wire:model="nomenclatura" />
+                <x-input-error for="nomenclatura" class="mt-2" />
+                <p class="text-xs text-gray-500 mt-1">{{ __('Como se nombra en las cartas. Se propone sola con el tipo, la planta y la puerta; se puede cambiar.') }}</p>
             </div>
         </div>
     </div>

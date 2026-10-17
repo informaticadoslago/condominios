@@ -28,6 +28,14 @@ class DatosStep extends CrearInmuebleStep
     public $coeficiente;
     public $referencia_catastral;
 
+    /**
+     * Cómo se nombra en las cartas. Se propone sola a partir de tipo, planta y puerta, y la
+     * acompaña mientras no se cambie a mano. $nomenclaturaSugerida es la última propuesta,
+     * para saber si lo que hay escrito es la propuesta o algo tecleado.
+     */
+    public $nomenclatura;
+    public string $nomenclaturaSugerida = '';
+
     public function stepInfo(): array
     {
         return ['label' => __('Datos del inmueble')];
@@ -52,8 +60,36 @@ class DatosStep extends CrearInmuebleStep
                 $this->puerta               = $inmueble->puerta;
                 $this->coeficiente          = $inmueble->coeficiente;
                 $this->referencia_catastral = $inmueble->referencia_catastral;
+                $this->nomenclatura         = $inmueble->nomenclatura;
             }
         }
+
+        $this->nomenclaturaSugerida = $this->sugerirNomenclatura();
+
+        if (blank($this->nomenclatura)) {
+            $this->nomenclatura = $this->nomenclaturaSugerida;
+        }
+    }
+
+    /** Tipo, planta o puerta cambian la propuesta; si lo escrito era la anterior, se pone la nueva. */
+    public function updated($propiedad): void
+    {
+        if (! in_array($propiedad, ['tipo_inmueble_id', 'planta', 'puerta'], true)) {
+            return;
+        }
+
+        $nueva = $this->sugerirNomenclatura();
+
+        if (blank($this->nomenclatura) || $this->nomenclatura === $this->nomenclaturaSugerida) {
+            $this->nomenclatura = $nueva;
+        }
+
+        $this->nomenclaturaSugerida = $nueva;
+    }
+
+    private function sugerirNomenclatura(): string
+    {
+        return Inmueble::sugerirNomenclatura(TipoInmueble::find($this->tipo_inmueble_id)?->descripcion, $this->planta, $this->puerta);
     }
 
     /** Admite coma o punto como separador decimal: se normaliza a punto antes de validar. */
@@ -76,6 +112,7 @@ class DatosStep extends CrearInmuebleStep
             }],
             'coeficiente'          => ['required', 'numeric', 'min:0.001', 'max:100', 'regex:/^\d{1,3}(\.\d{1,3})?$/'],
             'referencia_catastral' => ['nullable', 'string', 'max:20'],
+            'nomenclatura'         => ['nullable', 'string', 'max:50'],
         ];
     }
 
@@ -105,6 +142,8 @@ class DatosStep extends CrearInmuebleStep
     protected function validarYGuardar(): void
     {
         $data = $this->validate();
+        // Vaciarla no la deja sin nombre en las cartas: se guarda la propuesta.
+        $data['nomenclatura'] = trim((string) $data['nomenclatura']) ?: ($this->sugerirNomenclatura() ?: null);
 
         if ($this->inmuebleId) {
             // La comunidad de un inmueble ya existente no se toca desde aquí.

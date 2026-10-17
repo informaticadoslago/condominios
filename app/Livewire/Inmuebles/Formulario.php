@@ -72,7 +72,7 @@ class Formulario extends Component
             'payload' => [
                 'inmueble_id'  => $inmueble->id,
                 'datos'        => $inmueble->only([
-                    'comunidad_id', 'ocupacion_id', 'tipo_inmueble_id', 'planta', 'puerta', 'coeficiente', 'referencia_catastral',
+                    'comunidad_id', 'ocupacion_id', 'tipo_inmueble_id', 'planta', 'puerta', 'nomenclatura', 'coeficiente', 'referencia_catastral',
                 ]),
                 'propietarios' => Titularidad::vigente()
                     ->where('inmueble_id', $inmueble->id)
