@@ -119,14 +119,16 @@ class EnlazarPropietariosTest extends TestCase
         $this->assertCount(10, $lista->get('seleccionados'));
     }
 
-    public function test_el_menu_de_acciones_solo_sale_si_la_comunidad_lleva_contabilidad(): void
+    public function test_enlazar_solo_sale_en_el_menu_si_la_comunidad_lleva_contabilidad(): void
     {
         $this->crearPropietario('11111111H');
 
-        $this->assertStringNotContainsString('fa-ellipsis-vertical', Livewire::test(Lista::class)->html());
+        // El menú sale siempre (lleva la plantilla del mandato SEPA); lo que depende de la
+        // contabilidad es la opción de enlazar.
+        $this->assertStringNotContainsString('wire:click="enlazarContabilidad"', Livewire::test(Lista::class)->html());
 
         $this->enlazarComunidad();
 
-        $this->assertStringContainsString('fa-ellipsis-vertical', Livewire::test(Lista::class)->html());
+        $this->assertStringContainsString('wire:click="enlazarContabilidad"', Livewire::test(Lista::class)->html());
     }
 }

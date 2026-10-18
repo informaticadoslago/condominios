@@ -54,9 +54,45 @@
 
         <x-dosl.tabla>
             <x-slot name="botonera">
-                <x-secondary-button type="button" wire:click="borrarFiltro" title="{{ __('Borrar filtro') }}">
+                <x-secondary-button type="button" wire:click="invertirSeleccion"
+                    title="{{ __('Invierte la selección dentro de lo que cumple el filtro actual') }}">
+                    <i class="fa-solid fa-arrow-right-arrow-left mr-1"></i>{{ __('Invertir selección') }}
+                </x-secondary-button>
+                @if (count($seleccionados))
+                    <x-secondary-button type="button" wire:click="limpiarSeleccion" class="ml-1"
+                        title="{{ __('Quitar toda la selección') }}">
+                        <i class="fa-solid fa-xmark mr-1"></i>{{ __('Quitar selección') }} ({{ count($seleccionados) }})
+                    </x-secondary-button>
+                    <x-secondary-button type="button" wire:click="toggleVerSoloSeleccionados"
+                        @class(['ml-1' => true, '!bg-blue-600 dark:!bg-blue-800 !text-white hover:!bg-blue-700 dark:hover:!bg-blue-700' => $verSoloSeleccionados])
+                        title="{{ __('Ver solo las filas seleccionadas') }}">
+                        <i class="fa-solid fa-check-double mr-1"></i>{{ __('Ver solo seleccionados') }}
+                    </x-secondary-button>
+                @endif
+                <x-secondary-button type="button" wire:click="borrarFiltro" class="ml-1" title="{{ __('Borrar filtro') }}">
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>{{ __('Borrar filtro') }}
                 </x-secondary-button>
+                <span class="ml-1 inline-block align-middle">
+                    <x-dropdown align="right" width="60">
+                        <x-slot name="trigger">
+                            <button type="button" title="{{ __('Acciones en lote') }}"
+                                class="p-2 rounded-lg text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-800/5 dark:hover:bg-white/10">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        </x-slot>
+                        <x-slot name="content">
+                            {{-- Una hoja por inmueble marcado, con su piso y a nombre de quien
+                                 paga sus recibos; sin ninguno, una en blanco. --}}
+                            <x-dropdown-link target="_blank" id="btn-plantilla-mandato-sepa"
+                                href="{{ route('mandatos-sepa.plantilla-lote', array_filter(['inmuebles' => implode(',', $seleccionados)])) }}">
+                                <i class="fa-solid fa-file-signature mr-1"></i>{{ __('Plantilla mandato SEPA') }}
+                                @if (count($seleccionados))
+                                    ({{ count($seleccionados) }})
+                                @endif
+                            </x-dropdown-link>
+                        </x-slot>
+                    </x-dropdown>
+                </span>
             </x-slot>
 
             <div class="py-3 px-6 flex items-center">
@@ -68,6 +104,10 @@
                 <table class="table-striped w-full table-auto text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
+                            <th class="py-3 px-6 w-px">
+                                <input type="checkbox" wire:model.live="marcarTodosVisibles"
+                                    title="{{ __('Marcar/desmarcar toda la página') }}" />
+                            </th>
                             <th class="py-3 px-6">{{ __('Tipo') }}</th>
                             <th class="py-3 px-6">{{ __('Ocupación') }}</th>
                             <th class="py-3 px-6">{{ __('Planta') }}</th>
@@ -93,6 +133,9 @@
                     <tbody class="divide-y">
                         @foreach ($items as $item)
                             <tr wire:key="{{ $item->id }}">
+                                <td class="px-6 py-4">
+                                    <input type="checkbox" wire:model.live="seleccionados" value="{{ $item->id }}" />
+                                </td>
                                 <td class="px-6 py-4">{{ $item->tipoInmueble->descripcion }}</td>
                                 <td class="px-6 py-4">{{ $item->ocupacion->descripcion }}</td>
                                 <td class="px-6 py-4">{{ $item->planta }}</td>

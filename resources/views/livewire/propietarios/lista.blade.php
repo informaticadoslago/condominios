@@ -66,29 +66,37 @@
                         <i class="fa-solid fa-check-double mr-1"></i>{{ __('Ver solo seleccionados') }}
                     </x-secondary-button>
                 @endif
-                {{-- Solo en las comunidades que llevan contabilidad: donde no la llevan,
-                     estas acciones no tendrían nada que hacer. --}}
-                @if (contabilidad_activa())
-                    <span class="ml-1 inline-block align-middle">
-                        <x-dropdown align="right" width="60">
-                            <x-slot name="trigger">
-                                <button type="button" title="{{ __('Acciones en lote') }}"
-                                    class="p-2 rounded-lg text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-800/5 dark:hover:bg-white/10">
-                                    <i class="fa-solid fa-ellipsis-vertical"></i>
-                                </button>
-                            </x-slot>
-                            <x-slot name="content">
-                                {{-- Los que ya tienen cuenta se saltan solos. --}}
+                <span class="ml-1 inline-block align-middle">
+                    <x-dropdown align="right" width="60">
+                        <x-slot name="trigger">
+                            <button type="button" title="{{ __('Acciones en lote') }}"
+                                class="p-2 rounded-lg text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-800/5 dark:hover:bg-white/10">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        </x-slot>
+                        <x-slot name="content">
+                            {{-- Una hoja a nombre de cada marcado; sin ninguno, una en blanco. --}}
+                            <x-dropdown-link target="_blank" id="btn-plantilla-mandato-sepa"
+                                href="{{ route('mandatos-sepa.plantilla-lote', array_filter(['propietarios' => implode(',', $seleccionados)])) }}">
+                                <i class="fa-solid fa-file-signature mr-1"></i>{{ __('Plantilla mandato SEPA') }}
+                                @if (count($seleccionados))
+                                    ({{ count($seleccionados) }})
+                                @endif
+                            </x-dropdown-link>
+                            {{-- Solo en las comunidades que llevan contabilidad: donde no la
+                                 llevan, no tendría nada que hacer. Los que ya tienen cuenta
+                                 se saltan solos. --}}
+                            @if (contabilidad_activa())
                                 <x-dropdown-link href="#" wire:click="enlazarContabilidad">
                                     <i class="fa-solid fa-link mr-1"></i>{{ __('Enlazar con contabilidad') }}
                                     @if (count($seleccionados))
                                         ({{ count($seleccionados) }})
                                     @endif
                                 </x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
-                    </span>
-                @endif
+                            @endif
+                        </x-slot>
+                    </x-dropdown>
+                </span>
             </x-slot>
 
             <div class="py-3 px-6 flex items-center">

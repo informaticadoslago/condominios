@@ -1,9 +1,12 @@
 {{-- Formulario de recogida de datos bancarios, para imprimir o mandar al propietario.
+     Una hoja por cada elemento de $hojas: [propietario, piso, tiposDocumento].
 
-     Solo van rellenados los datos del propietario. Todo lo demás va en blanco a
-     propósito: la fecha y la firma las pone quien firma, el IBAN es justo el dato que
-     este papel viene a recoger, y el PISO tampoco se imprime — un mismo titular puede
-     tener varios, y con un piso impreso el documento no valdría para los otros. --}}
+     Solo van rellenados los datos del propietario y, si se saca desde un inmueble, el
+     piso. Todo lo demás va en blanco a propósito: la fecha y la firma las pone quien
+     firma y el IBAN es justo el dato que este papel viene a recoger. Sacada para una
+     persona, el PISO tampoco se imprime — un mismo titular puede tener varios, y con
+     un piso impreso el documento no valdría para los otros. Sin propietario (hoja en
+     blanco) no va nada relleno. --}}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -26,9 +29,14 @@
         .opciones { margin: 2pt 0 5pt; }
         .opciones span { padding-right: 26pt; }
         .firma { border: 1px solid #000; height: 80pt; }
+        .salto { page-break-after: always; }
     </style>
 </head>
 <body>
+
+@foreach ($hojas as $hoja)
+@php($propietario = $hoja['propietario'])
+<div @class(['salto' => ! $loop->last])>
 
 <h1>{{ __('Formulario recogida datos bancarios') }}</h1>
 
@@ -47,36 +55,37 @@
 <table class="fila">
     <tr>
         <td class="etiqueta" width="70">{{ __('Nombre') }}:</td>
-        <td><div class="caja-texto">{{ $propietario->nombre }}</div></td>
+        <td><div class="caja-texto">{{ $propietario?->nombre }}</div></td>
     </tr>
 </table>
 
 <table class="fila">
     <tr>
         <td class="etiqueta" width="70">{{ __('Apellidos') }}:</td>
-        <td><div class="caja-texto">{{ trim($propietario->apellido1.' '.$propietario->apellido2) }}</div></td>
+        <td><div class="caja-texto">{{ trim($propietario?->apellido1.' '.$propietario?->apellido2) }}</div></td>
     </tr>
 </table>
 
 <div>{{ __('Documento identificativo') }}:</div>
 <div class="opciones">
-    @foreach ($tiposDocumento as $tipo)
+    @foreach ($hoja['tiposDocumento'] as $tipo)
         <span>{{ $tipo['marcado'] ? '◉' : '○' }} {{ $tipo['nombre'] }}</span>
     @endforeach
 </div>
 <div>{{ __('Número') }}:</div>
 <table class="fila">
     <tr>
-        <td width="180"><div class="caja-texto">{{ $propietario->documento_identificativo }}</div></td>
+        <td width="180"><div class="caja-texto">{{ $propietario?->documento_identificativo }}</div></td>
         <td></td>
     </tr>
 </table>
 
-{{-- En blanco: el mandato es del titular y su cuenta, no de un piso concreto. --}}
+{{-- Solo relleno si se saca desde un inmueble: sacado para una persona, el mandato es
+     del titular y su cuenta, no de un piso concreto. --}}
 <div>{{ __('Piso (ej: Bajo, 1ºA, 4ºIzquierda, etc.)') }}</div>
 <table class="fila">
     <tr>
-        <td width="180"><div class="caja"></div></td>
+        <td width="180"><div class="caja-texto">{{ $hoja['piso'] }}</div></td>
         <td></td>
     </tr>
 </table>
@@ -104,7 +113,7 @@
 
 <div>{{ __('Documento identificativo') }}:</div>
 <div class="opciones">
-    @foreach ($tiposDocumento as $tipo)
+    @foreach ($hoja['tiposDocumento'] as $tipo)
         <span>○ {{ $tipo['nombre'] }}</span>
     @endforeach
 </div>
@@ -128,6 +137,9 @@
         <td><div class="firma"></div></td>
     </tr>
 </table>
+
+</div>
+@endforeach
 
 </body>
 </html>

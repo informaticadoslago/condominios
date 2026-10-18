@@ -3,6 +3,7 @@
 namespace App\Livewire\Inmuebles;
 
 use App\Livewire\ListaComponent;
+use App\Livewire\Traits\ConSeleccionMultiple;
 use App\Models\Borrador;
 use App\Models\Inmueble;
 use App\Models\TipoInmueble;
@@ -11,6 +12,8 @@ use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
 {
+    use ConSeleccionMultiple;
+
     public function mount()
     {
         $this->sort      = 'id';
@@ -143,10 +146,34 @@ class Lista extends ListaComponent
         // el usuario canceló; no hacemos nada
     }
 
-    public function render()
+    /**
+     * La consulta base (comunidad y búsqueda), SIN filtros/selección ni orden ni
+     * paginación: la usan render() e invertirSeleccion(), que necesita los ids de TODO lo
+     * filtrado, no solo de la página.
+     */
+    private function consultaBase()
     {
         $search = trim($this->search ?? '');
 
+        return Inmueble::with(['ocupacion', 'tipoInmueble', 'propietarios.persona.contactos', 'formaPagoVigente.formaDePago', 'formaPagoVigente.cuentaBancaria.mandatoActivo.documentos'])
+            ->where('comunidad_id', session('comunidad_actual_id'))
+            // Ver solo seleccionados manda también sobre la búsqueda: aunque ya no case
+            // con el texto buscado, tiene que poder verse para actuar sobre él. Agrupada
+            // para que el orWhere no se salga de la comunidad.
+            ->when($search && ! $this->verSoloSeleccionados, function ($q) use ($search) {
+                $q->where(fn ($q) => $q->where('puerta', 'like', "%{$search}%")
+                    ->orWhere('referencia_catastral', 'like', "%{$search}%"));
+            });
+    }
+
+    /** Invierte la selección dentro de TODO lo que cumple el filtro actual (no solo la página). */
+    public function invertirSeleccion(): void
+    {
+        $this->invertirSeleccionEn($this->consultaBase());
+    }
+
+    public function render()
+    {
         $borradores = Borrador::delUsuario()->deTipo(Borrador::TIPO_INMUEBLE)
             ->orderByDesc('updated_at')
             ->get()
@@ -161,16 +188,11 @@ class Lista extends ListaComponent
             })
             ->values();
 
-        $items = $this->aplicarFiltros(
-            Inmueble::with(['ocupacion', 'tipoInmueble', 'propietarios.persona.contactos', 'formaPagoVigente.formaDePago', 'formaPagoVigente.cuentaBancaria.mandatoActivo.documentos'])
-                ->where('comunidad_id', session('comunidad_actual_id'))
-                ->when($search, function ($q) use ($search) {
-                    $q->where('puerta', 'like', "%{$search}%")
-                        ->orWhere('referencia_catastral', 'like', "%{$search}%");
-                })
-        )
+        $items = $this->aplicarSeleccion($this->consultaBase())
             ->orderBy($this->sort, $this->direction)
             ->paginate($this->lineasXPagina);
+
+        $this->sincronizarSeleccionVisible($items);
 
         // Suma sobre TODOS los inmuebles de la comunidad (no solo la página o el
         // filtro actuales): lo que se comprueba es si la comunidad está

@@ -175,8 +175,11 @@ Route::middleware([
         Route::get('/facturas/nueva', FacturasCrear::class)->name('facturas.crear');
         Route::get('/documentos/{documento}/descargar', DocumentoDescargaController::class)->name('documentos.download');
         Route::get('/documentos/{documento}/ver', DocumentoVistaController::class)->name('documentos.ver');
-        // Plantilla en blanco del mandato SEPA, para imprimir o mandar al propietario.
-        Route::get('/mandatos-sepa/plantilla/{personaComunidad}', MandatoSepaPlantillaController::class)->name('mandatos-sepa.plantilla');
+        // Plantilla del mandato SEPA, para imprimir o mandar al propietario: la del
+        // asistente del inmueble (a nombre de una persona) y la de las listas de
+        // propietarios e inmuebles (una hoja por marcado, o una en blanco).
+        Route::get('/mandatos-sepa/plantilla', [MandatoSepaPlantillaController::class, 'lote'])->name('mandatos-sepa.plantilla-lote');
+        Route::get('/mandatos-sepa/plantilla/{personaComunidad}', [MandatoSepaPlantillaController::class, 'persona'])->name('mandatos-sepa.plantilla');
         Route::get('/remesas', RemesasLista::class)->name('remesas.index');
         Route::get('/remesas/{remesa}/fichero', RemesaFicheroController::class)->name('remesas.fichero');
         Route::get('/remesas/{remesa}/informe', RemesaInformePdfController::class)->name('remesas.informe');
