@@ -52,7 +52,39 @@ class Lista extends ListaComponent
                 'neutro'   => 0,
                 'aplicar'  => fn ($query, $valor) => $query->where('tipo_directivo_comunidad_id', $valor),
             ],
+            [
+                // La directiva que había ese día: la que ya había empezado y aún no había cesado.
+                // Sin fecha de fin, sigue en el puesto. No se deja pasar de hoy: el futuro no se sabe.
+                'clave'    => 'fecha',
+                'etiqueta' => __('Fecha'),
+                'tipo'     => 'fecha',
+                'max'      => today()->toDateString(),
+                'aplicar'  => function ($query, $valor) {
+                    if ($valor > today()->toDateString()) {
+                        return $query->whereRaw('1 = 0');
+                    }
+
+                    $query->where('fecha_inicio', '<=', $valor)
+                        ->where(fn ($q) => $q->whereNull('fecha_fin')->orWhere('fecha_fin', '>=', $valor));
+                },
+            ],
         ];
+    }
+
+    /** De fábrica, la directiva de hoy. */
+    protected function filtrosPorDefecto(): array
+    {
+        return array_merge(parent::filtrosPorDefecto(), [
+            'fecha' => today()->toDateString(),
+        ]);
+    }
+
+    /** La fecha no se recuerda: al abrir la lista otro día, vuelve a ser la de hoy. */
+    protected function cargarPreferencias(): void
+    {
+        parent::cargarPreferencias();
+
+        $this->filtros['fecha'] = $this->porDefecto['filtros']['fecha'];
     }
 
     public function confirmarEliminar($id)

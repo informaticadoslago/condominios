@@ -26,6 +26,7 @@
                     </select>
                 @elseif ($filtro['tipo'] === 'fecha')
                     <x-input type="date" wire:model="filtros.{{ $filtro['clave'] }}" wire:keydown.enter="aplicarFiltro"
+                        :max="$filtro['max'] ?? null"
                         :disabled="$verSoloSeleccionados ?? false"
                         class="disabled:opacity-50 disabled:cursor-not-allowed" />
                 @else
