@@ -20,6 +20,11 @@
                 <x-secondary-button type="button" wire:click="borrarFiltro" title="{{ __('Borrar filtro') }}">
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>{{ __('Borrar filtro') }}
                 </x-secondary-button>
+                {{-- Lo que muestra la lista (sus filtros), por meses, en otra pestaña y sin el horario. --}}
+                <x-secondary-button type="button" title="{{ __('Imprimir') }}"
+                    onclick="window.open('{{ route('examenes.pdf', ['periodo' => $filtros['periodo'] ?? null, 'asignatura_id' => ($filtros['asignatura_id'] ?? 0) ?: null]) }}', '_blank')">
+                    <i class="fa-solid fa-print mr-1"></i>{{ __('Imprimir') }}
+                </x-secondary-button>
                 <x-secondary-button type="button" id="btn-suscribirse-examenes" wire:click="abrirSuscripcion"
                     title="{{ __('Suscribirse al calendario de exámenes') }}">
                     <i class="fa-solid fa-calendar-plus mr-1"></i>{{ __('Suscribirse') }}
@@ -73,8 +78,7 @@
                     </thead>
                     <tbody class="divide-y">
                         @foreach ($items as $item)
-                            {{-- El que ya pasó se ve en gris: sigue en la lista como histórico. --}}
-                            <tr wire:key="{{ $item->id }}" @class(['text-gray-400' => $item->fecha->lt(today())])>
+                            <tr wire:key="{{ $item->id }}">
                                 @foreach ($this->columnas as $clave)
                                     @switch($clave)
                                         @case('fecha')
@@ -95,7 +99,12 @@
                                     @endswitch
                                 @endforeach
                                 <td class="px-4 whitespace-nowrap">
-                                    <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white"
+                                    <x-button type="button" class="btn-editar" id="btn-editar-examen-{{ $item->id }}"
+                                        wire:click="$dispatch('examen-editar', {id: {{ $item->id }}})"
+                                        title="{{ __('Modificar') }}">
+                                        <i class="fa-solid fa-pen"> </i>
+                                    </x-button>
+                                    <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white ml-1"
                                         id="btn-eliminar-examen-{{ $item->id }}"
                                         wire:click="confirmarEliminar({{ $item->id }})" title="{{ __('Eliminar') }}">
                                         <i class="fa-solid fa-trash"> </i>

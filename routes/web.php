@@ -9,6 +9,7 @@ use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
 use App\Http\Controllers\ExamenesIcsController;
+use App\Http\Controllers\ExamenesPdfController;
 use App\Http\Controllers\HorarioContextoController;
 use App\Http\Controllers\HorarioRejillaPdfController;
 use App\Http\Controllers\MandatoSepaPlantillaController;
@@ -127,6 +128,7 @@ Route::middleware([
         Route::get('/rejilla', HorariosRejilla::class)->name('rejilla.edit');
         Route::get('/rejilla/pdf', HorarioRejillaPdfController::class)->name('rejilla.pdf');
         Route::get('/examenes', ExamenesLista::class)->name('examenes.index');
+        Route::get('/examenes/pdf', ExamenesPdfController::class)->name('examenes.pdf');
     });
 
     // Rutas de Administración del Sistema

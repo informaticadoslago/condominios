@@ -28,6 +28,11 @@
         tbody tr td { border-bottom: 0.3pt solid #ccc; }
         /* Rayado suave: gris clarito en las filas impares, blanco en las pares. */
         tbody tr:nth-child(odd) { background-color: rgb(241, 241, 242); }
+
+        h2.examenes { font-size: 11pt; margin: 14pt 0 0; }
+        table.examenes-mes { margin-top: 6pt; page-break-inside: avoid; }
+        table.examenes-mes thead th { text-align: left; }
+        td.dia-examen { width: 30%; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -96,6 +101,10 @@
             @endfor
         </tbody>
     </table>
+@endif
+
+@if ($examenesPorMes->isNotEmpty())
+    @include('pdf.parciales.examenes-por-mes')
 @endif
 
 </body>

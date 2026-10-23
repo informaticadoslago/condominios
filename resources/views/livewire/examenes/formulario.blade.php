@@ -1,6 +1,6 @@
 <x-dosl.dialog-modal wire:model.live="abrir" class="backdrop-blur" maxWidth="2xl">
     <x-slot name="title">
-        {{ __('Nuevo examen') }}
+        {{ $itemId ? __('Modificar examen') : __('Nuevo examen') }}
     </x-slot>
 
     <x-slot name="content">
@@ -24,7 +24,7 @@
             <div>
                 <x-label for="ex-fecha" :value="__('Fecha')" />
                 <x-input id="ex-fecha" class="block mt-1 w-full" type="date" wire:model.live="fecha"
-                    :min="today()->toDateString()" />
+                    :min="$itemId ? null : today()->toDateString()" />
                 <x-input-error for="fecha" class="mt-2" />
             </div>
             <div>

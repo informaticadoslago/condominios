@@ -9,6 +9,7 @@ use App\Models\Jornada;
 use App\Support\DiaSemana;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -17,6 +18,11 @@ class Formulario extends Component
     const HORA_PERSONALIZADA = 'personalizada';
 
     public bool $abrir = false;
+    public ?int $itemId = null;
+
+    /** Al modificar, la asignatura que ya tenía: se deja elegir aunque esté dada de baja. */
+    #[Locked]
+    public ?int $asignaturaOriginalId = null;
 
     public $asignatura_id = '';
     public string $titulo = '';
@@ -40,11 +46,12 @@ class Formulario extends Component
                 'required',
                 Rule::exists('asignaturas', 'id')
                     ->where('horario_id', session('horario_actual_id'))
-                    ->where('estado_id', Asignatura::ESTADO_ACTIVO),
+                    ->where(fn ($q) => $this->soloActivasOOriginal($q)),
             ],
             'titulo'   => ['required', 'string', 'max:150'],
-            // Un examen nuevo no puede caer en un día que ya ha pasado (hoy sí vale).
-            'fecha'    => ['required', 'date', 'after_or_equal:today'],
+            // Un examen nuevo no puede caer en un día que ya ha pasado (hoy sí vale). Al
+            // modificar sí, para poder corregir uno que ya se hizo.
+            'fecha'    => $this->itemId ? ['required', 'date'] : ['required', 'date', 'after_or_equal:today'],
             'hora'     => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora'],
             'alarma_minutos' => ['nullable', Rule::in(array_keys(Examen::opcionesAlarma()))],
@@ -75,10 +82,45 @@ class Formulario extends Component
         ];
     }
 
+    /**
+     * A una asignatura dada de baja no se le ponen exámenes nuevos; al modificar se deja
+     * también la que ya tenía el examen, aunque se haya dado de baja después.
+     */
+    private function soloActivasOOriginal($query)
+    {
+        return $query->where('estado_id', Asignatura::ESTADO_ACTIVO)
+            ->when($this->asignaturaOriginalId, fn ($q, $id) => $q->orWhere('id', $id));
+    }
+
     #[On('abrir-crear-examen')]
     public function crear()
     {
-        $this->reset(['asignatura_id', 'titulo', 'fecha', 'hora', 'hora_fin', 'alarma_minutos', 'eleccionHora']);
+        $this->reset();
+        $this->resetValidation();
+        $this->abrir = true;
+    }
+
+    #[On('examen-editar')]
+    public function editar($id)
+    {
+        $item = Examen::where('horario_id', session('horario_actual_id'))->find($id);
+        if (! $item) {
+            return;
+        }
+        $this->reset();
+        $this->itemId               = $item->id;
+        $this->asignaturaOriginalId = $item->asignatura_id;
+        $this->asignatura_id        = $item->asignatura_id;
+        $this->titulo               = $item->titulo;
+        $this->fecha                = $item->fecha->format('Y-m-d');
+        $this->hora                 = substr($item->hora, 0, 5);
+        $this->hora_fin             = substr($item->hora_fin, 0, 5);
+        $this->alarma_minutos       = $item->alarma_minutos ?? '';
+        // Si empieza a la hora de una de sus sesiones de ese día, sale esa elegida; si no,
+        // es una hora personalizada.
+        $this->eleccionHora = in_array($this->hora, array_column($this->sesionesDelDia(), 'hora'), true)
+            ? $this->hora
+            : self::HORA_PERSONALIZADA;
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -197,9 +239,15 @@ class Formulario extends Component
         $data = $this->validate();
 
         $data['alarma_minutos'] = $this->alarma_minutos === '' || $this->alarma_minutos === null ? null : (int) $this->alarma_minutos;
-        $data['horario_id'] = session('horario_actual_id');
-        Examen::create($data);
-        $this->dispatch('toast-success', ['title' => __('Examen creado')]);
+
+        if ($this->itemId) {
+            Examen::where('horario_id', session('horario_actual_id'))->findOrFail($this->itemId)->update($data);
+            $this->dispatch('toast-success', ['title' => __('Examen modificado')]);
+        } else {
+            $data['horario_id'] = session('horario_actual_id');
+            Examen::create($data);
+            $this->dispatch('toast-success', ['title' => __('Examen creado')]);
+        }
 
         $this->dispatch('examen-guardado');
         $this->cerrar();
@@ -212,9 +260,8 @@ class Formulario extends Component
 
     public function render()
     {
-        // Solo las asignaturas activas: a una dada de baja no se le ponen exámenes nuevos.
         $asignaturas = Asignatura::where('horario_id', session('horario_actual_id'))
-            ->where('estado_id', Asignatura::ESTADO_ACTIVO)
+            ->where(fn ($q) => $this->soloActivasOOriginal($q))
             ->orderBy('nombre')
             ->pluck('nombre', 'id');
 

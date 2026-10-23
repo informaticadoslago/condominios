@@ -46,6 +46,19 @@ class Lista extends ListaComponent
     {
         return [
             [
+                // Futuros = los de hoy en adelante. Lo que no filtra es "Todos", pero de
+                // fábrica se ven solo los futuros (ver filtrosPorDefecto).
+                'clave'    => 'periodo',
+                'etiqueta' => __('Mostrar'),
+                'tipo'     => 'select',
+                'opciones' => [
+                    Examen::PERIODO_FUTUROS => __('Futuros'),
+                    Examen::PERIODO_TODOS   => __('Todos'),
+                ],
+                'neutro'   => Examen::PERIODO_TODOS,
+                'aplicar'  => fn ($query, $valor) => $query->where('fecha', '>=', today()->toDateString()),
+            ],
+            [
                 // Sin caché: las asignaturas son de cada horario y se dan de alta a menudo.
                 'clave'    => 'asignatura_id',
                 'etiqueta' => __('Asignatura'),
@@ -58,6 +71,14 @@ class Lista extends ListaComponent
                 'aplicar'  => fn ($query, $valor) => $query->where('asignatura_id', $valor),
             ],
         ];
+    }
+
+    /** De fábrica, solo los exámenes que aún no han pasado. */
+    protected function filtrosPorDefecto(): array
+    {
+        return array_merge(parent::filtrosPorDefecto(), [
+            'periodo' => Examen::PERIODO_FUTUROS,
+        ]);
     }
 
     /** La dirección .ics de este horario, para suscribirse desde Google Calendar o el iPhone. */
