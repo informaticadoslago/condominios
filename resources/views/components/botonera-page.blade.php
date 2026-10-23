@@ -1,7 +1,10 @@
 @props(['botonera' => null, 'footer' => null, 'justifycenter' => true])
 <div>
     {{-- Header --}}
-    <div class="sticky top-0 w-full px-6 py-1 bg-gray-800 dark:bg-gray-50 text-start" style="height: 72px">
+    {{-- z-10: sin él, lo que lleva position en el contenido (p.ej. el envoltorio relative
+         del botón Columnas) se pinta por encima de la cabecera al hacer scroll. Queda por
+         debajo del menú lateral del móvil (z-20) y de modales y desplegables (z-50). --}}
+    <div class="sticky top-0 z-10 w-full px-6 py-1 bg-gray-800 dark:bg-gray-50 text-start" style="height: 72px">
         <div class="relative w-full">
             <div class="absolute left-0">
                 <h3 class="text-gray-50 dark:text-gray-900 text-xl font-bold sm:text-2xl">

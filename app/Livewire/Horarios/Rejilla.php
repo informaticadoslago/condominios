@@ -5,6 +5,7 @@ namespace App\Livewire\Horarios;
 use App\Models\Horario;
 use App\Models\Jornada;
 use App\Support\DiaSemana;
+use Carbon\Carbon;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -29,13 +30,24 @@ class Rejilla extends Component
         $maxSlots = 0;
 
         $minutosReferencia = $this->horario?->alinear_horas ? $this->horario->minutosReferenciaJornadas() : null;
+        $duracionSesion = $this->horario?->duracion_sesion_minutos ?? 0;
 
         foreach ($this->horario?->jornadasPorDia() ?? collect() as $diaSemana => $jornadas) {
-            $combinado = Jornada::combinarSlots($jornadas, $this->horario->duracion_sesion_minutos ?? 0, $minutosReferencia);
+            $combinado = Jornada::combinarSlots($jornadas, $duracionSesion, $minutosReferencia);
+
+            // 'fin' es para la vista del móvil (un día cada vez): ahí cada sesión lleva su
+            // propia hora, no la de la fila, que sin alinear_horas puede ser de otro día.
+            $slots = array_map(fn (array $slot) => $slot + [
+                'fin' => Carbon::createFromFormat('H:i', $slot['hora'])
+                    ->addMinutes($slot['tipo'] === 'recreo' ? $slot['duracion'] : $duracionSesion)
+                    ->format('H:i'),
+            ], $combinado['slots']);
+            ksort($slots);
 
             $diasConfig[$diaSemana] = [
                 'nombre' => DiaSemana::from($diaSemana)->nombre(),
-                'slots' => $combinado['slots'],
+                'abreviatura' => DiaSemana::from($diaSemana)->abreviatura(),
+                'slots' => $slots,
             ];
 
             $maxSlots = max($maxSlots, $combinado['total_filas']);
@@ -52,8 +64,11 @@ class Rejilla extends Component
             }
         }
 
-        $horasFilas = Jornada::horasPorFila($diasConfig, $maxSlots, $this->horario?->duracion_sesion_minutos ?? 0);
+        $horasFilas = Jornada::horasPorFila($diasConfig, $maxSlots, $duracionSesion);
 
-        return view('livewire.horarios.rejilla', compact('diasConfig', 'maxSlots', 'asignaciones', 'horasFilas'));
+        // En el móvil se abre en el día de hoy si tiene clase; si no, en el primero.
+        $diaInicial = isset($diasConfig[now()->dayOfWeekIso]) ? now()->dayOfWeekIso : array_key_first($diasConfig);
+
+        return view('livewire.horarios.rejilla', compact('diasConfig', 'maxSlots', 'asignaciones', 'horasFilas', 'diaInicial'));
     }
 }

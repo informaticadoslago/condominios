@@ -8,7 +8,7 @@
     <x-slot name="botonera">
         <x-button type="button" class="btn btn-editar" id="btn-editar-dias-sesiones"
             wire:click="$dispatch('abrir-editar-dias-sesiones')" title="{{ __('Editar') }}">
-            <i class="fa-solid fa-pen"> </i>{{ __('Editar') }}
+            <i class="fa-solid fa-pen"> </i><span class="hidden sm:inline">{{ __('Editar') }}</span>
         </x-button>
     </x-slot>
 
