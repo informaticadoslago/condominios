@@ -21,6 +21,7 @@ class Formulario extends Component
     public $asignatura_id = '';
     public string $fecha = '';
     public string $hora = '';
+    public string $hora_fin = '';
 
     /**
      * Lo elegido en el desplegable de hora: la hora 'H:i' de inicio de una de las
@@ -38,16 +39,18 @@ class Formulario extends Component
                     ->where('estado_id', Asignatura::ESTADO_ACTIVO),
             ],
             'fecha' => ['required', 'date'],
-            'hora'  => ['required', 'date_format:H:i'],
+            'hora'     => ['required', 'date_format:H:i'],
+            'hora_fin' => ['required', 'date_format:H:i', 'after:hora'],
         ];
     }
 
     protected function messages()
     {
         return [
-            'required'    => 'Debe rellenar :attribute',
-            'exists'      => 'La asignatura no es válida',
-            'date_format' => 'La hora no es válida',
+            'required'       => 'Debe rellenar :attribute',
+            'exists'         => 'La asignatura no es válida',
+            'date_format'    => 'La hora no es válida',
+            'hora_fin.after' => 'La hora de fin tiene que ser posterior a la de inicio',
         ];
     }
 
@@ -57,13 +60,14 @@ class Formulario extends Component
             'asignatura_id' => __('asignatura'),
             'fecha'         => __('fecha'),
             'hora'          => __('hora'),
+            'hora_fin'      => __('hora de fin'),
         ];
     }
 
     #[On('abrir-crear-examen')]
     public function crear()
     {
-        $this->reset(['asignatura_id', 'fecha', 'hora', 'eleccionHora']);
+        $this->reset(['asignatura_id', 'fecha', 'hora', 'hora_fin', 'eleccionHora']);
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -87,7 +91,41 @@ class Formulario extends Component
 
         if (! in_array($this->eleccionHora, array_column($this->sesionesDelDia(), 'hora'), true)) {
             $this->eleccionHora = '';
+            $this->hora         = '';
+            $this->hora_fin     = '';
         }
+    }
+
+    /**
+     * Elegida una sesión, el examen empieza a su hora. Al pasar a personalizada se deja la
+     * que hubiera, como punto de partida para cambiarla.
+     */
+    public function updatedEleccionHora()
+    {
+        if ($this->eleccionHora !== self::HORA_PERSONALIZADA) {
+            $this->hora = $this->eleccionHora;
+        }
+
+        $this->proponerHoraFin();
+    }
+
+    public function updatedHora()
+    {
+        $this->proponerHoraFin();
+    }
+
+    /** De fábrica el examen dura una sesión del horario (una hora si no la tiene); luego se puede cambiar. */
+    private function proponerHoraFin()
+    {
+        if (! preg_match('/^\d{2}:\d{2}$/', $this->hora)) {
+            $this->hora_fin = '';
+
+            return;
+        }
+
+        $duracion = Horario::find(session('horario_actual_id'))?->duracion_sesion_minutos ?: 60;
+
+        $this->hora_fin = Carbon::createFromFormat('H:i', $this->hora)->addMinutes($duracion)->format('H:i');
     }
 
     /**

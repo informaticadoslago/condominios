@@ -5,10 +5,14 @@ namespace App\Livewire\Examenes;
 use App\Livewire\ListaComponent;
 use App\Models\Asignatura;
 use App\Models\Examen;
+use App\Models\Horario;
 use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
 {
+    public bool $verSuscripcion = false;
+    public string $urlCalendario = '';
+
     public function mount()
     {
         // De fábrica, en orden cronológico: el más cercano primero.
@@ -33,6 +37,7 @@ class Lista extends ListaComponent
             'fecha'      => __('Fecha'),
             'dia'        => __('Día'),
             'hora'       => __('Hora'),
+            'hora_fin'   => __('Hora fin'),
             'asignatura' => __('Asignatura'),
         ];
     }
@@ -53,6 +58,22 @@ class Lista extends ListaComponent
                 'aplicar'  => fn ($query, $valor) => $query->where('asignatura_id', $valor),
             ],
         ];
+    }
+
+    /** La dirección .ics de este horario, para suscribirse desde Google Calendar o el iPhone. */
+    public function abrirSuscripcion()
+    {
+        $horario = Horario::find(session('horario_actual_id'));
+
+        if ($horario) {
+            $this->urlCalendario  = route('examenes.ics', $horario->token_calendario);
+            $this->verSuscripcion = true;
+        }
+    }
+
+    public function cerrarSuscripcion()
+    {
+        $this->verSuscripcion = false;
     }
 
     public function confirmarEliminar($id)

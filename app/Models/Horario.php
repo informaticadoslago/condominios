@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class Horario extends Model
@@ -71,8 +72,18 @@ class Horario extends Model
         return $horaMasTemprana ? Jornada::minutosDesdeMedianoche($horaMasTemprana) : null;
     }
 
+    /** El código de la dirección .ics del calendario de exámenes (ver ExamenesIcsController). */
+    public static function nuevoTokenCalendario(): string
+    {
+        return Str::random(40);
+    }
+
     protected static function booted(): void
     {
+        static::creating(function (self $horario) {
+            $horario->token_calendario ??= self::nuevoTokenCalendario();
+        });
+
         static::created(function (self $horario) {
             Role::firstOrCreate(['name' => $horario->nombreRol(), 'guard_name' => 'web']);
         });

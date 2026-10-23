@@ -1,4 +1,4 @@
-<x-dosl.dialog-modal wire:model.live="abrir" class="backdrop-blur" maxWidth="lg">
+<x-dosl.dialog-modal wire:model.live="abrir" class="backdrop-blur" maxWidth="2xl">
     <x-slot name="title">
         {{ __('Nuevo examen') }}
     </x-slot>
@@ -14,7 +14,7 @@
             </x-select>
             <x-input-error for="asignatura_id" class="mt-2" />
         </div>
-        <div class="grid sm:grid-cols-2 gap-4 mt-4">
+        <div class="grid sm:grid-cols-3 gap-4 mt-4">
             <div>
                 <x-label for="ex-fecha" :value="__('Fecha')" />
                 <x-input id="ex-fecha" class="block mt-1 w-full" type="date" wire:model.live="fecha" />
@@ -34,9 +34,15 @@
                     <p class="mt-1 text-sm text-gray-500">{{ __('Esa asignatura no tiene clase ese día.') }}</p>
                 @endif
                 @if ($eleccionHora === \App\Livewire\Examenes\Formulario::HORA_PERSONALIZADA)
-                    <x-input id="ex-hora" class="block mt-2 w-full" type="time" wire:model="hora" />
+                    <x-input id="ex-hora" class="block mt-2 w-full" type="time" wire:model.blur="hora" />
                 @endif
                 <x-input-error for="hora" class="mt-2" />
+            </div>
+            <div>
+                {{-- Se propone una sesión de duración al elegir la hora; se puede cambiar. --}}
+                <x-label for="ex-hora-fin" :value="__('Hora fin')" />
+                <x-input id="ex-hora-fin" class="block mt-1 w-full" type="time" wire:model="hora_fin" />
+                <x-input-error for="hora_fin" class="mt-2" />
             </div>
         </div>
     </x-slot>

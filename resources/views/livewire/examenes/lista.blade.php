@@ -10,6 +10,10 @@
             wire:click="$dispatch('abrir-crear-examen')" title="{{ __('Nuevo') }}">
             <i class="fa-solid fa-plus"> </i>{{ __('Nuevo') }}
         </x-button>
+        <x-secondary-button type="button" id="btn-suscribirse-examenes" wire:click="abrirSuscripcion"
+            title="{{ __('Suscribirse al calendario de exámenes') }}">
+            <i class="fa-solid fa-calendar-plus mr-1"></i>{{ __('Suscribirse') }}
+        </x-secondary-button>
         @include('livewire.parciales.boton-acceso-directo')
     </x-slot>
 
@@ -56,6 +60,9 @@
                                             @endif
                                         </th>
                                         @break
+                                    @case('hora_fin')
+                                        <th class="py-3 px-6">{{ __('Hora fin') }}</th>
+                                        @break
                                     @case('asignatura')
                                         <th class="py-3 px-6">{{ __('Asignatura') }}</th>
                                         @break
@@ -78,6 +85,9 @@
                                             @break
                                         @case('hora')
                                             <td class="px-6 py-4">{{ substr($item->hora, 0, 5) }}</td>
+                                            @break
+                                        @case('hora_fin')
+                                            <td class="px-6 py-4">{{ substr($item->hora_fin, 0, 5) }}</td>
                                             @break
                                         @case('asignatura')
                                             <td class="px-6 py-4">{{ $item->asignatura?->nombre }}</td>
@@ -106,5 +116,81 @@
         </x-dosl.tabla>
 
         @livewire('examenes.formulario')
+
+        <x-dosl.dialog-modal wire:model.live="verSuscripcion" class="backdrop-blur" maxWidth="2xl">
+            <x-slot name="title">
+                {{ __('Suscribirse al calendario de exámenes') }}
+            </x-slot>
+
+            <x-slot name="content">
+                @php($webcal = preg_replace('#^https?://#', 'webcal://', $urlCalendario))
+                <p class="text-sm">
+                    {{ __('Quien se suscriba a esta dirección verá los exámenes de este horario en su calendario, y los cambios que se hagan aquí le llegarán solos.') }}
+                </p>
+
+                {{-- copiar(): clipboard moderno cuando el navegador lo deja (hace falta https),
+                     y si no, el textarea de toda la vida. --}}
+                <div class="mt-4" x-data="{
+                        copiado: false,
+                        copiar(texto) {
+                            const hecho = () => { this.copiado = true; setTimeout(() => this.copiado = false, 2000) };
+                            if (navigator.clipboard && window.isSecureContext) {
+                                navigator.clipboard.writeText(texto).then(hecho);
+                                return;
+                            }
+                            const area = document.createElement('textarea');
+                            area.value = texto;
+                            area.style.position = 'fixed';
+                            area.style.opacity = 0;
+                            document.body.appendChild(area);
+                            area.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(area);
+                            hecho();
+                        }
+                    }">
+                    <x-label :value="__('Dirección del calendario')" />
+                    <p class="mt-1 font-mono text-xs break-all border rounded px-2 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="{{ __('Pulse para copiar') }}" x-on:click="copiar(@js($urlCalendario))">
+                        {{ $urlCalendario }}
+                        <i class="fa-regular fa-copy ml-1 text-gray-500"></i>
+                    </p>
+                    <span x-show="copiado" x-transition class="text-sm text-green-700 dark:text-green-400">
+                        {{ __('Copiado') }}
+                    </span>
+                </div>
+
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <a href="https://calendar.google.com/calendar/render?cid={{ urlencode($webcal) }}" target="_blank" rel="noopener"
+                        class="btn btn-nuevo">
+                        <i class="fa-brands fa-google mr-1"></i>{{ __('Añadir a Google Calendar') }}
+                    </a>
+                    <a href="{{ $webcal }}" class="btn btn-nuevo">
+                        <i class="fa-brands fa-apple mr-1"></i>{{ __('Abrir en el calendario del iPhone o Mac') }}
+                    </a>
+                </div>
+
+                <div class="mt-4 text-sm space-y-2">
+                    <p>
+                        <span class="font-semibold">{{ __('Google Calendar') }}:</span>
+                        {{ __('desde el ordenador, en calendar.google.com, «Otros calendarios» → «+» → «Desde URL», y pegue la dirección. Después sale también en el móvil.') }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">{{ __('iPhone') }}:</span>
+                        {{ __('Ajustes → Calendario → Cuentas → Añadir cuenta → Otra → Añadir calendario suscrito, y pegue la dirección.') }}
+                    </p>
+                    <p class="text-gray-500">
+                        {{ __('Google vuelve a leer el calendario cada varias horas: un examen nuevo o cambiado puede tardar en aparecer.') }}
+                    </p>
+                    <p class="text-gray-500">
+                        {{ __('Quien tenga la dirección puede ver los exámenes sin entrar en la aplicación: compártala solo con quien corresponda.') }}
+                    </p>
+                </div>
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-dosl.boton-cerrar accion="cerrarSuscripcion" />
+            </x-slot>
+        </x-dosl.dialog-modal>
     </x-slot>
 </x-botonera-page>

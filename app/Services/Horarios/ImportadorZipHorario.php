@@ -2,6 +2,7 @@
 
 namespace App\Services\Horarios;
 
+use App\Models\Horario;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -120,6 +121,12 @@ class ImportadorZipHorario
     private function remapearFila(string $tabla, array $datos, array $mapaIds): array
     {
         switch ($tabla) {
+            case 'horarios':
+                // Código nuevo siempre: el del ZIP es el del horario original (y los ZIP
+                // anteriores al calendario de exámenes no lo traen).
+                $datos['token_calendario'] = Horario::nuevoTokenCalendario();
+                break;
+
             case 'asignaturas':
             case 'jornadas':
                 $this->remapearColumna($datos, 'horario_id', 'horarios', $mapaIds);

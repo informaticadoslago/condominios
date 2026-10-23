@@ -13,6 +13,7 @@ class Examen extends Model
         'asignatura_id',
         'fecha',
         'hora',
+        'hora_fin',
     ];
 
     protected $casts = [

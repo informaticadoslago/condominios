@@ -8,6 +8,7 @@ use App\Http\Controllers\ConfirmarCorreoPropietarioController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
+use App\Http\Controllers\ExamenesIcsController;
 use App\Http\Controllers\HorarioContextoController;
 use App\Http\Controllers\HorarioRejillaPdfController;
 use App\Http\Controllers\MandatoSepaPlantillaController;
@@ -87,6 +88,10 @@ Route::get('/confirmar-correo/{usuario}', ConfirmarCorreoUsuarioController::clas
 Route::get('/confirmar-correo-propietario/{contacto}', ConfirmarCorreoPropietarioController::class)
     ->middleware('signed')
     ->name('propietarios.confirmar-correo');
+
+// Suscripción al calendario de exámenes de un horario: la piden Google, el iPhone… sin
+// sesión. El código secreto de la URL hace de llave.
+Route::get('/calendario/{token}/examenes.ics', ExamenesIcsController::class)->name('examenes.ics');
 
 Route::middleware([
     'auth:sanctum',
