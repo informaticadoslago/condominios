@@ -60,6 +60,7 @@ use App\Livewire\Horarios\Lista as HorariosLista;
 use App\Livewire\Horarios\DiasSesiones as HorariosDiasSesiones;
 use App\Livewire\Horarios\Rejilla as HorariosRejilla;
 use App\Livewire\Asignaturas\Lista as AsignaturasLista;
+use App\Livewire\Examenes\Lista as ExamenesLista;
 use App\Livewire\Maestros\Periodicidades\Lista as PeriodicidadesLista;
 use App\Livewire\Presupuestos\Conceptos as PresupuestosConceptos;
 use App\Livewire\Presupuestos\Lista as PresupuestosLista;
@@ -120,6 +121,7 @@ Route::middleware([
         Route::get('/dias-sesiones', HorariosDiasSesiones::class)->name('dias-sesiones.edit');
         Route::get('/rejilla', HorariosRejilla::class)->name('rejilla.edit');
         Route::get('/rejilla/pdf', HorarioRejillaPdfController::class)->name('rejilla.pdf');
+        Route::get('/examenes', ExamenesLista::class)->name('examenes.index');
     });
 
     // Rutas de Administración del Sistema

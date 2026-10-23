@@ -32,6 +32,11 @@ class Horario extends Model
         return $this->hasMany(HorarioSesion::class);
     }
 
+    public function examenes()
+    {
+        return $this->hasMany(Examen::class);
+    }
+
     /**
      * [dia_semana => Collection<Jornada>], solo para los días que tienen alguna
      * jornada asignada, ordenado por día. Requiere la relación 'jornadas' cargada.

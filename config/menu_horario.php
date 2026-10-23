@@ -19,6 +19,7 @@ return [
                 ['icon' => 'fa-solid fa-book', 'label' => trans_key('menu.Asignaturas'), 'route' => 'asignaturas.index'],
                 ['icon' => 'fa-solid fa-calendar-week', 'label' => trans_key('menu.Días y sesiones'), 'route' => 'dias-sesiones.edit'],
                 ['icon' => 'fa-solid fa-table-cells', 'label' => trans_key('menu.Horario semanal'), 'route' => 'rejilla.edit'],
+                ['icon' => 'fa-solid fa-calendar-check', 'label' => trans_key('menu.Exámenes'), 'route' => 'examenes.index'],
             ],
         ],
         ['type' => 'spacer'],
