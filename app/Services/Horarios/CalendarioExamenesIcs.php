@@ -19,8 +19,7 @@ class CalendarioExamenesIcs
 {
     public function generar(Horario $horario): string
     {
-        $examenes = Examen::with('asignatura')
-            ->where('horario_id', $horario->id)
+        $examenes = Examen::where('horario_id', $horario->id)
             ->orderBy('fecha')
             ->orderBy('hora')
             ->get();
@@ -43,9 +42,22 @@ class CalendarioExamenesIcs
                 'DTSTAMP:'.$this->utc($examen->updated_at ?? now()),
                 'DTSTART:'.$this->utc($this->momento($examen->fecha, $examen->hora)),
                 'DTEND:'.$this->utc($this->momento($examen->fecha, $examen->hora_fin)),
-                'SUMMARY:'.$this->texto(__('Examen de :asignatura', ['asignatura' => $examen->asignatura?->nombre])),
-                'END:VEVENT',
+                'SUMMARY:'.$this->texto($examen->titulo),
             );
+
+            // La alarma la respeta (o no) cada calendario: el del iPhone sí; Google, en los
+            // calendarios suscritos, aplica las notificaciones que tenga configuradas cada uno.
+            if ($examen->alarma_minutos) {
+                array_push($lineas,
+                    'BEGIN:VALARM',
+                    'ACTION:DISPLAY',
+                    'DESCRIPTION:'.$this->texto($examen->titulo),
+                    'TRIGGER:'.$this->antelacion($examen->alarma_minutos),
+                    'END:VALARM',
+                );
+            }
+
+            $lineas[] = 'END:VEVENT';
         }
 
         $lineas[] = 'END:VCALENDAR';
@@ -61,6 +73,17 @@ class CalendarioExamenesIcs
     private function utc(Carbon $momento): string
     {
         return $momento->copy()->utc()->format('Ymd\THis\Z');
+    }
+
+    /** Tantos minutos antes del inicio, en la unidad más grande que cuadre: -P1W, -P2D, -PT1H, -PT15M. */
+    private function antelacion(int $minutos): string
+    {
+        return match (true) {
+            $minutos % 10080 === 0 => '-P'.($minutos / 10080).'W',
+            $minutos % 1440 === 0  => '-P'.($minutos / 1440).'D',
+            $minutos % 60 === 0    => '-PT'.($minutos / 60).'H',
+            default                => '-PT'.$minutos.'M',
+        };
     }
 
     /** Escapa lo que el formato reserva en los textos: \ ; , y los saltos de línea. */

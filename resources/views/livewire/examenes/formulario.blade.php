@@ -14,10 +14,17 @@
             </x-select>
             <x-input-error for="asignatura_id" class="mt-2" />
         </div>
+        <div class="mt-4">
+            {{-- Lo que se ve en el calendario del que se suscribe. Se propone al elegir la asignatura. --}}
+            <x-label for="ex-titulo" :value="__('Texto del evento')" />
+            <x-input id="ex-titulo" class="block mt-1 w-full" type="text" wire:model="titulo" maxlength="150" />
+            <x-input-error for="titulo" class="mt-2" />
+        </div>
         <div class="grid sm:grid-cols-3 gap-4 mt-4">
             <div>
                 <x-label for="ex-fecha" :value="__('Fecha')" />
-                <x-input id="ex-fecha" class="block mt-1 w-full" type="date" wire:model.live="fecha" />
+                <x-input id="ex-fecha" class="block mt-1 w-full" type="date" wire:model.live="fecha"
+                    :min="today()->toDateString()" />
                 <x-input-error for="fecha" class="mt-2" />
             </div>
             <div>
@@ -43,6 +50,19 @@
                 <x-label for="ex-hora-fin" :value="__('Hora fin')" />
                 <x-input id="ex-hora-fin" class="block mt-1 w-full" type="time" wire:model="hora_fin" />
                 <x-input-error for="hora_fin" class="mt-2" />
+            </div>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-4 mt-4">
+            <div>
+                {{-- La alarma del evento en el calendario del que se suscribe. --}}
+                <x-label for="ex-alarma" :value="__('Alarma')" />
+                <x-select id="ex-alarma" class="block mt-1 w-full py-3" wire:model="alarma_minutos">
+                    <option value="">{{ __('Sin alarma') }}</option>
+                    @foreach (\App\Models\Examen::opcionesAlarma() as $minutos => $texto)
+                        <option value="{{ $minutos }}">{{ $texto }}</option>
+                    @endforeach
+                </x-select>
+                <x-input-error for="alarma_minutos" class="mt-2" />
             </div>
         </div>
     </x-slot>

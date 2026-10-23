@@ -10,10 +10,6 @@
             wire:click="$dispatch('abrir-crear-examen')" title="{{ __('Nuevo') }}">
             <i class="fa-solid fa-plus"> </i>{{ __('Nuevo') }}
         </x-button>
-        <x-secondary-button type="button" id="btn-suscribirse-examenes" wire:click="abrirSuscripcion"
-            title="{{ __('Suscribirse al calendario de exámenes') }}">
-            <i class="fa-solid fa-calendar-plus mr-1"></i>{{ __('Suscribirse') }}
-        </x-secondary-button>
         @include('livewire.parciales.boton-acceso-directo')
     </x-slot>
 
@@ -23,6 +19,10 @@
                 @include('livewire.parciales.selector-columnas')
                 <x-secondary-button type="button" wire:click="borrarFiltro" title="{{ __('Borrar filtro') }}">
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>{{ __('Borrar filtro') }}
+                </x-secondary-button>
+                <x-secondary-button type="button" id="btn-suscribirse-examenes" wire:click="abrirSuscripcion"
+                    title="{{ __('Suscribirse al calendario de exámenes') }}">
+                    <i class="fa-solid fa-calendar-plus mr-1"></i>{{ __('Suscribirse') }}
                 </x-secondary-button>
             </x-slot>
 

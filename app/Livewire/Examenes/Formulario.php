@@ -19,9 +19,13 @@ class Formulario extends Component
     public bool $abrir = false;
 
     public $asignatura_id = '';
+    public string $titulo = '';
     public string $fecha = '';
     public string $hora = '';
     public string $hora_fin = '';
+
+    /** Minutos antes del inicio (ver Examen::opcionesAlarma()), o '' para sin alarma. */
+    public $alarma_minutos = Examen::ALARMA_POR_DEFECTO;
 
     /**
      * Lo elegido en el desplegable de hora: la hora 'H:i' de inicio de una de las
@@ -38,9 +42,12 @@ class Formulario extends Component
                     ->where('horario_id', session('horario_actual_id'))
                     ->where('estado_id', Asignatura::ESTADO_ACTIVO),
             ],
-            'fecha' => ['required', 'date'],
+            'titulo'   => ['required', 'string', 'max:150'],
+            // Un examen nuevo no puede caer en un día que ya ha pasado (hoy sí vale).
+            'fecha'    => ['required', 'date', 'after_or_equal:today'],
             'hora'     => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora'],
+            'alarma_minutos' => ['nullable', Rule::in(array_keys(Examen::opcionesAlarma()))],
         ];
     }
 
@@ -48,9 +55,12 @@ class Formulario extends Component
     {
         return [
             'required'       => 'Debe rellenar :attribute',
+            'max'            => 'Máxima longitud de :attribute = :max',
             'exists'         => 'La asignatura no es válida',
             'date_format'    => 'La hora no es válida',
             'hora_fin.after' => 'La hora de fin tiene que ser posterior a la de inicio',
+            'fecha.after_or_equal' => 'La fecha no puede ser anterior a hoy',
+            'alarma_minutos.in' => 'La alarma no es válida',
         ];
     }
 
@@ -58,6 +68,7 @@ class Formulario extends Component
     {
         return [
             'asignatura_id' => __('asignatura'),
+            'titulo'        => __('texto del evento'),
             'fecha'         => __('fecha'),
             'hora'          => __('hora'),
             'hora_fin'      => __('hora de fin'),
@@ -67,13 +78,21 @@ class Formulario extends Component
     #[On('abrir-crear-examen')]
     public function crear()
     {
-        $this->reset(['asignatura_id', 'fecha', 'hora', 'hora_fin', 'eleccionHora']);
+        $this->reset(['asignatura_id', 'titulo', 'fecha', 'hora', 'hora_fin', 'alarma_minutos', 'eleccionHora']);
         $this->resetValidation();
         $this->abrir = true;
     }
 
+    /**
+     * Al elegir la asignatura se propone el texto del evento; se puede cambiar (y si luego
+     * se cambia de asignatura, se vuelve a proponer).
+     */
     public function updatedAsignaturaId()
     {
+        $nombre = Asignatura::where('horario_id', session('horario_actual_id'))->whereKey($this->asignatura_id)->value('nombre');
+
+        $this->titulo = $nombre ? __('Examen de :asignatura', ['asignatura' => $nombre]) : '';
+
         $this->descartarEleccionInvalida();
     }
 
@@ -173,8 +192,11 @@ class Formulario extends Component
             $this->hora = $this->eleccionHora;
         }
 
+        $this->titulo = trim($this->titulo);
+
         $data = $this->validate();
 
+        $data['alarma_minutos'] = $this->alarma_minutos === '' || $this->alarma_minutos === null ? null : (int) $this->alarma_minutos;
         $data['horario_id'] = session('horario_actual_id');
         Examen::create($data);
         $this->dispatch('toast-success', ['title' => __('Examen creado')]);
