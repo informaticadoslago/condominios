@@ -3,16 +3,22 @@
 namespace App\Livewire\ConvocatoriasJuntas;
 
 use App\Models\ConvocatoriaJunta;
+use App\Models\Documento;
 use App\Models\LineaOrdenDelDia;
+use App\Models\TipoDocumento;
 use App\Models\TipoJunta;
 use App\Services\ConvocatoriasJuntas\LeerOrdenDelDia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 class Formulario extends Component
 {
+    use WithFileUploads;
+
     public bool $abrir = false;
     public ?int $itemId = null;
 
@@ -28,6 +34,19 @@ class Formulario extends Component
      * índice sí cambia).
      */
     public array $lineas = [];
+
+    /**
+     * Documentos ya guardados de la convocatoria (los que van al correo, si se marcan al
+     * enviarla): ['id' => int, 'nombre' => string, 'tamano' => string]. Quitar uno solo
+     * lo saca de aquí: se borra al guardar, como los puntos.
+     */
+    public array $documentos = [];
+
+    /** Ficheros subidos en este formulario, aún sin guardar (se van sumando en cada selección). */
+    public array $documentosNuevos = [];
+
+    /** Lo que trae cada selección del input de ficheros; updatedFicheros lo pasa a $documentosNuevos. */
+    public array $ficheros = [];
 
     /** Modal secundario para pegar el orden del día entero como texto. */
     public bool $importarAbierto = false;
@@ -71,7 +90,7 @@ class Formulario extends Component
     #[On('abrir-crear-convocatoria-junta')]
     public function crear()
     {
-        $this->reset(['itemId', 'tipo_junta_id', 'fecha', 'hora_primera_convocatoria', 'hora_segunda_convocatoria', 'lineas']);
+        $this->reset(['itemId', 'tipo_junta_id', 'fecha', 'hora_primera_convocatoria', 'hora_segunda_convocatoria', 'lineas', 'documentos', 'documentosNuevos', 'ficheros']);
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -93,6 +112,13 @@ class Formulario extends Component
             'clave' => 'l'.$linea->id,
             'texto' => $linea->texto,
         ])->all();
+        $this->documentos = $item->documentos()->orderBy('id')->get()->map(fn (Documento $documento) => [
+            'id'     => $documento->id,
+            'nombre' => $documento->nombre_mostrado,
+            'tamano' => $documento->tamano,
+        ])->all();
+        $this->documentosNuevos = [];
+        $this->ficheros         = [];
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -115,6 +141,34 @@ class Formulario extends Component
         if ($seguiaLaDeFabrica) {
             $this->hora_segunda_convocatoria = ConvocatoriaJunta::horaSegundaPorDefecto($valor);
         }
+    }
+
+    /** Cada selección del input se suma a las anteriores (el input solo trae la última). */
+    public function updatedFicheros(): void
+    {
+        $this->validate([
+            'ficheros.*' => ['file', 'max:'.config('documentos.max_kb'), 'mimes:'.implode(',', config('documentos.extensiones'))],
+        ], [
+            'max'   => 'El fichero no puede pasar de :max KB',
+            'mimes' => 'Solo se admiten ficheros :values',
+        ]);
+
+        $this->documentosNuevos = [...$this->documentosNuevos, ...$this->ficheros];
+        $this->ficheros = [];
+    }
+
+    public function quitarDocumento(int $id): void
+    {
+        $this->documentos = array_values(array_filter($this->documentos, fn ($documento) => $documento['id'] !== $id));
+    }
+
+    /** $nombre: el del fichero temporal de Livewire, único por subida. */
+    public function quitarDocumentoNuevo(string $nombre): void
+    {
+        $this->documentosNuevos = array_values(array_filter(
+            $this->documentosNuevos,
+            fn (TemporaryUploadedFile $fichero) => $fichero->getFilename() !== $nombre,
+        ));
     }
 
     public function anadirLinea(): void
@@ -216,6 +270,7 @@ class Formulario extends Component
             }
 
             $this->guardarLineas($convocatoria);
+            $this->guardarDocumentos($convocatoria);
         });
 
         $this->dispatch('toast-success', ['title' => $this->itemId ? __('Convocatoria modificada') : __('Convocatoria creada')]);
@@ -246,6 +301,24 @@ class Formulario extends Component
                 LineaOrdenDelDia::create($valores + ['convocatoria_junta_id' => $convocatoria->id]);
             }
         }
+    }
+
+    /**
+     * Sube los nuevos y borra los quitados (cada uno con su fichero, ver Documento). Se
+     * borran al final: si una subida falla, la transacción deshace sin haber borrado ningún
+     * fichero. Los quitados se buscan antes de subir: si no, los nuevos también lo parecerían.
+     */
+    private function guardarDocumentos(ConvocatoriaJunta $convocatoria): void
+    {
+        $quitados = $convocatoria->documentos()
+            ->whereNotIn('id', array_column($this->documentos, 'id'))
+            ->get();
+
+        foreach ($this->documentosNuevos as $fichero) {
+            $convocatoria->adjuntarDocumento($fichero, TipoDocumento::CONVOCATORIA_JUNTA);
+        }
+
+        $quitados->each->delete();
     }
 
     public function cerrar()

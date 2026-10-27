@@ -23,4 +23,6 @@ class TipoDocumento extends Model
     const FACTURA = 9;
 
     const MANDATO_SEPA = 10;
+
+    const CONVOCATORIA_JUNTA = 11;
 }

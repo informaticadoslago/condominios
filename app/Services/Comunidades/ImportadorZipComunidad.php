@@ -656,6 +656,11 @@ class ImportadorZipComunidad
 
         if ($tipo === 'App\\Models\\MandatoSepa') {
             $this->remapearColumna($datos, 'documentable_id', 'mandatos_sepa', $mapaIds);
+            return;
+        }
+
+        if ($tipo === 'App\\Models\\ConvocatoriaJunta') {
+            $this->remapearColumna($datos, 'documentable_id', 'convocatorias_juntas', $mapaIds);
         }
     }
 

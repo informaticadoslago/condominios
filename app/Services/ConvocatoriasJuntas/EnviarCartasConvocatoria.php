@@ -52,9 +52,19 @@ final class EnviarCartasConvocatoria
      * Encola un correo por propietario con dirección. Devuelve cuántos se han mandado.
      * $cc/$cco (sueltos, como en el aviso de cargo) van solo en el primero: si el inmueble
      * tiene varios titulares, quien va en copia no tiene por qué recibirlo repetido.
+     * $documentoIds: los documentos de la convocatoria que van adjuntos (tras la carta, si
+     * va: $conCarta). $asunto y $texto, los escritos en el modal; nulos, los de fábrica.
      */
-    public function enviarInmueble(ConvocatoriaJunta $convocatoria, Inmueble $inmueble, ?string $cc = null, ?string $cco = null): int
-    {
+    public function enviarInmueble(
+        ConvocatoriaJunta $convocatoria,
+        Inmueble $inmueble,
+        ?string $cc = null,
+        ?string $cco = null,
+        array $documentoIds = [],
+        bool $conCarta = true,
+        ?string $asunto = null,
+        ?string $texto = null,
+    ): int {
         $enviados = 0;
 
         foreach ($inmueble->propietarios()->with('persona.contactos')->get() as $propietario) {
@@ -64,7 +74,15 @@ final class EnviarCartasConvocatoria
                 continue;
             }
 
-            $mailable = new CartaConvocatoria($convocatoria, $inmueble, $propietario->persona?->nombreCompleto);
+            $mailable = new CartaConvocatoria(
+                $convocatoria,
+                $inmueble,
+                $propietario->persona?->nombreCompleto,
+                documentoIds: $documentoIds,
+                conCarta: $conCarta,
+                asunto: $asunto,
+                texto: $texto,
+            );
 
             $envio = Mail::to($correo->valor);
 
@@ -81,6 +99,8 @@ final class EnviarCartasConvocatoria
             CorreoEnviado::create([
                 'tipo'         => $mailable::class,
                 'asunto'       => $mailable->asunto(),
+                // Solo los nombres: el contenido serían copias del mismo fichero por destinatario.
+                'adjuntos'     => $mailable->nombresAdjuntos(),
                 'destinatario' => $correo->valor,
                 'enviado_at'   => now(),
                 // Nulo si no hay sesión: lo mandó un proceso, no una persona.

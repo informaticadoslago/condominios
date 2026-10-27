@@ -1,14 +1,20 @@
 {{--
-    Convocatoria de junta a un propietario, con la carta de su inmueble adjunta en PDF.
+    Convocatoria de junta a un propietario: el saludo a su nombre, el texto escrito en el
+    modal de envío ($texto: los párrafos van separados por una línea en blanco) y los datos
+    de la junta y de su inmueble. Los adjuntos (la carta y los documentos) los pone CartaConvocatoria.
 
     El aspecto está en el fichero hermano carta-convocatoria.css; aquí solo va el texto.
-    Todo pasa por __(), así que se traduce al idioma con el que se envíe (ver CartaConvocatoria).
+    Lo fijo pasa por __(), así que se traduce al idioma con el que se envíe (ver CartaConvocatoria);
+    el texto escrito va tal cual.
 --}}
 <x-emails.layout plantilla="carta-convocatoria" :titulo="__('Convocatoria de junta')">
 
     <p class="saludo">{{ $nombre ? __('Hola :nombre:', ['nombre' => $nombre]) : __('Hola:') }}</p>
 
-    <p>{{ __('Te enviamos la convocatoria de la Junta General :tipo de :comunidad. Va adjunta la carta con el orden del día y la autorización para delegar el voto si no puedes asistir.', ['tipo' => $tipo, 'comunidad' => $comunidad]) }}</p>
+    {{-- Texto escrito a mano: se escapa (e) y luego se respetan sus saltos de línea. --}}
+    @foreach (preg_split('/\R\s*\R/', trim($texto)) as $parrafo)
+        <p>{!! nl2br(e(trim($parrafo))) !!}</p>
+    @endforeach
 
     <table role="presentation" class="datos" cellpadding="0" cellspacing="0">
         <tr>
@@ -28,8 +34,6 @@
             <td>{{ $inmueble }}</td>
         </tr>
     </table>
-
-    <p class="aviso">{{ __('El lugar de la reunión y el orden del día están en la carta adjunta.') }}</p>
 
     <x-slot name="pie">
         {{ $comunidad }}<br><br>

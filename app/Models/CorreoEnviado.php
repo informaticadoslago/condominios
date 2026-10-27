@@ -11,7 +11,8 @@ use Illuminate\Database\Eloquent\Model;
  * remesa, transferencia o devolución); el resto lo dejan a null.
  *
  * No guarda el cuerpo del correo. Sirve para responder «¿se le avisó, y cuándo?», no
- * para reproducir lo que se le mandó.
+ * para reproducir lo que se le mandó. De los adjuntos, igual: `adjuntos` lleva solo sus
+ * nombres (nulo si no llevaba), no el contenido.
  */
 class CorreoEnviado extends Model
 {
@@ -21,12 +22,14 @@ class CorreoEnviado extends Model
         'tipo',
         'recibo_id',
         'asunto',
+        'adjuntos',
         'destinatario',
         'enviado_at',
         'user_id',
     ];
 
     protected $casts = [
+        'adjuntos'   => 'array',
         'enviado_at' => 'datetime',
     ];
 

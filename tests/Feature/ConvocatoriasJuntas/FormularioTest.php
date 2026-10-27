@@ -6,9 +6,12 @@ use App\Livewire\ConvocatoriasJuntas\Formulario;
 use App\Models\Comunidad;
 use App\Models\ConvocatoriaJunta;
 use App\Models\LineaOrdenDelDia;
+use App\Models\TipoDocumento;
 use App\Models\TipoJunta;
 use Database\Seeders\DemoComunidadSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -112,6 +115,61 @@ class FormularioTest extends TestCase
         $this->assertSame(['Dos', 'Ruegos y preguntas'], $this->textosDe($convocatoria));
         $this->assertSame($dos->id, $convocatoria->lineasOrdenDelDia()->first()->id);
         $this->assertDatabaseMissing('lineas_orden_del_dia', ['id' => $uno->id]);
+    }
+
+    public function test_los_documentos_subidos_se_suman_y_se_guardan_con_la_convocatoria(): void
+    {
+        Storage::fake(config('documentos.disco'));
+
+        Livewire::test(Formulario::class)
+            ->call('crear')
+            ->set('fecha', '2026-11-20')
+            ->set('hora_primera_convocatoria', '18:00')
+            ->set('ficheros', [UploadedFile::fake()->create('cuentas-2025.pdf', 20, 'application/pdf')])
+            ->set('ficheros', [UploadedFile::fake()->create('presupuesto-2026.pdf', 20, 'application/pdf')])
+            ->assertSet('documentosNuevos', fn ($nuevos) => count($nuevos) === 2)
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $documentos = ConvocatoriaJunta::where('comunidad_id', $this->comunidad->id)->sole()->documentos()->orderBy('id')->get();
+
+        $this->assertSame(['cuentas-2025.pdf', 'presupuesto-2026.pdf'], $documentos->pluck('nombrelocal')->all());
+        $this->assertSame([TipoDocumento::CONVOCATORIA_JUNTA], $documentos->pluck('tipo_documento_id')->unique()->values()->all());
+        $documentos->each(fn ($documento) => Storage::disk(config('documentos.disco'))->assertExists($documento->ruta));
+    }
+
+    public function test_un_fichero_no_admitido_no_se_suma(): void
+    {
+        Livewire::test(Formulario::class)
+            ->call('crear')
+            ->set('ficheros', [UploadedFile::fake()->create('programa.exe', 20)])
+            ->assertHasErrors('ficheros.0')
+            ->assertSet('documentosNuevos', []);
+    }
+
+    public function test_quitar_un_documento_lo_borra_con_su_fichero_al_guardar(): void
+    {
+        Storage::fake(config('documentos.disco'));
+
+        $convocatoria = ConvocatoriaJunta::create([
+            'comunidad_id'              => $this->comunidad->id,
+            'tipo_junta_id'             => TipoJunta::ORDINARIA,
+            'fecha'                     => '2026-11-20',
+            'hora_primera_convocatoria' => '18:00',
+        ]);
+        $cuentas = $convocatoria->adjuntarDocumento(UploadedFile::fake()->create('cuentas-2025.pdf', 20), TipoDocumento::CONVOCATORIA_JUNTA);
+        $presupuesto = $convocatoria->adjuntarDocumento(UploadedFile::fake()->create('presupuesto-2026.pdf', 20), TipoDocumento::CONVOCATORIA_JUNTA);
+
+        Livewire::test(Formulario::class)
+            ->call('editar', $convocatoria->id)
+            ->assertSet('documentos', fn ($documentos) => array_column($documentos, 'nombre') === ['cuentas-2025.pdf', 'presupuesto-2026.pdf'])
+            ->call('quitarDocumento', $cuentas->id)
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $this->assertSame([$presupuesto->id], $convocatoria->documentos()->pluck('id')->all());
+        Storage::disk(config('documentos.disco'))->assertMissing($cuentas->ruta);
+        Storage::disk(config('documentos.disco'))->assertExists($presupuesto->ruta);
     }
 
     public function test_la_segunda_convocatoria_ha_de_ser_posterior_a_la_primera(): void

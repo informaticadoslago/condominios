@@ -109,9 +109,10 @@ class ComunidadExportador extends ExportadorZip
         $facturas   = FacturaProveedor::whereIn('proveedor_id', $proveedorIds)->get();
         $facturaIds = $facturas->pluck('id');
 
-        $documentos = Documento::where(function ($q) use ($proveedorIds, $mandatoIds) {
+        $documentos = Documento::where(function ($q) use ($proveedorIds, $mandatoIds, $convocatoriasJuntas) {
             $q->where(fn ($q2) => $q2->where('documentable_type', Proveedor::class)->whereIn('documentable_id', $proveedorIds))
-                ->orWhere(fn ($q2) => $q2->where('documentable_type', MandatoSepa::class)->whereIn('documentable_id', $mandatoIds));
+                ->orWhere(fn ($q2) => $q2->where('documentable_type', MandatoSepa::class)->whereIn('documentable_id', $mandatoIds))
+                ->orWhere(fn ($q2) => $q2->where('documentable_type', ConvocatoriaJunta::class)->whereIn('documentable_id', $convocatoriasJuntas->pluck('id')));
         })->get();
 
         return [
@@ -205,7 +206,7 @@ class ComunidadExportador extends ExportadorZip
           elemento raíz y una fila por `<fila>`, con sus columnas tal cual están en la base de datos
           (sin campos calculados). Los valores nulos se representan como `<columna nulo="true"/>`.
         - `ficheros.json`: el contenido binario (en base64) de los documentos adjuntos a los
-          proveedores de la comunidad y a sus mandatos SEPA. Es un array de objetos `{documento_id,
+          proveedores de la comunidad, a sus mandatos SEPA y a sus convocatorias de junta. Es un array de objetos `{documento_id,
           nombre_original, extension, contenido_base64}`; `documento_id` enlaza con el `id` de la fila
           correspondiente dentro de `<documentos>` en `datos.xml` (que ya trae el resto de metadatos:
           tipo, tamaño, fecha de alta...).

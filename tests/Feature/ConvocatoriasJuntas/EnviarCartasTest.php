@@ -7,18 +7,21 @@ use App\Mail\CartaConvocatoria;
 use App\Models\Comunidad;
 use App\Models\ConvocatoriaJunta;
 use App\Models\CorreoEnviado;
+use App\Models\Documento;
 use App\Models\Estado;
 use App\Models\Inmueble;
 use App\Models\LineaOrdenDelDia;
 use App\Models\PersonaComunidad;
 use App\Models\Propietario;
 use App\Models\TipoContacto;
+use App\Models\TipoDocumento;
 use App\Models\TipoJunta;
 use App\Models\Titularidad;
 use App\Models\User;
 use Carbon\Carbon;
 use Database\Seeders\DemoComunidadSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -40,6 +43,7 @@ class EnviarCartasTest extends TestCase
         parent::setUp();
 
         Storage::fake(ConvocatoriaJunta::DISCO_CARTAS);
+        Storage::fake(config('documentos.disco'));
         Mail::fake();
         Carbon::setTestNow('2026-10-19 09:00:00');
 
@@ -212,6 +216,109 @@ class EnviarCartasTest extends TestCase
         $this->assertSame('convocatoria-2026-10-28-1oa.pdf', $adjunto['name']);
         $this->assertStringStartsWith('%PDF', $adjunto['data']);
         $this->assertSame(1, preg_match_all('/\/Type\s*\/Page(?![a-zA-Z])/', $adjunto['data']), 'Solo la carta de su inmueble.');
+    }
+
+    private function documento(string $nombre): Documento
+    {
+        return $this->convocatoria->adjuntarDocumento(UploadedFile::fake()->create($nombre, 20, 'application/pdf'), TipoDocumento::CONVOCATORIA_JUNTA);
+    }
+
+    public function test_los_adjuntos_marcados_van_en_el_correo_y_queda_constancia_solo_de_sus_nombres(): void
+    {
+        $cuentas = $this->documento('cuentas-2025.pdf');
+        $presupuesto = $this->documento('presupuesto-2026.pdf');
+
+        Livewire::test(EnviarCartas::class)
+            ->call('abrir', $this->convocatoria->id)
+            ->assertSet('conCarta', true)
+            ->assertSet('documentosMarcados', [(string) $cuentas->id, (string) $presupuesto->id])
+            ->set('documentosMarcados', [(string) $cuentas->id])
+            ->call('enviar')
+            ->assertSet('abrir', false);
+
+        Mail::assertQueued(CartaConvocatoria::class, 1);
+        $this->assertSame(
+            ['convocatoria-2026-10-28-1oa.pdf', 'cuentas-2025.pdf'],
+            CorreoEnviado::where('destinatario', 'ana@example.test')->sole()->adjuntos,
+        );
+        $this->assertNotNull($presupuesto->fresh(), 'Desmarcarlo no lo borra.');
+    }
+
+    public function test_la_carta_tambien_se_puede_desmarcar(): void
+    {
+        $cuentas = $this->documento('cuentas-2025.pdf');
+
+        Livewire::test(EnviarCartas::class)
+            ->call('abrir', $this->convocatoria->id)
+            ->set('conCarta', false)
+            ->call('enviar');
+
+        $this->assertSame(['cuentas-2025.pdf'], CorreoEnviado::where('destinatario', 'ana@example.test')->sole()->adjuntos);
+
+        $correo = new CartaConvocatoria($this->convocatoria, $this->inmuebles['1ºA'], 'Ana', documentoIds: [$cuentas->id], conCarta: false);
+        $correo->render();
+        $this->assertCount(0, $correo->rawAttachments);
+        $this->assertCount(1, $correo->diskAttachments);
+    }
+
+    public function test_el_asunto_y_el_texto_escritos_son_los_del_correo(): void
+    {
+        Livewire::test(EnviarCartas::class)
+            ->call('abrir', $this->convocatoria->id)
+            ->assertSet('asunto', CartaConvocatoria::asuntoPorDefecto($this->convocatoria))
+            ->assertSet('texto', CartaConvocatoria::textoPorDefecto($this->convocatoria))
+            ->set('asunto', 'Junta del día 28')
+            ->set('texto', "Os mando la convocatoria.\n\nUn saludo,\nla administración")
+            ->call('enviar')
+            ->assertHasNoErrors();
+
+        $this->assertSame('Junta del día 28', CorreoEnviado::where('destinatario', 'ana@example.test')->sole()->asunto);
+
+        $correo = new CartaConvocatoria($this->convocatoria, $this->inmuebles['1ºA'], 'Ana', asunto: 'Junta del día 28', texto: "Os mando la <b>convocatoria</b>.\n\nUn saludo,\nla administración");
+        $html = $correo->render();
+
+        $this->assertSame('Junta del día 28', $correo->asunto());
+        $this->assertStringContainsString('Hola Ana:', $html);
+        $this->assertStringContainsString('Os mando la &lt;b&gt;convocatoria&lt;/b&gt;.', $html);
+        $this->assertStringContainsString('Un saludo,<br />', $html);
+    }
+
+    public function test_sin_asunto_o_sin_texto_no_deja_enviar(): void
+    {
+        Livewire::test(EnviarCartas::class)
+            ->call('abrir', $this->convocatoria->id)
+            ->set('asunto', ' ')
+            ->set('texto', '')
+            ->call('enviar')
+            ->assertHasErrors(['asunto' => 'required', 'texto' => 'required'])
+            ->assertSet('abrir', true);
+
+        Mail::assertNothingQueued();
+    }
+
+    public function test_el_correo_lleva_los_documentos_detras_de_la_carta(): void
+    {
+        $cuentas = $this->documento('cuentas-2025.pdf');
+        $this->documento('presupuesto-2026.pdf');
+
+        $correo = new CartaConvocatoria($this->convocatoria, $this->inmuebles['1ºA'], 'Ana', documentoIds: [$cuentas->id]);
+
+        $correo->render();
+        $correo->assertHasAttachmentFromStorageDisk(config('documentos.disco'), $cuentas->ruta, 'cuentas-2025.pdf');
+        $this->assertCount(1, $correo->diskAttachments);
+        $this->assertSame(['convocatoria-2026-10-28-1oa.pdf', 'cuentas-2025.pdf'], $correo->nombresAdjuntos());
+    }
+
+    public function test_un_documento_borrado_antes_de_enviarse_no_impide_el_correo(): void
+    {
+        $cuentas = $this->documento('cuentas-2025.pdf');
+        $correo = new CartaConvocatoria($this->convocatoria, $this->inmuebles['1ºA'], 'Ana', documentoIds: [$cuentas->id]);
+
+        $cuentas->delete();
+
+        $correo->render();
+        $this->assertCount(0, $correo->diskAttachments);
+        $this->assertCount(1, $correo->rawAttachments);
     }
 
     public function test_el_ojo_ensena_la_carta_de_ese_inmueble_y_no_la_de_otra_comunidad(): void

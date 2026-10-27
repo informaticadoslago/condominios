@@ -142,6 +142,11 @@ class ComunidadEliminador
         Presupuesto::where('comunidad_id', $comunidad->id)->delete();
         PersonaComunidad::where('comunidad_id', $comunidad->id)->delete();
         GrupoDeReparto::where('comunidad_id', $comunidad->id)->delete();
+        // Sus documentos, fila a fila como los de proveedores: el borrado en bloque de las
+        // convocatorias no pasa por ConvocatoriaJunta::booted(), que es quien los borra.
+        Documento::destroy(Documento::where('documentable_type', ConvocatoriaJunta::class)
+            ->whereIn('documentable_id', ConvocatoriaJunta::where('comunidad_id', $comunidad->id)->pluck('id'))
+            ->pluck('id'));
         ConvocatoriaJunta::where('comunidad_id', $comunidad->id)->delete();
         Storage::disk(ConvocatoriaJunta::DISCO_CARTAS)->deleteDirectory(ConvocatoriaJunta::carpetaCartas($comunidad->id));
 

@@ -2,12 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Traits\ConDocumentos;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Sus documentos (ConDocumentos, tipo TipoDocumento::CONVOCATORIA_JUNTA) son los que se
+ * pueden adjuntar al correo de la convocatoria, además de la carta.
+ */
 class ConvocatoriaJunta extends Model
 {
+    use ConDocumentos;
+
     /** Separación de partida entre la primera y la segunda convocatoria. */
     const MINUTOS_ENTRE_CONVOCATORIAS = 30;
 
@@ -40,9 +47,11 @@ class ConvocatoriaJunta extends Model
         });
 
         // Los borrados en bloque (ComunidadEliminador) no pasan por aquí: esos borran la
-        // carpeta entera de la comunidad (ver carpetaCartas).
+        // carpeta entera de la comunidad (ver carpetaCartas) y sus documentos aparte.
+        // Los documentos, uno a uno: así cada uno se lleva su fichero (ver Documento).
         static::deleted(function (self $convocatoria) {
             Storage::disk(self::DISCO_CARTAS)->delete($convocatoria->rutaCarta());
+            $convocatoria->documentos->each->delete();
         });
     }
 

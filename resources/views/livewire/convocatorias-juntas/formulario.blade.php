@@ -90,6 +90,47 @@
                 </x-secondary-button>
             </div>
         </div>
+
+        {{-- Documentos que se pueden adjuntar al correo de la convocatoria (se eligen al
+             enviarla). Los nuevos y los quitados no cuentan hasta Guardar. --}}
+        <div class="mt-4">
+            <x-label :value="__('Documentos para el correo')" />
+            @foreach ($documentos as $documento)
+                <div wire:key="documento-{{ $documento['id'] }}" class="flex items-center gap-2 py-1 text-sm">
+                    <i class="fa-solid fa-paperclip text-gray-400"></i>
+                    <a href="{{ route('documentos.ver', $documento['id']) }}" target="_blank" class="flex-1 hover:underline">{{ $documento['nombre'] }}</a>
+                    <span class="text-xs text-gray-500">{{ $documento['tamano'] }}</span>
+                    <button type="button" class="px-2 text-red-600 hover:text-red-700"
+                        wire:click="quitarDocumento({{ $documento['id'] }})" title="{{ __('Quitar') }}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            @endforeach
+            @foreach ($documentosNuevos as $fichero)
+                <div wire:key="documento-nuevo-{{ $fichero->getFilename() }}" class="flex items-center gap-2 py-1 text-sm">
+                    <i class="fa-solid fa-paperclip text-gray-400"></i>
+                    <span class="flex-1">{{ $fichero->getClientOriginalName() }}</span>
+                    <span class="text-xs text-gray-500">{{ __('sin guardar') }}</span>
+                    <button type="button" class="px-2 text-red-600 hover:text-red-700"
+                        wire:click="quitarDocumentoNuevo('{{ $fichero->getFilename() }}')" title="{{ __('Quitar') }}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            @endforeach
+
+            {{-- Al acabar la subida se vacía el input: si no, volver a elegir el mismo fichero no haría nada. --}}
+            <input type="file" id="cj-ficheros" wire:model="ficheros" multiple class="hidden"
+                accept="{{ collect(config('documentos.extensiones'))->map(fn ($extension) => '.'.$extension)->implode(',') }}"
+                x-on:livewire-upload-finish="$el.value = ''" />
+            <div class="flex items-center gap-2 mt-1">
+                <x-secondary-button type="button" id="btn-anadir-documento-convocatoria"
+                    onclick="document.getElementById('cj-ficheros').click()" title="{{ __('Añadir documento') }}">
+                    <i class="fa-solid fa-paperclip mr-1"></i>{{ __('Añadir documento') }}
+                </x-secondary-button>
+                <span wire:loading wire:target="ficheros" class="text-xs text-gray-500">{{ __('Subiendo…') }}</span>
+            </div>
+            <x-input-error for="ficheros.*" class="mt-2" />
+        </div>
     </x-slot>
 
     <x-slot name="footer">

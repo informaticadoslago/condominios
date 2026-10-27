@@ -76,6 +76,12 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         {{ $correo->asunto }}
+                                        {{-- Solo los nombres: el contenido de los adjuntos no se guarda. --}}
+                                        @if ($correo->adjuntos)
+                                            <div class="text-xs text-gray-500 mt-1">
+                                                <i class="fa-solid fa-paperclip mr-1"></i>{{ implode(', ', $correo->adjuntos) }}
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="mayusculas">{{ $correo->destinatario }}</span>
