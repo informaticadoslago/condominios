@@ -45,7 +45,7 @@ body {
     margin: 0 0 16px;
 }
 
-/* Uno o varios recibos devueltos, cada uno con su importe. */
+/* Uno o varios recibos devueltos, sin importe: la cantidad va solo en el total. */
 .datos {
     width: 100%;
     border-collapse: collapse;
@@ -58,24 +58,11 @@ body {
     padding: 8px 0;
     color: #6b7280;
     font-weight: normal;
-    width: 60%;
     vertical-align: top;
 }
 
-.datos td {
-    text-align: right;
-    padding: 8px 0;
-    color: #111827;
-    font-weight: bold;
-}
-
-.datos tr + tr th,
-.datos tr + tr td {
+.datos tr + tr th {
     border-top: 1px solid #e5e7eb;
-}
-
-.importe {
-    font-size: 15px;
 }
 
 /* Los datos para transferir: el IBAN va destacado y monoespaciado para que no se

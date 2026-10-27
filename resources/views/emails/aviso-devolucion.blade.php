@@ -14,7 +14,6 @@
         @foreach ($lineas as $linea)
             <tr>
                 <th>{{ $linea['concepto'] }}</th>
-                <td class="importe">{{ $linea['importe'] }}</td>
             </tr>
         @endforeach
     </table>
@@ -24,7 +23,7 @@
     </p>
 
     <p class="aviso">
-        {{ __('Esta devolución puede conllevar gastos bancarios adicionales.') }}
+        {{ __('La devolución de un recibo puede llevar gastos adicionales.') }}
     </p>
 
     @if ($iban)

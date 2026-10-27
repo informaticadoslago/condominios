@@ -53,9 +53,9 @@ class AvisoDevolucion extends Mailable implements ShouldQueue
                 'nombre'    => $primero?->propietario?->persona?->nombreCompleto,
                 'comunidad' => $this->comunidad->nombre,
                 'fecha'     => $this->fecha?->format('d/m/Y'),
+                // Sin importe por recibo: solo se da el total, para no mostrar dos cantidades.
                 'lineas'    => $this->recibos->map(fn (Recibo $recibo) => [
                     'concepto' => $this->concepto($recibo),
-                    'importe'  => number_format((float) $recibo->importe, 2, ',', '.').' €',
                 ])->all(),
                 // El total incluye los gastos bancarios ya repercutidos a estos recibos,
                 // no solo lo devuelto: es lo que de verdad hay que transferir.

@@ -50,6 +50,11 @@ class ApunteContable extends Model
      * la contrapartida de cada propietario es esa cuenta de ingresos, no los otros
      * doce propietarios que iban en el mismo asiento.
      *
+     * Si en el lado contrario hay apuntes por el mismo importe, la contrapartida son
+     * esos: la devolución de un recibo lleva lo devuelto contra el banco y la comisión
+     * contra gastos bancarios en el mismo asiento, y cada línea va contra la suya, no
+     * contra las dos.
+     *
      * No hace consultas si asientoContable.apuntesContables.cuentaContable ya viene
      * cargado, igual que cuentasDebe() y cuentasHaber() en AsientoContable.
      */
@@ -57,8 +62,12 @@ class ApunteContable extends Model
     {
         $apuntes = $this->asientoContable?->apuntesContables ?? collect();
 
-        return $apuntes
-            ->where($this->debe > 0 ? 'haber' : 'debe', '>', 0)
+        $lado     = $this->debe > 0 ? 'haber' : 'debe';
+        $importe  = $this->debe > 0 ? $this->debe : $this->haber;
+        $opuestos = $apuntes->where($lado, '>', 0);
+        $mismos   = $opuestos->where($lado, $importe);
+
+        return ($mismos->isNotEmpty() ? $mismos : $opuestos)
             ->pluck('cuentaContable')
             ->filter()
             ->unique('id');
