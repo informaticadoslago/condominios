@@ -11,9 +11,10 @@ class Horario extends Model
 {
     protected $table = 'horarios';
 
-    protected $fillable = ['nombre', 'duracion_sesion_minutos', 'alinear_horas'];
+    protected $fillable = ['nombre', 'tipo_horario_id', 'duracion_sesion_minutos', 'alinear_horas'];
 
     protected $casts = [
+        'tipo_horario_id' => 'integer',
         'alinear_horas' => 'boolean',
     ];
 
@@ -21,6 +22,16 @@ class Horario extends Model
     public function nombreRol(): string
     {
         return 'horario-'.$this->id;
+    }
+
+    public function tipoHorario()
+    {
+        return $this->belongsTo(TipoHorario::class);
+    }
+
+    public function esDeProfesor(): bool
+    {
+        return $this->tipo_horario_id === TipoHorario::PROFESOR;
     }
 
     public function jornadas()

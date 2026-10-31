@@ -85,7 +85,8 @@ class Lista extends ListaComponent
     {
         $search = trim($this->search ?? '');
 
-        $items = Horario::when($search, fn ($q) => $q->where('nombre', 'like', "%{$search}%"))
+        $items = Horario::with('tipoHorario')
+            ->when($search, fn ($q) => $q->where('nombre', 'like', "%{$search}%"))
             ->orderBy($this->sort, $this->direction)
             ->orderBy('id')
             ->paginate($this->lineasXPagina);

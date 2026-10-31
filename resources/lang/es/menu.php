@@ -47,6 +47,7 @@ return [
     'Sumas y saldos' => 'Sumas y saldos',
     'Tipos de cuenta contable' => 'Tipos de cuenta contable',
     'Tipos de directivo' => 'Tipos de directivo',
+    'Tipos de horario' => 'Tipos de horario',
     'Tipos de inmueble' => 'Tipos de inmueble',
     'Tipos de ocupación' => 'Tipos de ocupación',
     'Tokens de API' => 'Tokens de API',

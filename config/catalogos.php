@@ -29,4 +29,9 @@ return [
         'titulo'    => 'Tipos de directivo',
         'subtitulo' => 'Puestos de la directiva de las comunidades (presidente, secretario...)',
     ],
+    'tipo-horarios' => [
+        'modelo'    => \App\Models\TipoHorario::class,
+        'titulo'    => 'Tipos de horario',
+        'subtitulo' => 'Alumno, profesor...',
+    ],
 ];

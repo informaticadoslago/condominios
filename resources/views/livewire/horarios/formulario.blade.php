@@ -9,6 +9,15 @@
             <x-input id="h-nombre" class="block mt-1 w-full" type="text" wire:model="nombre" autofocus />
             <x-input-error for="nombre" class="mt-2" />
         </div>
+        <div class="mt-4">
+            <x-label for="h-tipo" :value="__('Tipo')" />
+            <x-select id="h-tipo" class="block mt-1 w-full py-3" wire:model="tipo_horario_id">
+                @foreach ($tipos as $id => $descripcion)
+                    <option value="{{ $id }}">{{ $descripcion }}</option>
+                @endforeach
+            </x-select>
+            <x-input-error for="tipo_horario_id" class="mt-2" />
+        </div>
     </x-slot>
 
     <x-slot name="footer">

@@ -38,6 +38,7 @@
                                     <i class="fa-solid fa-sort float-right mt-1"></i>
                                 @endif
                             </th>
+                            <th class="py-3 px-6">{{ __('Tipo') }}</th>
                             <th class="py-3 px-6">{{ __('Acción') }}</th>
                         </tr>
                     </thead>
@@ -45,6 +46,7 @@
                         @foreach ($items as $item)
                             <tr wire:key="{{ $item->id }}">
                                 <td class="px-6 py-4">{{ $item->nombre }}</td>
+                                <td class="px-6 py-4">{{ $item->tipoHorario?->descripcion }}</td>
                                 <td class="px-4 whitespace-nowrap">
                                     <x-button type="button" class="btn-editar" id="btn-editar-horario-{{ $item->id }}"
                                         wire:click="$dispatch('horario-editar', {id: {{ $item->id }}})"

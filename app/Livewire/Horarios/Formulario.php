@@ -3,6 +3,7 @@
 namespace App\Livewire\Horarios;
 
 use App\Models\Horario;
+use App\Models\TipoHorario;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -13,11 +14,20 @@ class Formulario extends Component
     public ?int $itemId = null;
 
     public string $nombre = '';
+    public $tipo_horario_id = TipoHorario::ALUMNO;
 
     protected function rules()
     {
         return [
             'nombre' => ['required', 'string', 'max:100', Rule::unique('horarios', 'nombre')->ignore($this->itemId)],
+            // Al cambiarlo no se pierde nada: las horas a mano de las sesiones (solo de
+            // profesor) se quedan guardadas y vuelven a usarse si se vuelve a profesor.
+            'tipo_horario_id' => [
+                'required',
+                Rule::exists('tipo_horarios', 'id')->where(fn ($q) => $q
+                    ->where('estado_id', TipoHorario::ESTADO_ACTIVO)
+                    ->orWhere('id', Horario::whereKey($this->itemId)->value('tipo_horario_id'))),
+            ],
         ];
     }
 
@@ -27,20 +37,22 @@ class Formulario extends Component
             'required' => 'Debe rellenar :attribute',
             'max'      => 'Máxima longitud de :attribute = :max',
             'unique'   => 'Ya existe un horario con ese nombre',
+            'exists'   => 'El tipo de horario no es válido',
         ];
     }
 
     protected function validationAttributes()
     {
         return [
-            'nombre' => __('nombre'),
+            'nombre'          => __('nombre'),
+            'tipo_horario_id' => __('tipo'),
         ];
     }
 
     #[On('abrir-crear-horario')]
     public function crear()
     {
-        $this->reset(['itemId', 'nombre']);
+        $this->reset(['itemId', 'nombre', 'tipo_horario_id']);
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -54,6 +66,7 @@ class Formulario extends Component
         }
         $this->itemId = $item->id;
         $this->nombre = $item->nombre;
+        $this->tipo_horario_id = $item->tipo_horario_id;
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -81,6 +94,11 @@ class Formulario extends Component
 
     public function render()
     {
-        return view('livewire.horarios.formulario');
+        return view('livewire.horarios.formulario', [
+            'tipos' => TipoHorario::query()
+                ->where(fn ($q) => $q->activo()->orWhere('id', $this->tipo_horario_id))
+                ->orderBy('id')
+                ->pluck('descripcion', 'id'),
+        ]);
     }
 }
