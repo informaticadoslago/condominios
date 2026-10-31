@@ -78,17 +78,30 @@ class NotificacionesPushForm extends Component
         $this->abrirConfigurar = false;
     }
 
-    public function updatedNombres($nombre, $id): void
+    /**
+     * Normalmente llega un nombre ("nombres.5"), pero Livewire manda el array entero, sin
+     * clave, cuando cambian todos a la vez (p. ej. dos editados antes de salir del campo):
+     * entonces se guardan todos. El valor nuevo ya está en $this->nombres.
+     */
+    public function updatedNombres($valor, $id): void
     {
-        $this->nombres[$id] = trim((string) $nombre);
+        $ids = $id === null ? array_keys($this->nombres) : [$id];
+
+        foreach ($ids as $id) {
+            if (is_string($this->nombres[$id] ?? null)) {
+                $this->nombres[$id] = trim($this->nombres[$id]);
+            }
+        }
 
         $this->validate(
-            ["nombres.{$id}" => ['required', 'string', 'max:60']],
+            collect($ids)->mapWithKeys(fn ($id) => ["nombres.{$id}" => ['required', 'string', 'max:60']])->all(),
             [],
-            ["nombres.{$id}" => __('nombre')]
+            collect($ids)->mapWithKeys(fn ($id) => ["nombres.{$id}" => __('nombre')])->all()
         );
 
-        Auth::user()->pushSubscriptions()->whereKey($id)->update(['nombre' => $this->nombres[$id]]);
+        foreach ($ids as $id) {
+            Auth::user()->pushSubscriptions()->whereKey($id)->update(['nombre' => $this->nombres[$id]]);
+        }
     }
 
     public function probar(int $id): void
