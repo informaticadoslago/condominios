@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 Schedule::command('backup:run')->dailyAt(env('BACKUP_HOUR_ONE', '9:00'));
 Schedule::command('backup:run')->dailyAt(env('BACKUP_HOUR_TWO', '15:00'));
 Schedule::command('backup:clean')->dailyAt(env('BACKUP_HOUR_CLEAN', '22:00'));
+
+// Avisos push de inicio y fin de sesión de los horarios: cada minuto manda los que tocan.
+Schedule::command('condominios:horarios-avisos')->everyMinute();

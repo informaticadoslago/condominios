@@ -3,6 +3,7 @@
 namespace App\Livewire\Horarios;
 
 use App\Models\Horario;
+use App\Models\HorarioSesionAviso;
 use App\Models\Jornada;
 use App\Support\DiaSemana;
 use Illuminate\Support\Facades\DB;
@@ -243,6 +244,9 @@ class DiasSesionesFormulario extends Component
                     ]);
                 }
             }
+
+            // Jornadas, recreos y duración mueven las sesiones, y con ellas sus avisos.
+            HorarioSesionAviso::recalcular($this->horarioId);
         });
 
         $this->dispatch('toast-success', ['title' => __('Días y sesiones guardados')]);

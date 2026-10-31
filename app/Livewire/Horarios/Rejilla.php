@@ -4,6 +4,7 @@ namespace App\Livewire\Horarios;
 
 use App\Models\Horario;
 use App\Models\HorarioSesion;
+use App\Models\HorarioSesionAviso;
 use App\Models\Jornada;
 use App\Services\Horarios\ColocacionSesiones;
 use App\Support\DiaSemana;
@@ -58,6 +59,8 @@ class Rejilla extends Component
             $sesion->update([
                 'hora_inicio' => $minutos === $colocacion->inicioPorDefecto($dia, $numero) ? null : ColocacionSesiones::hora($minutos),
             ]);
+
+            HorarioSesionAviso::recalcular($horario->id);
         }
 
         $this->cargar();
