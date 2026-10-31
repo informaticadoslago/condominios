@@ -3,15 +3,21 @@
 namespace App\Notifications;
 
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\PushSubscription;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 
 /**
- * Notificación push de prueba ("Say Hello" de Pruebas de correo): llega a todos los
- * navegadores en los que el usuario tiene activadas las notificaciones.
+ * Notificación push de prueba ("Say Hello" de Pruebas de correo y "Probar" de los
+ * dispositivos del perfil): a un dispositivo o, sin él, a todos los del usuario.
  */
 class SayHello extends Notification
 {
+    /** Lo lee User::routeNotificationForWebPush(). */
+    public function __construct(public ?PushSubscription $dispositivo = null)
+    {
+    }
+
     public function via(object $notifiable): array
     {
         return [WebPushChannel::class];

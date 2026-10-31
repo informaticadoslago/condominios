@@ -1,6 +1,7 @@
 <?php
 namespace App\Livewire;
 
+use App\Support\NombreDispositivo;
 use Livewire\Component;
 use NotificationChannels\WebPush\PushSubscription;
 
@@ -46,7 +47,12 @@ class NotificacionesPush extends Component
             'contentEncoding' => ['required', 'in:aesgcm,aes128gcm'],
         ])->validate();
 
-        $usuario->updatePushSubscription($datos['endpoint'], $datos['keys']['p256dh'], $datos['keys']['auth'], $datos['contentEncoding']);
+        $suscripcion = $usuario->updatePushSubscription($datos['endpoint'], $datos['keys']['p256dh'], $datos['keys']['auth'], $datos['contentEncoding']);
+
+        if (! $suscripcion->nombre) {
+            $suscripcion->nombre = NombreDispositivo::desde(request()->userAgent());
+            $suscripcion->save();
+        }
 
         $this->endpoints[] = $datos['endpoint'];
     }

@@ -3,9 +3,11 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
 use Lab404\Impersonate\Models\Impersonate;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
@@ -213,6 +215,20 @@ class User extends Authenticatable
             ->map(fn ($nombre) => (int) str_replace('horario-', '', $nombre));
 
         return Horario::whereIn('id', $ids)->get();
+    }
+
+    /**
+     * A qué navegadores va una notificación push: al dispositivo que diga la propia
+     * notificación (p. ej. "Probar" en uno de los dispositivos del perfil) o, si no dice
+     * ninguno, a todos los del usuario. Sustituye a la del trait HasPushSubscriptions.
+     */
+    public function routeNotificationForWebPush(?Notification $notification = null): Collection
+    {
+        $dispositivo = $notification->dispositivo ?? null;
+
+        return $dispositivo
+            ? $this->pushSubscriptions()->whereKey($dispositivo->getKey())->get()
+            : $this->pushSubscriptions;
     }
 
     /**

@@ -1,8 +1,9 @@
-{{-- Se pregunta una vez por navegador, solo con el sí general del perfil. Con el permiso
-     ya concedido (p. ej. al volver a activarlas en el perfil) se suscribe sin preguntar.
-     "No en este navegador" no vuelve a preguntar ahí; se deshace desde el perfil, que
-     lanza notificaciones-push-activar-aqui desde su clic (el navegador solo pide permiso
-     dentro de un clic). --}}
+{{-- Se pregunta en cada navegador que no esté entre los dispositivos del usuario, solo con
+     el sí general del perfil. Aunque el navegador conserve el permiso no se suscribe solo:
+     si el usuario lo quitó de sus dispositivos (o desactivó y volvió a activar todas), se
+     le vuelve a preguntar. "No en este navegador" no vuelve a preguntar ahí; se deshace
+     desde el perfil, que lanza notificaciones-push-activar-aqui desde su clic (el
+     navegador solo pide permiso dentro de un clic). --}}
 <div
     x-data="{
         mostrar: false,
@@ -20,12 +21,11 @@
                 return;
             }
 
-            if (push.permiso() === 'granted') {
-                await this.suscribir();
-                return;
-            }
+            if (push.permiso() === 'denied') return;
 
-            this.mostrar = push.permiso() === 'default';
+            const actual = await push.endpointActual();
+
+            this.mostrar = ! (actual && $wire.endpoints.includes(actual));
         },
         async suscribir() {
             const suscripcion = await window.notificacionesPush.suscribir(this.clave);

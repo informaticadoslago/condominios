@@ -79,6 +79,13 @@ window.notificacionesPush = {
         };
     },
 
+    /** El endpoint de la suscripción de este navegador, sin crearla (null si no la hay). */
+    async endpointActual() {
+        if (! this.soportado()) return null;
+
+        return (await (await registro()).pushManager.getSubscription())?.endpoint ?? null;
+    },
+
     /** Anula la suscripción de este navegador y devuelve su endpoint (null si no había). */
     async anular() {
         const suscripcion = await (await registro()).pushManager.getSubscription();
