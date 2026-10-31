@@ -13,6 +13,7 @@ use App\Models\LineaRemesa;
 use App\Models\Recibo;
 use App\Models\TipoContacto;
 use App\Models\User;
+use App\Notifications\SayHello;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
@@ -109,6 +110,23 @@ class Formulario extends Component
         }
 
         $this->enviar(new ConfirmacionCorreoUsuario($usuario));
+    }
+
+    /** Notificación push al propio usuario, sin cola: a todos los navegadores donde las tenga activadas. */
+    public function enviarSayHello(): void
+    {
+        $usuario     = auth()->user();
+        $navegadores = $usuario->pushSubscriptions()->count();
+
+        if (! $usuario->notificaciones_push || $navegadores === 0) {
+            $this->dispatch('toast-error', ['title' => __('No tienes las notificaciones activadas en ningún navegador (se activan en tu perfil)')]);
+
+            return;
+        }
+
+        $usuario->notify(new SayHello());
+
+        $this->dispatch('toast-success', ['title' => __('Notificación enviada a :n navegador(es)', ['n' => $navegadores])]);
     }
 
     private function validarDestinatario(): void

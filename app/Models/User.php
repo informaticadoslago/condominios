@@ -10,6 +10,7 @@ use Lab404\Impersonate\Models\Impersonate;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\Traits\ConHistorialEstado;
 use App\Support\HabilidadToken;
@@ -23,6 +24,7 @@ class User extends Authenticatable
     use HasProfilePhoto;
     use Impersonate;
     use Notifiable;
+    use HasPushSubscriptions;
     use TwoFactorAuthenticatable;
     use HasRoles;
     use ConHistorialEstado;
@@ -77,6 +79,7 @@ class User extends Authenticatable
             'email_verified_at'        => 'datetime',
             'password'                 => 'hashed',
             'two_factor_confirmed_at'  => 'datetime',
+            'notificaciones_push'      => 'boolean',
         ];
     }
 

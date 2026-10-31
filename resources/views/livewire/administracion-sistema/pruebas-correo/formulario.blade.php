@@ -58,6 +58,14 @@
                                 </x-ui-button>
                             </td>
                         </tr>
+                        <tr>
+                            <td class="px-6 py-4">{{ __('Notificación push (a ti, en tus navegadores)') }}</td>
+                            <td class="px-6 py-4 text-right">
+                                <x-ui-button type="button" wire:click="enviarSayHello" wire:loading.attr="disabled">
+                                    <i class="fa-solid fa-bell mr-1"></i>{{ __('Say Hello') }}
+                                </x-ui-button>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </x-dosl.tabla>

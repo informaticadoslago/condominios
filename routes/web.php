@@ -13,6 +13,7 @@ use App\Http\Controllers\ExamenesPdfController;
 use App\Http\Controllers\HorarioContextoController;
 use App\Http\Controllers\HorarioRejillaPdfController;
 use App\Http\Controllers\MandatoSepaPlantillaController;
+use App\Http\Controllers\ManifestController;
 use App\Http\Controllers\MovimientosContablesPdfController;
 use App\Http\Controllers\PresupuestoConceptosPdfController;
 use App\Http\Controllers\PresupuestoRepartoPdfController;
@@ -94,6 +95,9 @@ Route::get('/confirmar-correo-propietario/{contacto}', ConfirmarCorreoPropietari
 // Suscripción al calendario de exámenes de un horario: la piden Google, el iPhone… sin
 // sesión. El código secreto de la URL hace de llave.
 Route::get('/calendario/{token}/examenes.ics', ExamenesIcsController::class)->name('examenes.ics');
+
+// El navegador pide el manifest sin sesión (lo necesita el iPhone para las notificaciones).
+Route::get('/manifest.webmanifest', ManifestController::class)->name('manifest');
 
 Route::middleware([
     'auth:sanctum',

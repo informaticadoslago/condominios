@@ -11,6 +11,10 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('images/logo/logo-circulo-blanco.png') }}">
 
+    <!-- Web instalable (pantalla de inicio): en el iPhone, sin esto no hay notificaciones push -->
+    <link rel="manifest" href="{{ route('manifest') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo/icono-app.png') }}">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     {{-- <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" /> --}}
