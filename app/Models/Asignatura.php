@@ -17,13 +17,29 @@ class Asignatura extends Model
 
     protected $fillable = [
         'horario_id',
+        'modulo_id',
         'nombre',
+        'aula',
         'estado_id',
     ];
 
     public function horario()
     {
         return $this->belongsTo(Horario::class);
+    }
+
+    public function modulo()
+    {
+        return $this->belongsTo(Modulo::class);
+    }
+
+    /**
+     * El nombre solo no basta para distinguirla: dos asignaturas de módulos distintos
+     * pueden llamarse igual. Conviene tener cargada la relación 'modulo'.
+     */
+    public function nombreConModulo(): string
+    {
+        return $this->modulo ? "{$this->nombre} ({$this->modulo->nombre})" : $this->nombre;
     }
 
     public function estado()

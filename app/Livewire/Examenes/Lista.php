@@ -63,9 +63,11 @@ class Lista extends ListaComponent
                 'clave'    => 'asignatura_id',
                 'etiqueta' => __('Asignatura'),
                 'tipo'     => 'select',
-                'opciones' => [0 => __('Todas')] + Asignatura::where('horario_id', session('horario_actual_id'))
+                'opciones' => [0 => __('Todas')] + Asignatura::with('modulo')
+                    ->where('horario_id', session('horario_actual_id'))
                     ->orderBy('nombre')
-                    ->pluck('nombre', 'id')
+                    ->get()
+                    ->mapWithKeys(fn (Asignatura $asignatura) => [$asignatura->id => $asignatura->nombreConModulo()])
                     ->all(),
                 'neutro'   => 0,
                 'aplicar'  => fn ($query, $valor) => $query->where('asignatura_id', $valor),
@@ -134,7 +136,7 @@ class Lista extends ListaComponent
     public function render()
     {
         $items = $this->aplicarFiltros(
-            Examen::with('asignatura')
+            Examen::with('asignatura.modulo')
                 ->where('horario_id', session('horario_actual_id'))
         )
             ->orderBy($this->sort, $this->direction)

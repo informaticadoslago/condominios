@@ -62,6 +62,7 @@ use App\Livewire\Horarios\Lista as HorariosLista;
 use App\Livewire\Horarios\DiasSesiones as HorariosDiasSesiones;
 use App\Livewire\Horarios\Rejilla as HorariosRejilla;
 use App\Livewire\Asignaturas\Lista as AsignaturasLista;
+use App\Livewire\Modulos\Lista as ModulosLista;
 use App\Livewire\Examenes\Lista as ExamenesLista;
 use App\Livewire\Maestros\Periodicidades\Lista as PeriodicidadesLista;
 use App\Livewire\Presupuestos\Conceptos as PresupuestosConceptos;
@@ -123,6 +124,7 @@ Route::middleware([
             ]);
         })->name('dashboard-horario');
 
+        Route::get('/modulos', ModulosLista::class)->name('modulos.index');
         Route::get('/asignaturas', AsignaturasLista::class)->name('asignaturas.index');
         Route::get('/dias-sesiones', HorariosDiasSesiones::class)->name('dias-sesiones.edit');
         Route::get('/rejilla', HorariosRejilla::class)->name('rejilla.edit');
@@ -252,6 +254,7 @@ Route::middleware([
     Route::get('/catalogos/tipo-cuenta-contables', CatalogosLista::class)->defaults('clave', 'tipo-cuenta-contables')->name('catalogos.tipo-cuenta-contables');
     Route::get('/catalogos/tipo-estado-presupuestos', CatalogosLista::class)->defaults('clave', 'tipo-estado-presupuestos')->name('catalogos.tipo-estado-presupuestos');
     Route::get('/catalogos/tipo-directivo-comunidades', CatalogosLista::class)->defaults('clave', 'tipo-directivo-comunidades')->name('catalogos.tipo-directivo-comunidades');
+    Route::get('/catalogos/tipo-horarios', CatalogosLista::class)->defaults('clave', 'tipo-horarios')->name('catalogos.tipo-horarios');
 
 });
 

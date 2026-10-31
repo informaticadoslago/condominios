@@ -17,7 +17,7 @@
                         @if ($examen->asignatura)
                             <span class="caja"
                                 style="background-color: {{ $examen->asignatura->colorFondo() }}; color: {{ $examen->asignatura->colorTexto() }};">
-                                {{ $examen->asignatura->nombre }}
+                                {{ $examen->asignatura->nombreConModulo() }}
                             </span>
                         @endif
                     </td>

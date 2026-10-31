@@ -54,7 +54,7 @@ class Examen extends Model
      */
     public static function porMes(int $horarioId, bool $soloFuturos = true, ?int $asignaturaId = null): Collection
     {
-        return self::with('asignatura')
+        return self::with('asignatura.modulo')
             ->where('horario_id', $horarioId)
             ->when($soloFuturos, fn ($q) => $q->where('fecha', '>=', today()->toDateString()))
             ->when($asignaturaId, fn ($q) => $q->where('asignatura_id', $asignaturaId))

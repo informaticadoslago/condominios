@@ -94,7 +94,7 @@
                                             <td class="px-6 py-4">{{ substr($item->hora_fin, 0, 5) }}</td>
                                             @break
                                         @case('asignatura')
-                                            <td class="px-6 py-4">{{ $item->asignatura?->nombre }}</td>
+                                            <td class="px-6 py-4">{{ $item->asignatura?->nombreConModulo() }}</td>
                                             @break
                                     @endswitch
                                 @endforeach

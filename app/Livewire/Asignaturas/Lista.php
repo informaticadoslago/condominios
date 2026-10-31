@@ -7,6 +7,7 @@ use App\Livewire\Traits\ConFiltroEstado;
 use App\Livewire\Traits\ConHistorialEstadoModal;
 use App\Models\Asignatura;
 use App\Models\Estado;
+use App\Models\Modulo;
 use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
@@ -39,6 +40,18 @@ class Lista extends ListaComponent
     public function definicionesFiltro(): array
     {
         return [
+            [
+                // Sin caché: los módulos son de cada horario.
+                'clave'    => 'modulo_id',
+                'etiqueta' => __('Módulo'),
+                'tipo'     => 'select',
+                'opciones' => [0 => __('Todos')] + Modulo::where('horario_id', session('horario_actual_id'))
+                    ->orderBy('nombre')
+                    ->pluck('nombre', 'id')
+                    ->all(),
+                'neutro'   => 0,
+                'aplicar'  => fn ($query, $valor) => $query->where('modulo_id', $valor),
+            ],
             $this->filtroEstado(),
         ];
     }
@@ -47,6 +60,8 @@ class Lista extends ListaComponent
     {
         return [
             'nombre' => __('Nombre'),
+            'modulo' => __('Módulo'),
+            'aula'   => __('Aula'),
             'estado' => __('Estado'),
         ];
     }
@@ -118,11 +133,13 @@ class Lista extends ListaComponent
         $search = trim($this->search ?? '');
 
         $items = $this->aplicarFiltros(
-            Asignatura::with('estado')
+            Asignatura::with(['estado', 'modulo'])
                 ->withCount('historialEstados')
                 ->where('horario_id', session('horario_actual_id'))
         )
-            ->when($search, fn ($q) => $q->where('nombre', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where(fn ($q) => $q
+                ->where('nombre', 'like', "%{$search}%")
+                ->orWhere('aula', 'like', "%{$search}%")))
             ->orderBy($this->sort, $this->direction)
             ->orderBy('id')
             ->paginate($this->lineasXPagina);

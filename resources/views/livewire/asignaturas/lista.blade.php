@@ -24,7 +24,7 @@
 
             <div class="py-3 px-6 flex items-center">
                 @include('livewire.parciales.lineas_x_pagina')
-                @include('livewire.parciales.buscador', ['placeholder' => "Nombre"])
+                @include('livewire.parciales.buscador', ['placeholder' => "Nombre o aula"])
             </div>
             @include('livewire.parciales.filtros')
             @if (count($items))
@@ -37,6 +37,19 @@
                                         <th class="cursor-pointer py-3 px-6" wire:click="ordenar('nombre')">
                                             {{ __('Nombre') }}
                                             @if ($sort == 'nombre')
+                                                <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
+                                            @else
+                                                <i class="fa-solid fa-sort float-right mt-1"></i>
+                                            @endif
+                                        </th>
+                                        @break
+                                    @case('modulo')
+                                        <th class="py-3 px-6">{{ __('Módulo') }}</th>
+                                        @break
+                                    @case('aula')
+                                        <th class="cursor-pointer py-3 px-6" wire:click="ordenar('aula')">
+                                            {{ __('Aula') }}
+                                            @if ($sort == 'aula')
                                                 <i class="fa-solid fa-sort-{{ $direction == 'asc' ? 'up' : 'down' }} float-right mt-1"></i>
                                             @else
                                                 <i class="fa-solid fa-sort float-right mt-1"></i>
@@ -58,6 +71,12 @@
                                     @switch($clave)
                                         @case('nombre')
                                             <td class="px-6 py-4">{{ $item->nombre }}</td>
+                                            @break
+                                        @case('modulo')
+                                            <td class="px-6 py-4">{{ $item->modulo?->nombre }}</td>
+                                            @break
+                                        @case('aula')
+                                            <td class="px-6 py-4">{{ $item->aula }}</td>
                                             @break
                                         @case('estado')
                                             <td class="px-6 py-4">
