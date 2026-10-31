@@ -5,7 +5,11 @@
         </x-slot>
 
         <x-slot name="content">
-            <div class="overflow-x-auto">
+            {{-- Los dos scrolls van aquí y no en el cuerpo del modal: con la altura limitada a
+                 lo que cabe en pantalla (el cuerpo del modal llega a 100vh - 140px, y el
+                 título y el pie se llevan el resto), la barra horizontal se ve siempre sin
+                 tener que bajar hasta la última fila. --}}
+            <div class="overflow-auto max-h-[calc(100vh-21rem)]">
                 <table class="table-striped w-full table-auto text-sm text-left">
                     <thead class="font-medium border-b">
                         <tr>
@@ -28,9 +32,18 @@
                                                 <div>{{ __('Recreo') }} ({{ $slot['duracion'] }} min)</div>
                                             </div>
                                         @else
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                                                {{ $slot['hora'] }}
-                                            </div>
+                                            @if ($esDeProfesor)
+                                                {{-- La hora a la que empieza de verdad, como en el horario semanal: la
+                                                     puesta a mano si la hay, también mientras se escribe. --}}
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1"
+                                                    x-text="$wire.horas[{{ $dia }}][{{ $slot['numero'] }}] || '{{ $slot['hora'] }}'">
+                                                    {{ ($horas[$dia][$slot['numero']] ?? '') ?: $slot['hora'] }}
+                                                </div>
+                                            @else
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                                    {{ $slot['hora'] }}
+                                                </div>
+                                            @endif
                                             <select wire:model="asignaciones.{{ $dia }}.{{ $slot['numero'] }}" class="w-48">
                                                 <option value="">{{ __('— Ninguna —') }}</option>
                                                 @foreach ($asignaturas as $asignatura)
