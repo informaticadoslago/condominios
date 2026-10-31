@@ -11,7 +11,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('images/logo/logo-circulo-blanco.png') }}">
 
-    <!-- Web instalable (pantalla de inicio): en el iPhone, sin esto no hay notificaciones push -->
+    {{-- Web instalable (pantalla de inicio): en el iPhone, sin esto no hay notificaciones push --}}
     <link rel="manifest" href="{{ route('manifest') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/logo/icono-app.png') }}">
 

@@ -14,7 +14,7 @@ php artisan <comando>
 | [`condominios:install`](#condominiosinstall) | Instalación completa desde cero (guiada) | Vacía la base de datos actual |
 | [`doslago:db-reset`](#doslagodb-reset) | Recrea la BD de una "comunidad" y migra | Borra la BD de esa comunidad |
 | [`doslago:db-restore`](#doslagodb-restore) | Analiza y restaura un backup completo (BD + storage) | **Irreversible** |
-| [`doslago:installresources`](#doslagoinstallresources) | Copia los logos a `public/` | Ninguno (solo copia ficheros) |
+| [`doslago:installresources`](#doslagoinstallresources) | Copia los logos y el service worker a `public/` | Ninguno (solo copia ficheros) |
 | [`condominios:fakeseed`](#condominiosfakeseed) | Genera datos ficticios de demo | Solo en modo debug |
 | [`condominios:comunidades-listar`](#condominioscomunidades-listar) | Lista comunidades con `id` y nombre, una por línea | Ninguno (solo lectura) |
 | [`condominios:comunidad-exportar`](#condominioscomunidad-exportar) | Exporta una comunidad completa a `.zip` | Ninguno (solo lectura) |
@@ -125,6 +125,9 @@ php artisan doslago:installresources
 Copia los logos de `resources/images` (versionados en el repo) a
 `public/storage/images/logo` (en `.gitignore`, no se despliega). Sin esto, el
 `welcome`, el login y el favicon salen con el logo roto tras un despliegue nuevo.
+
+También copia el service worker de las notificaciones push (`resources/js/sw.js`) a
+`public/sw.js` (en `.gitignore`). Sin él no se pueden activar las notificaciones.
 
 Solo copia ficheros: seguro de ejecutar en cualquier entorno, incluida producción.
 

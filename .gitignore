@@ -19,6 +19,7 @@
 /public/build
 /public/hot
 /public/images/logo
+/public/sw.js
 /storage/app
 /storage/*.key
 /storage/pail

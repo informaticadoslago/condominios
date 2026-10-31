@@ -14,8 +14,14 @@ function clavePublicaEnBytes(clave) {
     return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 }
 
-function registro() {
-    return navigator.serviceWorker.register('/sw.js');
+/**
+ * El registro con el service worker ya activo: la primera vez, register() resuelve cuando
+ * aún se está instalando, y pushManager.subscribe() falla sin service worker activo.
+ */
+async function registro() {
+    await navigator.serviceWorker.register('/sw.js');
+
+    return navigator.serviceWorker.ready;
 }
 
 window.notificacionesPush = {

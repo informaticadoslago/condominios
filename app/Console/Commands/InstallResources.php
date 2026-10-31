@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\File;
  * Los logos viven versionados en resources/images (viaja en el repo), pero el destino
  * public/images/logo está en .gitignore y NO se despliega: sin este comando, en
  * producción welcome, login y el favicon salen con el logo roto.
+ * Igual el service worker de las notificaciones push (resources/js/sw.js → public/sw.js).
  * Los directorios de storage tampoco viajan por git (están vacíos) y, si nacen
  * por accidente con otro propietario (p. ej. una ejecución previa como root),
  * bloquean la escritura del usuario real de la app.
@@ -26,7 +27,7 @@ class InstallResources extends Command
 {
     protected $signature = 'doslago:installresources';
 
-    protected $description = 'Copia los logos a public y crea los directorios de storage que necesita la app';
+    protected $description = 'Copia los logos y el service worker a public y crea los directorios de storage que necesita la app';
 
     /** Origen versionado y destino público (el que resuelve asset('images/logo/...')). */
     const ORIGEN  = 'images';
@@ -40,9 +41,20 @@ class InstallResources extends Command
         'dosLago.png' => 'icono-app.png',
     ];
 
+    /**
+     * Service worker de las notificaciones push: origen versionado y destino en la raíz de public.
+     * Se sirve tal cual, sin pasar por Vite: no puede llevar comentarios, llegarían al navegador.
+     * Al llegar un push enseña la notificación (el servidor manda title, body, icon, data… con
+     * los nombres de showNotification) y al pulsarla da el foco a la web abierta en data.url
+     * o la abre (si no hay data.url, la portada).
+     */
+    const SERVICE_WORKER_ORIGEN  = 'js/sw.js';
+    const SERVICE_WORKER_DESTINO = 'sw.js';
+
     public function handle()
     {
         $this->copyLogos();
+        $this->copyServiceWorker();
         $this->createDirs();
 
         return Command::SUCCESS;
@@ -77,6 +89,26 @@ class InstallResources extends Command
         }
 
         $this->alert('✅ Logos copiados a public.');
+    }
+
+    /**
+     * El navegador solo deja que el service worker controle las páginas que cuelgan de la
+     * carpeta desde la que se sirve: por eso va en la raíz de public y no en una subcarpeta.
+     */
+    protected function copyServiceWorker(): void
+    {
+        $origen = resource_path(self::SERVICE_WORKER_ORIGEN);
+
+        if (! File::exists($origen)) {
+            $this->error("No existe el service worker de origen: {$origen}");
+
+            return;
+        }
+
+        File::copy($origen, public_path(self::SERVICE_WORKER_DESTINO));
+
+        $this->info('Copiado resources/' . self::SERVICE_WORKER_ORIGEN . ' → public/' . self::SERVICE_WORKER_DESTINO);
+        $this->alert('✅ Service worker copiado a public.');
     }
 
     /**
