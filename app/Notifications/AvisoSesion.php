@@ -8,13 +8,18 @@ use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 
 /**
- * Aviso push de que empieza o acaba una sesión del horario (ver HorariosAvisos), a todos
- * los dispositivos del usuario. Al pulsarlo se entra en ese horario.
+ * Aviso push de que empieza o acaba una sesión del horario (ver HorariosAvisos). Al
+ * pulsarlo se entra en ese horario.
  */
 class AvisoSesion extends Notification
 {
-    /** Con la relación 'sesion.asignatura' cargada. */
-    public function __construct(public HorarioSesionAviso $aviso)
+    /**
+     * @param  HorarioSesionAviso  $aviso  con la relación 'sesion.asignatura' cargada
+     * @param  array<int>|null  $dispositivos  ids de los dispositivos elegidos para los avisos
+     *         de ese horario (HorarioAvisoDispositivo), o null para todos. Lo lee
+     *         User::routeNotificationForWebPush().
+     */
+    public function __construct(public HorarioSesionAviso $aviso, public ?array $dispositivos = null)
     {
     }
 

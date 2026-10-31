@@ -31,6 +31,12 @@
                                 <i class="fa-solid fa-print mr-1"></i>{{ __('Imprimir') }}
                             </x-secondary-button>
                         </a>
+                        @if ($conAvisos)
+                            <x-secondary-button type="button" id="btn-avisos-dispositivos"
+                                wire:click="$dispatch('abrir-avisos-dispositivos')" title="{{ __('Configuración avisos') }}">
+                                <i class="fa-solid fa-bell mr-1"></i>{{ __('Configuración avisos') }}
+                            </x-secondary-button>
+                        @endif
                     </x-slot>
 
                     {{-- Con el móvil en vertical no caben los días en columnas: se ve un día
@@ -135,5 +141,8 @@
         </div>
 
         @livewire('horarios.rejilla-formulario')
+        @if ($conAvisos)
+            @livewire('horarios.avisos-dispositivos')
+        @endif
     </x-slot>
 </x-botonera-page>

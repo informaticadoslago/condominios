@@ -9,6 +9,7 @@ use App\Models\Jornada;
 use App\Services\Horarios\ColocacionSesiones;
 use App\Support\DiaSemana;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -211,6 +212,9 @@ class Rejilla extends Component
 
         $escala = $this->horario?->esDeProfesor() ? $this->escalaProfesor() : [];
 
-        return view('livewire.horarios.rejilla', compact('diasConfig', 'maxSlots', 'asignaciones', 'horasFilas', 'diaInicial', 'escala'));
+        // Como la campana de Editar: solo con notificaciones activadas y algún dispositivo.
+        $conAvisos = Auth::user()->notificaciones_push && Auth::user()->pushSubscriptions()->exists();
+
+        return view('livewire.horarios.rejilla', compact('diasConfig', 'maxSlots', 'asignaciones', 'horasFilas', 'diaInicial', 'escala', 'conAvisos'));
     }
 }

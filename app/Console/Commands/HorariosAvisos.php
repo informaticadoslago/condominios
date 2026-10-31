@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\HorarioAvisoDispositivo;
 use App\Models\HorarioSesionAviso;
 use App\Notifications\AvisoSesion;
 use Illuminate\Console\Command;
@@ -32,12 +33,20 @@ class HorariosAvisos extends Command
             ->whereHas('user', fn ($q) => $q->activo()->where('notificaciones_push', true))
             ->get();
 
+        // Los dispositivos elegidos por cada usuario en cada horario; sin ninguno, van a todos.
+        $elegidos = $avisos->isEmpty() ? collect() : HorarioAvisoDispositivo::whereIn('user_id', $avisos->pluck('user_id')->unique())
+            ->whereIn('horario_id', $avisos->pluck('horario_id')->unique())
+            ->get()
+            ->groupBy(fn ($elegido) => $elegido->user_id.'-'.$elegido->horario_id);
+
         foreach ($avisos as $aviso) {
             if (! $aviso->user->horariosAccesibles()->contains('id', $aviso->horario_id)) {
                 continue;
             }
 
-            $aviso->user->notify(new AvisoSesion($aviso));
+            $dispositivos = $elegidos->get($aviso->user_id.'-'.$aviso->horario_id)?->pluck('push_subscription_id')->all();
+
+            $aviso->user->notify(new AvisoSesion($aviso, $dispositivos));
             $enviados++;
         }
 

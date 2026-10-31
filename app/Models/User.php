@@ -219,16 +219,20 @@ class User extends Authenticatable
 
     /**
      * A qué navegadores va una notificación push: al dispositivo que diga la propia
-     * notificación (p. ej. "Probar" en uno de los dispositivos del perfil) o, si no dice
-     * ninguno, a todos los del usuario. Sustituye a la del trait HasPushSubscriptions.
+     * notificación (p. ej. "Probar" en uno de los dispositivos del perfil), a los ids de
+     * sus "dispositivos" (los elegidos para los avisos de un horario) o, si no dice
+     * nada, a todos los del usuario. Sustituye a la del trait HasPushSubscriptions.
      */
     public function routeNotificationForWebPush(?Notification $notification = null): Collection
     {
         $dispositivo = $notification->dispositivo ?? null;
+        $dispositivos = $notification->dispositivos ?? null;
 
-        return $dispositivo
-            ? $this->pushSubscriptions()->whereKey($dispositivo->getKey())->get()
-            : $this->pushSubscriptions;
+        return match (true) {
+            $dispositivo !== null => $this->pushSubscriptions()->whereKey($dispositivo->getKey())->get(),
+            $dispositivos !== null => $this->pushSubscriptions()->whereKey($dispositivos)->get(),
+            default => $this->pushSubscriptions,
+        };
     }
 
     /**
