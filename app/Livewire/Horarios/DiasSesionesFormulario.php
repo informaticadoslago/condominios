@@ -24,11 +24,13 @@ class DiasSesionesFormulario extends Component
      */
     public bool $alinearHoras = false;
 
+    /** Los horarios de alumno son fijos, con un solo recreo por jornada. */
+    public bool $unSoloRecreo = false;
+
     /**
      * Lista de jornadas: cada una es ['nombre' => string, 'hora_inicio' => 'H:i'|null,
-     * 'num_sesiones' => int|null, 'recreo_antes_de_sesion' => int|null,
-     * 'recreo_duracion_minutos' => int|null, 'dias' => [dia_semana => bool]].
-     * Los dos campos de recreo van juntos: los dos vacíos = esa jornada no tiene recreo.
+     * 'num_sesiones' => int|null, 'recreos' => [['hora_inicio' => 'H:i'|null,
+     * 'duracion_minutos' => int|null], ...], 'dias' => [dia_semana => bool]].
      */
     public array $jornadas = [];
 
@@ -38,8 +40,7 @@ class DiasSesionesFormulario extends Component
             'nombre' => '',
             'hora_inicio' => null,
             'num_sesiones' => null,
-            'recreo_antes_de_sesion' => null,
-            'recreo_duracion_minutos' => null,
+            'recreos' => [],
             'dias' => collect(DiaSemana::cases())->mapWithKeys(fn (DiaSemana $dia) => [$dia->value => false])->all(),
         ];
     }
@@ -55,22 +56,40 @@ class DiasSesionesFormulario extends Component
         $this->jornadas = array_values($this->jornadas);
     }
 
+    public function agregarRecreo(int $indice): void
+    {
+        if ($this->unSoloRecreo && count($this->jornadas[$indice]['recreos']) >= 1) {
+            return;
+        }
+
+        $this->jornadas[$indice]['recreos'][] = ['hora_inicio' => null, 'duracion_minutos' => null];
+    }
+
+    public function quitarRecreo(int $indice, int $recreo): void
+    {
+        unset($this->jornadas[$indice]['recreos'][$recreo]);
+        $this->jornadas[$indice]['recreos'] = array_values($this->jornadas[$indice]['recreos']);
+    }
+
     #[On('abrir-editar-dias-sesiones')]
     public function abrirModal(): void
     {
         $this->horarioId = (int) session('horario_actual_id');
 
-        $horario = Horario::with('jornadas')->find($this->horarioId);
+        $horario = Horario::with('jornadas.recreos')->find($this->horarioId);
 
         $this->duracionSesionMinutos = $horario->duracion_sesion_minutos;
         $this->alinearHoras = $horario->alinear_horas;
+        $this->unSoloRecreo = ! $horario->esDeProfesor();
 
         $this->jornadas = $horario->jornadas->sortBy('hora_inicio')->values()->map(fn (Jornada $jornada) => [
             'nombre' => $jornada->nombre,
             'hora_inicio' => substr($jornada->hora_inicio, 0, 5),
             'num_sesiones' => $jornada->num_sesiones,
-            'recreo_antes_de_sesion' => $jornada->recreo_antes_de_sesion,
-            'recreo_duracion_minutos' => $jornada->recreo_duracion_minutos,
+            'recreos' => $jornada->recreos->map(fn ($recreo) => [
+                'hora_inicio' => substr($recreo->hora_inicio, 0, 5),
+                'duracion_minutos' => $recreo->duracion_minutos,
+            ])->all(),
             'dias' => collect(DiaSemana::cases())->mapWithKeys(
                 fn (DiaSemana $dia) => [$dia->value => in_array($dia->value, $jornada->dias_semana, true)]
             )->all(),
@@ -107,18 +126,11 @@ class DiasSesionesFormulario extends Component
             $rules["$prefijo.hora_inicio"] = ['required', 'date_format:H:i'];
             $rules["$prefijo.num_sesiones"] = ['required', 'integer', 'min:1', 'max:20'];
 
-            // El recreo es opcional, pero si se pone uno de los dos campos hace falta el
-            // otro. "Antes de la sesión X" solo tiene sentido con sesiones a los dos
-            // lados: al menos la 1ª y 2ª antes (min:2) y como mucho la última de la
-            // jornada (max: num_sesiones de esa jornada).
-            $rules["$prefijo.recreo_antes_de_sesion"] = [
-                'nullable', 'integer', 'min:2', 'max:'.($jornada['num_sesiones'] ?: 20),
-                "required_with:$prefijo.recreo_duracion_minutos",
-            ];
-            $rules["$prefijo.recreo_duracion_minutos"] = [
-                'nullable', 'integer', 'min:1',
-                "required_with:$prefijo.recreo_antes_de_sesion",
-            ];
+            // Un recreo no puede empezar antes que la propia jornada.
+            foreach (array_keys($jornada['recreos'] ?? []) as $r) {
+                $rules["$prefijo.recreos.$r.hora_inicio"] = ['required', 'date_format:H:i', "after_or_equal:$prefijo.hora_inicio"];
+                $rules["$prefijo.recreos.$r.duracion_minutos"] = ['required', 'integer', 'min:1'];
+            }
         }
 
         return $rules;
@@ -133,6 +145,7 @@ class DiasSesionesFormulario extends Component
             'min' => ':attribute debe ser como mínimo :min',
             'max' => ':attribute debe ser como máximo :max',
             'date_format' => ':attribute no es una hora válida',
+            'after_or_equal' => ':attribute no puede ser antes del inicio de la jornada',
         ];
     }
 
@@ -149,8 +162,11 @@ class DiasSesionesFormulario extends Component
             $attrs["$prefijo.nombre"] = __('jornada :n — nombre', ['n' => $numero]);
             $attrs["$prefijo.hora_inicio"] = __('jornada :n — hora de inicio', ['n' => $numero]);
             $attrs["$prefijo.num_sesiones"] = __('jornada :n — número de sesiones', ['n' => $numero]);
-            $attrs["$prefijo.recreo_antes_de_sesion"] = __('jornada :n — recreo antes de la sesión', ['n' => $numero]);
-            $attrs["$prefijo.recreo_duracion_minutos"] = __('jornada :n — duración del recreo', ['n' => $numero]);
+
+            foreach (array_keys($this->jornadas[$indice]['recreos'] ?? []) as $r) {
+                $attrs["$prefijo.recreos.$r.hora_inicio"] = __('jornada :n — recreo :r — hora de inicio', ['n' => $numero, 'r' => $r + 1]);
+                $attrs["$prefijo.recreos.$r.duracion_minutos"] = __('jornada :n — recreo :r — duración', ['n' => $numero, 'r' => $r + 1]);
+            }
         }
 
         return $attrs;
@@ -174,6 +190,33 @@ class DiasSesionesFormulario extends Component
 
         $this->validate();
 
+        if (! Horario::find($this->horarioId)?->esDeProfesor()) {
+            foreach ($this->jornadas as $indice => $jornada) {
+                if (count($jornada['recreos']) > 1) {
+                    $this->addError("jornadas.$indice.nombre", __('En un horario de alumno cada jornada tiene como mucho un recreo.'));
+
+                    return;
+                }
+            }
+        }
+
+        // Los recreos de una jornada no pueden pisarse entre sí.
+        foreach ($this->jornadas as $indice => $jornada) {
+            $finAnterior = null;
+
+            foreach (collect($jornada['recreos'])->sortBy('hora_inicio') as $r => $recreo) {
+                $inicio = Jornada::minutosDesdeMedianoche($recreo['hora_inicio']);
+
+                if ($finAnterior !== null && $inicio < $finAnterior) {
+                    $this->addError("jornadas.$indice.recreos.$r.hora_inicio", __('Este recreo se solapa con el anterior.'));
+
+                    return;
+                }
+
+                $finAnterior = $inicio + (int) $recreo['duracion_minutos'];
+            }
+        }
+
         DB::transaction(function () {
             Horario::whereKey($this->horarioId)->update([
                 'duracion_sesion_minutos' => $this->duracionSesionMinutos,
@@ -185,15 +228,20 @@ class DiasSesionesFormulario extends Component
             foreach ($this->jornadas as $jornada) {
                 $diasSemana = collect($jornada['dias'])->filter()->keys()->values()->all();
 
-                Jornada::create([
+                $nueva = Jornada::create([
                     'horario_id' => $this->horarioId,
                     'nombre' => $jornada['nombre'],
                     'hora_inicio' => $jornada['hora_inicio'],
                     'num_sesiones' => $jornada['num_sesiones'],
-                    'recreo_antes_de_sesion' => $jornada['recreo_antes_de_sesion'] ?: null,
-                    'recreo_duracion_minutos' => $jornada['recreo_duracion_minutos'] ?: null,
                     'dias_semana' => $diasSemana,
                 ]);
+
+                foreach ($jornada['recreos'] as $recreo) {
+                    $nueva->recreos()->create([
+                        'hora_inicio' => $recreo['hora_inicio'],
+                        'duracion_minutos' => $recreo['duracion_minutos'],
+                    ]);
+                }
             }
         });
 

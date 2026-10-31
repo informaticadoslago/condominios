@@ -62,18 +62,40 @@
                                 wire:model="jornadas.{{ $indice }}.num_sesiones" />
                             <x-input-error for="jornadas.{{ $indice }}.num_sesiones" class="mt-1" />
                         </div>
-                        <div>
-                            <x-label :value="__('Recreo antes de la sesión nº')" class="text-xs" />
-                            <x-input type="number" min="2" max="20" class="w-24" placeholder="{{ __('Sin recreo') }}"
-                                wire:model="jornadas.{{ $indice }}.recreo_antes_de_sesion" />
-                            <x-input-error for="jornadas.{{ $indice }}.recreo_antes_de_sesion" class="mt-1" />
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="flex items-center gap-4">
+                            <x-label :value="$unSoloRecreo ? __('Recreo') : __('Recreos')" class="text-xs" />
+                            @if (! $unSoloRecreo || empty($jornada['recreos']))
+                                <button type="button" class="text-xs hover:underline"
+                                    wire:click="agregarRecreo({{ $indice }})" title="{{ __('Añadir recreo') }}">
+                                    <i class="fa-solid fa-plus"></i> {{ __('Añadir recreo') }}
+                                </button>
+                            @endif
                         </div>
-                        <div>
-                            <x-label :value="__('Duración del recreo (min)')" class="text-xs" />
-                            <x-input type="number" min="1" class="w-24"
-                                wire:model="jornadas.{{ $indice }}.recreo_duracion_minutos" />
-                            <x-input-error for="jornadas.{{ $indice }}.recreo_duracion_minutos" class="mt-1" />
-                        </div>
+                        @forelse ($jornada['recreos'] as $r => $recreo)
+                            <div class="flex flex-wrap items-start gap-4 mt-1" wire:key="jornada-{{ $indice }}-recreo-{{ $r }}">
+                                <div>
+                                    <x-label :value="__('Hora de inicio')" class="text-xs" />
+                                    <x-input type="time" class="w-36"
+                                        wire:model="jornadas.{{ $indice }}.recreos.{{ $r }}.hora_inicio" />
+                                    <x-input-error for="jornadas.{{ $indice }}.recreos.{{ $r }}.hora_inicio" class="mt-1" />
+                                </div>
+                                <div>
+                                    <x-label :value="__('Duración (min)')" class="text-xs" />
+                                    <x-input type="number" min="1" class="w-24"
+                                        wire:model="jornadas.{{ $indice }}.recreos.{{ $r }}.duracion_minutos" />
+                                    <x-input-error for="jornadas.{{ $indice }}.recreos.{{ $r }}.duracion_minutos" class="mt-1" />
+                                </div>
+                                <button type="button" class="text-red-600 hover:underline text-xs mt-5"
+                                    wire:click="quitarRecreo({{ $indice }}, {{ $r }})" title="{{ __('Quitar recreo') }}">
+                                    <i class="fa-solid fa-trash"></i> {{ __('Quitar') }}
+                                </button>
+                            </div>
+                        @empty
+                            <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ __('Sin recreos') }}</div>
+                        @endforelse
                     </div>
 
                     <div>

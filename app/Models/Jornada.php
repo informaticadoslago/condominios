@@ -15,15 +15,11 @@ class Jornada extends Model
         'nombre',
         'hora_inicio',
         'num_sesiones',
-        'recreo_antes_de_sesion',
-        'recreo_duracion_minutos',
         'dias_semana',
     ];
 
     protected $casts = [
         'num_sesiones' => 'integer',
-        'recreo_antes_de_sesion' => 'integer',
-        'recreo_duracion_minutos' => 'integer',
         'dias_semana' => 'array',
     ];
 
@@ -32,14 +28,17 @@ class Jornada extends Model
         return $this->belongsTo(Horario::class);
     }
 
-    public function tieneRecreo(): bool
+    public function recreos()
     {
-        return ! is_null($this->recreo_antes_de_sesion) && ! is_null($this->recreo_duracion_minutos);
+        return $this->hasMany(JornadaRecreo::class)->orderBy('hora_inicio');
     }
 
     /**
-     * La secuencia cronológica de la jornada: una entrada por sesión más, si hay recreo,
-     * una entrada de recreo justo antes de la sesión que le corresponda. Es la base para
+     * La secuencia cronológica de la jornada: una entrada por sesión y otra por recreo.
+     * Las sesiones van seguidas desde la hora de inicio; si un recreo empieza justo cuando
+     * acaba una sesión, entra el recreo y la siguiente empieza al acabar él; si empieza a
+     * mitad de una sesión, la sesión se lo come (ver abajo). Un recreo que empiece
+     * después de la última sesión no sale. Es la base para
      * pintar la rejilla (pantalla, modal de edición y PDF): la fila ya no es "la sesión
      * N" (el recreo no cuenta como sesión y puede caer en un sitio distinto cada día),
      * sino "la posición N en el orden de la jornada".
@@ -55,16 +54,21 @@ class Jornada extends Model
         $slots = [];
         $hora = Carbon::createFromFormat('H:i:s', $this->hora_inicio);
         $numero = $sesionInicial;
+        $pendientes = $this->recreos->sortBy('hora_inicio')->values();
 
         for ($s = 1; $s <= $this->num_sesiones; $s++) {
-            if ($this->tieneRecreo() && $this->recreo_antes_de_sesion === $s) {
+            while ($pendientes->isNotEmpty()
+                && self::minutosDesdeMedianoche($pendientes->first()->hora_inicio) <= self::minutosDesdeMedianoche($hora->format('H:i'))) {
+                $recreo = $pendientes->shift();
+                $inicioRecreo = Carbon::createFromFormat('H:i', substr($recreo->hora_inicio, 0, 5));
+
                 $slots[] = [
                     'tipo' => 'recreo',
-                    'hora' => $hora->format('H:i'),
-                    'duracion' => $this->recreo_duracion_minutos,
+                    'hora' => $inicioRecreo->format('H:i'),
+                    'duracion' => $recreo->duracion_minutos,
                 ];
 
-                $hora = $hora->copy()->addMinutes($this->recreo_duracion_minutos);
+                $hora = $hora->max($inicioRecreo->copy()->addMinutes($recreo->duracion_minutos));
             }
 
             $slots[] = [
@@ -75,6 +79,19 @@ class Jornada extends Model
 
             $numero++;
             $hora = $hora->copy()->addMinutes($duracionSesionMinutos);
+
+            // Un recreo que empieza a mitad de esta sesión no la parte: la sesión se lo
+            // come (ese grupo tendrá su recreo a otra hora) y la siguiente va pegada a ella.
+            while ($pendientes->isNotEmpty()
+                && self::minutosDesdeMedianoche($pendientes->first()->hora_inicio) < self::minutosDesdeMedianoche($hora->format('H:i'))) {
+                $recreo = $pendientes->shift();
+
+                $slots[] = [
+                    'tipo' => 'recreo',
+                    'hora' => substr($recreo->hora_inicio, 0, 5),
+                    'duracion' => $recreo->duracion_minutos,
+                ];
+            }
         }
 
         return $slots;

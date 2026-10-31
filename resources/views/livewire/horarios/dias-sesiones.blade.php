@@ -30,7 +30,7 @@
                             <th class="py-3 px-6">{{ __('Jornada') }}</th>
                             <th class="py-3 px-6">{{ __('Hora de inicio') }}</th>
                             <th class="py-3 px-6">{{ __('Número de sesiones') }}</th>
-                            <th class="py-3 px-6">{{ __('Recreo') }}</th>
+                            <th class="py-3 px-6">{{ __('Recreos') }}</th>
                             <th class="py-3 px-6">{{ __('Días') }}</th>
                         </tr>
                     </thead>
@@ -41,11 +41,11 @@
                                 <td class="px-6 py-4">{{ substr($jornada->hora_inicio, 0, 5) }}</td>
                                 <td class="px-6 py-4">{{ $jornada->num_sesiones }}</td>
                                 <td class="px-6 py-4">
-                                    @if ($jornada->tieneRecreo())
-                                        {{ __('Antes de la sesión :n (:min min)', ['n' => $jornada->recreo_antes_de_sesion, 'min' => $jornada->recreo_duracion_minutos]) }}
-                                    @else
+                                    @forelse ($jornada->recreos as $recreo)
+                                        <div>{{ __(':hora (:min min)', ['hora' => substr($recreo->hora_inicio, 0, 5), 'min' => $recreo->duracion_minutos]) }}</div>
+                                    @empty
                                         —
-                                    @endif
+                                    @endforelse
                                 </td>
                                 <td class="px-6 py-4">
                                     {{ collect($jornada->dias_semana)->sort()->map(fn ($dia) => \App\Support\DiaSemana::from($dia)->abreviatura())->implode(' ') }}

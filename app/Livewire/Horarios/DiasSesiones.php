@@ -18,7 +18,7 @@ class DiasSesiones extends Component
     #[On('dias-sesiones-guardado')]
     public function cargar(): void
     {
-        $this->horario = Horario::with('jornadas')->find((int) session('horario_actual_id'));
+        $this->horario = Horario::with('jornadas.recreos')->find((int) session('horario_actual_id'));
     }
 
     public function render()
