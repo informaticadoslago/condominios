@@ -32,6 +32,14 @@ class InstallResources extends Command
     const ORIGEN  = 'images';
     const DESTINO = 'images/logo';
 
+    /**
+     * Ficheros que cambian de nombre al copiarlos: en public llevan un nombre genérico
+     * para que las vistas no dependan de la marca del logo de origen.
+     */
+    const RENOMBRAR = [
+        'dosLago.png' => 'icono-app.png',
+    ];
+
     public function handle()
     {
         $this->copyLogos();
@@ -62,8 +70,10 @@ class InstallResources extends Command
         File::ensureDirectoryExists($destino, 0775);
 
         foreach ($ficheros as $fichero) {
-            File::copy($fichero->getPathname(), $destino . '/' . $fichero->getFilename());
-            $this->info("Copiado {$fichero->getFilename()} → public/" . self::DESTINO);
+            $nombre = self::RENOMBRAR[$fichero->getFilename()] ?? $fichero->getFilename();
+
+            File::copy($fichero->getPathname(), $destino . '/' . $nombre);
+            $this->info("Copiado {$fichero->getFilename()} → public/" . self::DESTINO . '/' . $nombre);
         }
 
         $this->alert('✅ Logos copiados a public.');
