@@ -33,6 +33,22 @@
         table.examenes-mes { margin-top: 6pt; page-break-inside: avoid; }
         table.examenes-mes thead th { text-align: left; }
         td.dia-examen { width: 30%; white-space: nowrap; }
+
+        /* Horario de profesor: una fila cada 5 minutos. Las celdas vacías no llevan letra,
+           para que la fila pueda ser más baja que una línea de texto. */
+        table.profesor tbody tr:nth-child(odd) { background-color: transparent; }
+        table.profesor tbody tr td { padding: 0; border: 0; font-size: 1pt; line-height: 1pt; }
+        /* dompdf no respeta el alto de una fila sin texto: lo da esta columna invisible. */
+        table.profesor th.alto, table.profesor td.alto { width: 0; padding: 0; border: 0; }
+        table.profesor tbody tr td.hora-escala { font-size: 6.5pt; line-height: 7pt; font-weight: bold;
+                                                 text-align: right; vertical-align: top; padding-right: 3pt;
+                                                 border-top: 0.4pt solid #999; }
+        table.profesor tbody tr td.hueco { border-top: 0.2pt solid #e4e4e4; border-left: 0.3pt solid #ccc; }
+        table.profesor tbody tr td.fuera { background-color: #f2f2f2; border-left: 0.3pt solid #ccc; }
+        table.profesor tbody tr td.media { border-top: 0.4pt solid #999; }
+        table.profesor tbody tr td.tramo { font-size: 6.5pt; line-height: 7.5pt; vertical-align: top;
+                                           padding: 1pt 2pt; border: 0.6pt solid #fff; }
+        table.profesor tbody tr td.tramo.recreo { background-color: #e5e5e5; color: #555; text-align: center; }
     </style>
 </head>
 <body>
@@ -58,6 +74,50 @@
 
 @if (! count($diasConfig))
     <p>{{ __('Todavía no hay días de clase configurados.') }}</p>
+@elseif ($rejillaProfesor)
+    <table class="profesor">
+        <thead>
+            <tr>
+                <th class="alto"></th>
+                <th style="width: 8%;">{{ __('Horas') }}</th>
+                @foreach ($diasConfig as $config)
+                    <th style="width: {{ round(92 / count($diasConfig), 2) }}%;">{{ $config['nombre'] }}</th>
+                @endforeach
+            </tr>
+        </thead>
+        <tbody>
+            @for ($fila = 0; $fila < $rejillaProfesor['filas']; $fila++)
+                <tr>
+                    <td class="alto" style="height: {{ $rejillaProfesor['alto'] }}mm;"></td>
+                    @if ($etiqueta = $rejillaProfesor['etiquetas'][$fila] ?? null)
+                        <td class="hora-escala" rowspan="{{ $etiqueta['rowspan'] }}">{{ $etiqueta['hora'] }}</td>
+                    @endif
+                    @foreach ($diasConfig as $dia => $config)
+                        @php($celda = $rejillaProfesor['celdas'][$dia][$fila] ?? null)
+                        @if (! $celda)
+                            {{-- la tapa la sesión o el recreo de una fila anterior (rowspan) --}}
+                        @elseif ($celda['tipo'] === 'sesion')
+                            <td class="tramo" rowspan="{{ $celda['rowspan'] }}"
+                                style="background-color: {{ $celda['fondo'] }}; color: {{ $celda['texto'] }};">
+                                <b>{{ $celda['horas'] }}</b><br>
+                                {{ $celda['nombre'] }}
+                                @if ($celda['modulo'])
+                                    <br><i>{{ $celda['modulo'] }}</i>
+                                @endif
+                                @if ($celda['aula'])
+                                    <br>{{ $celda['aula'] }}
+                                @endif
+                            </td>
+                        @elseif ($celda['tipo'] === 'recreo')
+                            <td class="tramo recreo" rowspan="{{ $celda['rowspan'] }}">{{ __('Recreo') }}</td>
+                        @else
+                            <td class="{{ $celda['tipo'] }} {{ $celda['media'] ? 'media' : '' }}"></td>
+                        @endif
+                    @endforeach
+                </tr>
+            @endfor
+        </tbody>
+    </table>
 @else
     <table>
         <thead>
@@ -88,6 +148,9 @@
                                     <div class="caja"
                                         style="background-color: {{ $asignaciones[$dia][$slot['numero']]['fondo'] }}; color: {{ $asignaciones[$dia][$slot['numero']]['texto'] }};">
                                         {{ $asignaciones[$dia][$slot['numero']]['nombre'] }}
+                                        @if ($asignaciones[$dia][$slot['numero']]['modulo'])
+                                            <br><i>{{ $asignaciones[$dia][$slot['numero']]['modulo'] }}</i>
+                                        @endif
                                     </div>
                                 @else
                                     <div class="caja vacia">

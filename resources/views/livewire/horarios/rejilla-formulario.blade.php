@@ -34,10 +34,19 @@
                                             <option value="">{{ __('— Ninguna —') }}</option>
                                             @foreach ($asignaturas as $asignatura)
                                                 <option value="{{ $asignatura->id }}">
-                                                    {{ $asignatura->nombre }}{{ $asignatura->estado_id != \App\Models\Asignatura::ESTADO_ACTIVO ? ' ('.__('baja').')' : '' }}
+                                                    {{ $asignatura->nombreConModulo() }}{{ $asignatura->estado_id != \App\Models\Asignatura::ESTADO_ACTIVO ? ' ('.__('baja').')' : '' }}
                                                 </option>
                                             @endforeach
                                         </select>
+                                        @if ($esDeProfesor)
+                                            {{-- Vacío = la hora que le toca por la jornada ($slot['hora']). --}}
+                                            <div class="mt-1 flex items-center gap-1">
+                                                <x-input type="time" step="300" class="w-32 text-xs"
+                                                    wire:model="horas.{{ $dia }}.{{ $slot['numero'] }}"
+                                                    title="{{ __('Hora de inicio a mano (vacío = :hora)', ['hora' => $slot['hora']]) }}" />
+                                            </div>
+                                            <x-input-error for="horas.{{ $dia }}.{{ $slot['numero'] }}" class="mt-1" />
+                                        @endif
                                     @endif
                                 </td>
                             @endforeach

@@ -6,13 +6,15 @@ use App\Models\Asignatura;
 use App\Models\Horario;
 use App\Models\HorarioSesion;
 use App\Models\Jornada;
+use App\Models\JornadaRecreo;
+use App\Models\Modulo;
 use App\Services\Exportacion\ExportadorZip;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
  * El equivalente, para Horarios, de ContabilidadExportador: se lleva un horario entero
- * (jornadas, asignaturas y las sesiones que las asignan a cada día/hueco) a un .zip en
+ * (jornadas y sus recreos, módulos, asignaturas y las sesiones que las asignan a cada día/hueco) a un .zip en
  * el disco 'coms'. Horario no tiene FK a Comunidad ni a la contabilidad, así que no hay
  * ningún enlace con otro módulo que resolver.
  *
@@ -47,8 +49,12 @@ class HorarioExportador extends ExportadorZip
     {
         return [
             'horarios'         => collect([$horario]),
+            'modulos'          => Modulo::where('horario_id', $horario->id)->orderBy('id')->get(),
             'asignaturas'      => Asignatura::where('horario_id', $horario->id)->orderBy('id')->get(),
             'jornadas'         => Jornada::where('horario_id', $horario->id)->orderBy('id')->get(),
+            'jornada_recreos'  => JornadaRecreo::whereIn('jornada_id', Jornada::where('horario_id', $horario->id)->select('id'))
+                ->orderBy('id')
+                ->get(),
             'horario_sesiones' => HorarioSesion::where('horario_id', $horario->id)->orderBy('id')->get(),
         ];
     }
@@ -79,9 +85,11 @@ class HorarioExportador extends ExportadorZip
         ## Orden recomendado para reconstruir en otro sistema
 
         1. `horarios` (la fila de `horarios`)
-        2. `asignaturas`
-        3. `jornadas`
-        4. `horario_sesiones` (referencia `asignaturas`; a `jornadas` solo indirectamente, por
+        2. `modulos`
+        3. `asignaturas` (referencia `modulos`)
+        4. `jornadas`
+        5. `jornada_recreos` (referencia `jornadas`)
+        6. `horario_sesiones` (referencia `asignaturas`; a `jornadas` solo indirectamente, por
            día de la semana y número de sesión, no por id)
 
         ## NO incluido en la exportación

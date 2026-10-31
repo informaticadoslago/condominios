@@ -3,6 +3,7 @@
 namespace App\Services\Horarios;
 
 use App\Models\Horario;
+use App\Models\Jornada;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -14,12 +15,12 @@ use ZipArchive;
  * El equivalente, para Horarios, de ImportadorZipComunidad: reconstruye en la base de
  * datos lo que exportó HorarioExportador. Mucho más simple que aquel porque Horario no
  * tiene documentos adjuntos ni enlaces con otros módulos: solo hay que remapear
- * horario_id / asignatura_id al insertar, para no chocar con ids que ya existan.
+ * horario_id / modulo_id / jornada_id / asignatura_id al insertar, para no chocar con ids que ya existan.
  */
 class ImportadorZipHorario
 {
     /** De la raíz hacia las hojas: cada tabla puede depender de las anteriores. */
-    private const ORDEN_TABLAS = ['horarios', 'asignaturas', 'jornadas', 'horario_sesiones'];
+    private const ORDEN_TABLAS = ['horarios', 'modulos', 'asignaturas', 'jornadas', 'jornada_recreos', 'horario_sesiones'];
 
     public function importar(string $rutaTemporal, ?string $nombreFichero = null): void
     {
@@ -72,6 +73,7 @@ class ImportadorZipHorario
                         }
 
                         $horarioId = null;
+                        $duracionSesion = 0;
 
                         foreach (self::ORDEN_TABLAS as $tabla) {
                             if (! isset($bloques[$tabla])) {
@@ -85,7 +87,15 @@ class ImportadorZipHorario
                                 $idOriginal = isset($datosOriginales['id']) ? (int) $datosOriginales['id'] : null;
                                 unset($datos['id']);
 
+                                $recreosAntiguos = $tabla === 'jornadas'
+                                    ? $this->extraerRecreosAntiguos($datos, $duracionSesion)
+                                    : [];
+
                                 $idNuevo = (int) DB::table($tabla)->insertGetId($datos);
+
+                                foreach ($recreosAntiguos as $recreo) {
+                                    DB::table('jornada_recreos')->insert($recreo + ['jornada_id' => $idNuevo]);
+                                }
 
                                 if ($idOriginal !== null) {
                                     $mapaIds[$tabla][$idOriginal] = $idNuevo;
@@ -93,6 +103,7 @@ class ImportadorZipHorario
 
                                 if ($tabla === 'horarios') {
                                     $horarioId = $idNuevo;
+                                    $duracionSesion = (int) ($datos['duracion_sesion_minutos'] ?? 0);
                                 }
                             }
                         }
@@ -127,9 +138,20 @@ class ImportadorZipHorario
                 $datos['token_calendario'] = Horario::nuevoTokenCalendario();
                 break;
 
-            case 'asignaturas':
+            case 'modulos':
             case 'jornadas':
                 $this->remapearColumna($datos, 'horario_id', 'horarios', $mapaIds);
+                break;
+
+            case 'asignaturas':
+                // modulo_id es nulo en las que no tienen módulo (y en los ZIP anteriores a
+                // los módulos, que ni traen la columna): remapearColumna ya lo deja pasar.
+                $this->remapearColumna($datos, 'horario_id', 'horarios', $mapaIds);
+                $this->remapearColumna($datos, 'modulo_id', 'modulos', $mapaIds);
+                break;
+
+            case 'jornada_recreos':
+                $this->remapearColumna($datos, 'jornada_id', 'jornadas', $mapaIds);
                 break;
 
             case 'horario_sesiones':
@@ -139,6 +161,48 @@ class ImportadorZipHorario
         }
 
         return $datos;
+    }
+
+    /**
+     * Los ZIP anteriores a jornada_recreos traen los recreos en columnas de jornadas
+     * ("antes de la sesión N", hasta dos): se quitan de la fila y se devuelven como filas
+     * de jornada_recreos, con la hora calculada igual que en la migración que creó esa
+     * tabla. Con un ZIP nuevo no hay columnas que quitar y devuelve [].
+     *
+     * @param  array<string, mixed>  $datos
+     * @return array<int, array<string, mixed>>
+     */
+    private function extraerRecreosAntiguos(array &$datos, int $duracionSesion): array
+    {
+        $recreos = [];
+        $inicio = Jornada::minutosDesdeMedianoche($datos['hora_inicio']);
+        $desplazamiento = 0;
+
+        foreach ([
+            ['recreo_antes_de_sesion', 'recreo_duracion_minutos'],
+            ['recreo2_antes_de_sesion', 'recreo2_duracion_minutos'],
+        ] as [$columnaSesion, $columnaDuracion]) {
+            $antesDeSesion = $datos[$columnaSesion] ?? null;
+            $duracion = $datos[$columnaDuracion] ?? null;
+            unset($datos[$columnaSesion], $datos[$columnaDuracion]);
+
+            if ($antesDeSesion === null || $antesDeSesion === '' || $duracion === null || $duracion === '') {
+                continue;
+            }
+
+            $hora = $inicio + ((int) $antesDeSesion - 1) * $duracionSesion + $desplazamiento;
+
+            $recreos[] = [
+                'hora_inicio'      => sprintf('%02d:%02d:00', intdiv($hora, 60), $hora % 60),
+                'duracion_minutos' => (int) $duracion,
+                'created_at'       => $datos['created_at'] ?? null,
+                'updated_at'       => $datos['updated_at'] ?? null,
+            ];
+
+            $desplazamiento += (int) $duracion;
+        }
+
+        return $recreos;
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Models\Asignatura;
 use App\Models\Examen;
 use App\Models\Horario;
 use App\Models\Jornada;
+use App\Services\Horarios\ColocacionSesiones;
 use App\Support\DiaSemana;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
@@ -131,9 +132,9 @@ class Formulario extends Component
      */
     public function updatedAsignaturaId()
     {
-        $nombre = Asignatura::where('horario_id', session('horario_actual_id'))->whereKey($this->asignatura_id)->value('nombre');
+        $asignatura = Asignatura::with('modulo')->where('horario_id', session('horario_actual_id'))->find($this->asignatura_id);
 
-        $this->titulo = $nombre ? __('Examen de :asignatura', ['asignatura' => $nombre]) : '';
+        $this->titulo = $asignatura ? __('Examen de :asignatura', ['asignatura' => $asignatura->nombreConModulo()]) : '';
 
         $this->descartarEleccionInvalida();
     }
@@ -206,19 +207,29 @@ class Formulario extends Component
             return [];
         }
 
-        $horario  = Horario::with('jornadas')->find(session('horario_actual_id'));
+        $horario  = Horario::with(['jornadas.recreos', 'sesiones'])->find(session('horario_actual_id'));
         $jornadas = $horario?->jornadasPorDia()->get($dia->value);
 
         if (! $jornadas) {
             return [];
         }
 
-        $combinado = Jornada::combinarSlots($jornadas, $horario->duracion_sesion_minutos ?? 0);
-        $deAsignatura = $horario->sesiones()
+        $deAsignatura = $horario->sesiones
             ->where('dia_semana', $dia->value)
             ->where('asignatura_id', $this->asignatura_id)
             ->pluck('sesion_numero')
             ->all();
+
+        // En el de profesor, a la hora real de cada sesión (puede estar movida a mano).
+        if ($horario->esDeProfesor()) {
+            return collect((new ColocacionSesiones($horario))->sesiones($dia->value))
+                ->whereIn('numero', $deAsignatura)
+                ->map(fn (array $sesion) => ['numero' => $sesion['numero'], 'hora' => ColocacionSesiones::hora($sesion['inicio'])])
+                ->values()
+                ->all();
+        }
+
+        $combinado = Jornada::combinarSlots($jornadas, $horario->duracion_sesion_minutos ?? 0);
 
         return collect($combinado['slots'])
             ->where('tipo', 'sesion')
@@ -260,10 +271,12 @@ class Formulario extends Component
 
     public function render()
     {
-        $asignaturas = Asignatura::where('horario_id', session('horario_actual_id'))
+        $asignaturas = Asignatura::with('modulo')
+            ->where('horario_id', session('horario_actual_id'))
             ->where(fn ($q) => $this->soloActivasOOriginal($q))
             ->orderBy('nombre')
-            ->pluck('nombre', 'id');
+            ->get()
+            ->mapWithKeys(fn (Asignatura $asignatura) => [$asignatura->id => $asignatura->nombreConModulo()]);
 
         return view('livewire.examenes.formulario', [
             'asignaturas' => $asignaturas,

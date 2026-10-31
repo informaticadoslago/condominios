@@ -12,6 +12,7 @@ class HorarioSesion extends Model
         'horario_id',
         'dia_semana',
         'sesion_numero',
+        'hora_inicio',
         'asignatura_id',
     ];
 
