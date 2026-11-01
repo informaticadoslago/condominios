@@ -7,6 +7,7 @@ window.Swal = Swal;
 import './mysweetalert2';
 import './tab-style';
 import './notificaciones-push';
+import './visor-pdf';
 
 // El menú lateral de "Comunidades accesibles" no es reactivo (es PHP suelto en
 // el layout, no un componente Livewire): recargamos la página al crear,
