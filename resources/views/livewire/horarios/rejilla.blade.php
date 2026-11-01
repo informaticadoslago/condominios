@@ -74,11 +74,13 @@
                                                 </span>
                                                 <div class="flex-1">
                                                     @if ($tramo['tipo'] === 'sesion')
-                                                        <div class="rounded px-2 py-1 text-xs" style="background-color: {{ $tramo['fondo'] }}; color: {{ $tramo['texto'] }};">
+                                                        @php($avisosSesion = $avisos[$dia][$tramo['numero']] ?? [])
+                                                        <div class="relative rounded {{ $avisosSesion ? 'pl-2 pr-4' : 'px-2' }} py-1 text-xs" style="background-color: {{ $tramo['fondo'] }}; color: {{ $tramo['texto'] }};">
                                                             {{ $tramo['nombre'] }}@if ($tramo['aula']) · {{ $tramo['aula'] }}@endif
                                                             @if ($tramo['modulo'])
                                                                 <div class="italic">{{ $tramo['modulo'] }}</div>
                                                             @endif
+                                                            @include('livewire.horarios.parciales.campanas-aviso')
                                                         </div>
                                                     @elseif ($tramo['tipo'] === 'recreo')
                                                         <div class="rounded px-2 py-1 text-xs text-center bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">

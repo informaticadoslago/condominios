@@ -217,6 +217,7 @@ class RejillaFormulario extends Component
         }
 
         $this->dispatch('toast-success', ['title' => __('Avisos guardados')]);
+        $this->dispatch('avisos-guardados');
         $this->avisoAbierto = false;
     }
 

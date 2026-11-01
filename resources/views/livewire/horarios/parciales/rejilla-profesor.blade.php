@@ -32,8 +32,9 @@
                 @endforeach
 
                 @foreach ($columna['sesiones'] as $sesion)
+                    @php($avisosSesion = $avisos[$dia][$sesion['numero']] ?? [])
                     <div wire:key="sesion-profesor-{{ $dia }}-{{ $sesion['numero'] }}-{{ $sesion['inicio'] }}"
-                        class="absolute rounded px-2 py-1 overflow-hidden select-none shadow-sm"
+                        class="absolute rounded {{ $avisosSesion ? 'pl-2 pr-4' : 'px-2' }} py-1 overflow-hidden select-none shadow-sm"
                         style="left: 4px; right: 4px; top: {{ $sesion['top'] }}px; height: {{ $sesion['alto'] }}px; background-color: {{ $sesion['fondo'] }}; color: {{ $sesion['texto'] }};@if ($mover) cursor: grab; touch-action: none;@endif"
                         @if ($mover) title="{{ __('Arrastra arriba o abajo para cambiar la hora') }}" @endif
                         x-data="{
@@ -79,6 +80,7 @@
                         @if ($sesion['aula'])
                             <div>{{ $sesion['aula'] }}</div>
                         @endif
+                        @include('livewire.horarios.parciales.campanas-aviso')
                     </div>
                 @endforeach
             </div>

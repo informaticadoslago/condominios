@@ -29,6 +29,7 @@ class Rejilla extends Component
     }
 
     #[On('rejilla-guardada')]
+    #[On('avisos-guardados')]
     public function cargar(): void
     {
         $this->horario = Horario::with(['jornadas.recreos', 'sesiones.asignatura.modulo'])->find((int) session('horario_actual_id'));
@@ -218,6 +219,18 @@ class Rejilla extends Component
         // Como la campana de Editar: solo con notificaciones activadas y algún dispositivo.
         $conAvisos = Auth::user()->notificaciones_push && Auth::user()->pushSubscriptions()->exists();
 
-        return view('livewire.horarios.rejilla', compact('diasConfig', 'maxSlots', 'asignaciones', 'horasFilas', 'diaInicial', 'escala', 'conAvisos'));
+        // [dia_semana][sesion_numero][momento] => minutos antes: las campanitas de cada sesión.
+        $avisos = [];
+        if ($conAvisos && $this->horario) {
+            $avisosUsuario = HorarioSesionAviso::with('sesion')->where('user_id', Auth::id())->where('horario_id', $this->horario->id)->get();
+
+            foreach ($avisosUsuario as $aviso) {
+                if ($aviso->sesion) {
+                    $avisos[$aviso->dia_semana][$aviso->sesion->sesion_numero][$aviso->momento] = $aviso->minutos_antes;
+                }
+            }
+        }
+
+        return view('livewire.horarios.rejilla', compact('diasConfig', 'maxSlots', 'asignaciones', 'horasFilas', 'diaInicial', 'escala', 'conAvisos', 'avisos'));
     }
 }
