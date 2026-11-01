@@ -91,6 +91,9 @@ class AppInstaller extends Command
         Artisan::call('key:generate', ['--force' => true]);
         $this->info('APP_KEY regenerada.');
 
+        Artisan::call('webpush:vapid', ['--force' => true]);
+        $this->info('Claves VAPID de las notificaciones push generadas.');
+
         return false;
     }
 
