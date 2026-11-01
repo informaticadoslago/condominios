@@ -17,6 +17,9 @@ class Rejilla extends Component
 {
     public ?Horario $horario = null;
 
+    /** Botón "Mover": las sesiones del horario de profesor solo se arrastran con él activado. */
+    public bool $mover = false;
+
     /** Píxeles por minuto del horario de profesor (escala de tiempo). */
     private const PIXELES_MINUTO = 1.6;
 
@@ -43,7 +46,7 @@ class Rejilla extends Component
             ->where('sesion_numero', $numero)
             ->first();
 
-        if (! $horario?->esDeProfesor() || ! $sesion) {
+        if (! $this->mover || ! $horario?->esDeProfesor() || ! $sesion) {
             return;
         }
 

@@ -37,6 +37,15 @@
                                 <i class="fa-solid fa-bell mr-1"></i>{{ __('Configuración avisos') }}
                             </x-secondary-button>
                         @endif
+                        @if ($escala)
+                            {{-- Para no cambiar una sesión de hora sin querer: solo se arrastran
+                                 con esto activado. En el móvil en vertical no se arrastra. --}}
+                            <x-secondary-button type="button" id="btn-mover-sesiones" wire:click="$toggle('mover')"
+                                @class(['max-md:portrait:hidden', '!bg-blue-600 dark:!bg-blue-800 !text-white hover:!bg-blue-700 dark:hover:!bg-blue-700' => $mover])
+                                title="{{ __('Activar o desactivar mover las sesiones arrastrándolas') }}">
+                                <i class="fa-solid fa-arrows-up-down mr-1"></i>{{ __('Mover') }}
+                            </x-secondary-button>
+                        @endif
                     </x-slot>
 
                     {{-- Con el móvil en vertical no caben los días en columnas: se ve un día

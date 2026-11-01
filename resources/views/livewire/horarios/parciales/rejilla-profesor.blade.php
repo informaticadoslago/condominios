@@ -1,7 +1,8 @@
-{{-- Horario de profesor en escala de tiempo: cada sesión con asignatura se arrastra
-     arriba o abajo dentro de su día, a saltos de 5 minutos. Puede pisar los recreos,
+{{-- Horario de profesor en escala de tiempo: con "Mover" activado, cada sesión con asignatura
+     se arrastra arriba o abajo dentro de su día, a saltos de 5 minutos. Puede pisar los recreos,
      pero se para al tocar otra sesión o el borde de su jornada (min/max, calculados en
-     ColocacionSesiones; Rejilla::moverSesion lo vuelve a comprobar al guardar). --}}
+     ColocacionSesiones; Rejilla::moverSesion lo vuelve a comprobar al guardar).
+     empezar() mira $wire.mover y no un dato del x-data, que no se rehace al pulsar el botón. --}}
 <div class="flex text-xs">
     <div class="shrink-0" style="width: 3.5rem;">
         <div class="py-3 px-2 font-medium border-b">{{ __('Horas') }}</div>
@@ -33,8 +34,8 @@
                 @foreach ($columna['sesiones'] as $sesion)
                     <div wire:key="sesion-profesor-{{ $dia }}-{{ $sesion['numero'] }}-{{ $sesion['inicio'] }}"
                         class="absolute rounded px-2 py-1 overflow-hidden select-none shadow-sm"
-                        style="left: 4px; right: 4px; top: {{ $sesion['top'] }}px; height: {{ $sesion['alto'] }}px; background-color: {{ $sesion['fondo'] }}; color: {{ $sesion['texto'] }}; cursor: grab; touch-action: none;"
-                        title="{{ __('Arrastra arriba o abajo para cambiar la hora') }}"
+                        style="left: 4px; right: 4px; top: {{ $sesion['top'] }}px; height: {{ $sesion['alto'] }}px; background-color: {{ $sesion['fondo'] }}; color: {{ $sesion['texto'] }};@if ($mover) cursor: grab; touch-action: none;@endif"
+                        @if ($mover) title="{{ __('Arrastra arriba o abajo para cambiar la hora') }}" @endif
                         x-data="{
                             inicio: {{ $sesion['inicio'] }},
                             min: {{ $sesion['min'] }},
@@ -43,7 +44,7 @@
                             arrastrando: false,
                             y0: 0,
                             empezar(e) {
-                                if (this.max < this.min) return;
+                                if (! $wire.mover || this.max < this.min) return;
                                 this.arrastrando = true;
                                 this.y0 = e.clientY;
                                 this.nuevo = this.inicio;
