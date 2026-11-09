@@ -10,6 +10,7 @@ use App\Models\MandatoSepa;
 use App\Models\Recibo;
 use App\Models\Remesa;
 use App\Models\TipoEstadoRecibo;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\DB;
  * Solo entran los que se pueden cobrar de verdad: domiciliados, con saldo pendiente, con
  * mandato firmado para su cuenta y que no estén ya en vuelo en otra remesa. Un recibo
  * devuelto sí vuelve a entrar — se presenta otra vez, con una línea nueva.
+ *
+ * Los de vencimientos anteriores que sigan pendientes solo entran si se eligen uno a uno.
  *
  * El importe de cada línea es el SALDO, no el importe del recibo: si ya se cobró algo a
  * cuenta por otra vía, al banco solo se le pide lo que falta.
@@ -89,25 +92,48 @@ final class GeneradorRemesa
      * Recibos que pueden ir en la remesa de ese vencimiento. La usa también la pantalla
      * para enseñar de antemano lo que va a entrar.
      *
-     * @param  int[]|null  $reciboIds  para quedarse solo con los elegidos
+     * @param  int[]|null  $reciboIds  para quedarse solo con los elegidos, que pueden ser
+     *                                 también de vencimientos anteriores
      * @return Collection<int, Recibo>
      */
     public function recibosRemesables(Comunidad $comunidad, string $fechaVencimiento, ?array $reciboIds = null): Collection
+    {
+        return $this->remesables($comunidad)
+            // Los atrasados no entran solos: hace falta haberlos elegido.
+            ->whereDate('fecha_vencimiento', $reciboIds === null ? '=' : '<=', $fechaVencimiento)
+            // Se filtra al final y sobre la misma consulta: así, aunque lleguen ids de una
+            // pantalla abierta hace rato, nunca entra uno que ya no sea remesable.
+            ->when($reciboIds !== null, fn ($q) => $q->whereIn('id', $reciboIds))
+            ->orderBy('inmueble_id')
+            ->get();
+    }
+
+    /**
+     * Los de vencimientos anteriores que siguen sin cobrar y sin presentar: la pantalla
+     * los enseña sin marcar, por si se quiere añadir alguno a la remesa.
+     *
+     * @return Collection<int, Recibo>
+     */
+    public function recibosAtrasados(Comunidad $comunidad, string $fechaVencimiento): Collection
+    {
+        return $this->remesables($comunidad)
+            ->whereDate('fecha_vencimiento', '<', $fechaVencimiento)
+            ->orderBy('fecha_vencimiento')
+            ->orderBy('inmueble_id')
+            ->get();
+    }
+
+    /** Lo que se puede presentar al banco, sea del vencimiento que sea. */
+    private function remesables(Comunidad $comunidad): Builder
     {
         return Recibo::query()
             ->whereIn('inmueble_id', Inmueble::where('comunidad_id', $comunidad->id)->select('id'))
             ->where('forma_de_pago_id', FormaDePago::RECIBO_BANCARIO)
             ->whereNotNull('cuenta_bancaria_id')
-            ->whereDate('fecha_vencimiento', $fechaVencimiento)
             ->where('saldo', '>', 0)
             // Ya presentado y sin devolver: está en vuelo, no se presenta dos veces.
             ->whereDoesntHave('lineasRemesas', fn ($q) => $q->whereNull('fecha_devolucion'))
-            // Se filtra al final y sobre la misma consulta: así, aunque lleguen ids de una
-            // pantalla abierta hace rato, nunca entra uno que ya no sea remesable.
-            ->when($reciboIds !== null, fn ($q) => $q->whereIn('id', $reciboIds))
-            ->with(['cuentaBancaria.entidadBancaria', 'inmueble.tipoInmueble', 'propietario.persona'])
-            ->orderBy('inmueble_id')
-            ->get();
+            ->with(['cuentaBancaria.entidadBancaria', 'inmueble.tipoInmueble', 'propietario.persona']);
     }
 
     /**

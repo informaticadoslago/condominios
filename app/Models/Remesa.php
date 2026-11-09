@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/** Envío de adeudos al banco: agrupa los recibos domiciliados de un vencimiento. */
+/** Envío de adeudos al banco: agrupa los recibos domiciliados de un vencimiento y los atrasados que se elijan. */
 class Remesa extends Model
 {
     protected $table = 'remesas';

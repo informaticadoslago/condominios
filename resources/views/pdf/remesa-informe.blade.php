@@ -78,7 +78,7 @@
                     {{ $linea->recibo?->inmueble?->planta }} {{ $linea->recibo?->inmueble?->puerta }}
                 </td>
                 <td class="izq">{{ $linea->recibo?->propietario?->persona?->nombreCompleto }}</td>
-                <td class="der">{{ $fmt($linea->recibo?->importe) }}</td>
+                <td class="der">{{ $fmt($linea->importe) }}</td>
             </tr>
         @empty
             <tr>

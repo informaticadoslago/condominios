@@ -245,7 +245,10 @@ class Lista extends ListaComponent
         $this->nuevaAbierta     = true;
     }
 
-    /** Paso 1 → 2: se enseña lo que va a entrar, todo marcado, para poder quitar alguno. */
+    /**
+     * Paso 1 → 2: se enseña lo que va a entrar, todo marcado, para poder quitar alguno.
+     * Los de vencimientos anteriores salen también, pero sin marcar.
+     */
     public function repasarRemesa(GeneradorRemesa $generador): void
     {
         $this->validate([
@@ -264,7 +267,8 @@ class Lista extends ListaComponent
 
         $recibos = $generador->recibosRemesables($comunidad, $this->nuevaVencimiento);
 
-        if ($recibos->isEmpty()) {
+        // De esa fecha puede no haber nada y quedar solo atrasados que añadir.
+        if ($recibos->isEmpty() && $generador->recibosAtrasados($comunidad, $this->nuevaVencimiento)->isEmpty()) {
             $this->dispatch('toast-error', [
                 'title' => __('No hay recibos domiciliados pendientes con ese vencimiento'),
             ]);
@@ -1181,6 +1185,7 @@ class Lista extends ListaComponent
         // viaja entre peticiones son solo los ids marcados.
         $recibosAremesar = $this->nuevaAbierta && $this->nuevaPaso === 2 && $this->comunidad()
             ? $generador->recibosRemesables($this->comunidad(), $this->nuevaVencimiento)
+                ->concat($generador->recibosAtrasados($this->comunidad(), $this->nuevaVencimiento))
             : collect();
 
         return view('livewire.remesas.lista', [

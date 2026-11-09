@@ -250,6 +250,7 @@
                         <x-input-error for="nuevaVencimiento" class="mt-1" />
                         <p class="mt-1 text-sm text-gray-500">
                             {{ __('Entran los recibos domiciliados de esa fecha que sigan pendientes y no estén ya presentados.') }}
+                            {{ __('Los pendientes de vencimientos anteriores saldrán en el paso siguiente, sin marcar.') }}
                         </p>
                     </div>
 
@@ -267,6 +268,9 @@
                             'vencimiento' => \Carbon\Carbon::parse($nuevaVencimiento)->format('d/m/Y'),
                             'cargo'       => \Carbon\Carbon::parse($nuevaFechaCargo)->format('d/m/Y'),
                         ]) }}
+                        @if ($recibosAremesar->contains(fn ($recibo) => $recibo->fecha_vencimiento->toDateString() < $nuevaVencimiento))
+                            {{ __('Los de vencimientos anteriores salen sin marcar: marca los que quieras añadir.') }}
+                        @endif
                     </p>
 
                     <div class="max-h-96 overflow-y-auto border rounded-lg">
@@ -277,6 +281,7 @@
                                     <th class="py-2 px-3">{{ __('Inmueble') }}</th>
                                     <th class="py-2 px-3">{{ __('Propietario') }}</th>
                                     <th class="py-2 px-3">{{ __('Cuenta') }}</th>
+                                    <th class="py-2 px-3">{{ __('Vencimiento') }}</th>
                                     <th class="py-2 px-3 text-right">{{ __('Importe') }}</th>
                                 </tr>
                             </thead>
@@ -292,6 +297,7 @@
                                         </td>
                                         <td class="py-2 px-3 mayusculas">{{ $recibo->propietario?->persona?->nombreCompleto }}</td>
                                         <td class="py-2 px-3">{{ $recibo->cuentaBancaria?->iban }}</td>
+                                        <td class="py-2 px-3 whitespace-nowrap">{{ $recibo->fecha_vencimiento->format('d/m/Y') }}</td>
                                         <td class="py-2 px-3 text-right">{{ number_format((float) $recibo->saldo, 2, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
