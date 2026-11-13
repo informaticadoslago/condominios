@@ -8,8 +8,8 @@ use App\Http\Controllers\ConfirmarCorreoPropietarioController;
 use App\Http\Controllers\ConfirmarCorreoUsuarioController;
 use App\Http\Controllers\DocumentoDescargaController;
 use App\Http\Controllers\DocumentoVistaController;
-use App\Http\Controllers\ExamenesIcsController;
-use App\Http\Controllers\ExamenesPdfController;
+use App\Http\Controllers\EventosIcsController;
+use App\Http\Controllers\EventosPdfController;
 use App\Http\Controllers\HorarioContextoController;
 use App\Http\Controllers\HorarioRejillaPdfController;
 use App\Http\Controllers\MandatoSepaPlantillaController;
@@ -64,7 +64,7 @@ use App\Livewire\Horarios\DiasSesiones as HorariosDiasSesiones;
 use App\Livewire\Horarios\Rejilla as HorariosRejilla;
 use App\Livewire\Asignaturas\Lista as AsignaturasLista;
 use App\Livewire\Modulos\Lista as ModulosLista;
-use App\Livewire\Examenes\Lista as ExamenesLista;
+use App\Livewire\Eventos\Lista as EventosLista;
 use App\Livewire\Maestros\Periodicidades\Lista as PeriodicidadesLista;
 use App\Livewire\Presupuestos\Conceptos as PresupuestosConceptos;
 use App\Livewire\Presupuestos\Lista as PresupuestosLista;
@@ -92,9 +92,12 @@ Route::get('/confirmar-correo-propietario/{contacto}', ConfirmarCorreoPropietari
     ->middleware('signed')
     ->name('propietarios.confirmar-correo');
 
-// Suscripción al calendario de exámenes de un horario: la piden Google, el iPhone… sin
-// sesión. El código secreto de la URL hace de llave.
-Route::get('/calendario/{token}/examenes.ics', ExamenesIcsController::class)->name('examenes.ics');
+// Suscripción al calendario de eventos (exámenes, juntas…) de un horario: la piden
+// Google, el iPhone… sin sesión. El código secreto de la URL hace de llave. La dirección
+// examenes.ics es la de cuando solo había exámenes: quien se suscribió entonces la tiene
+// guardada en su calendario, así que tiene que seguir respondiendo.
+Route::get('/calendario/{token}/eventos.ics', EventosIcsController::class)->name('eventos.ics');
+Route::get('/calendario/{token}/examenes.ics', EventosIcsController::class)->name('examenes.ics');
 
 // El navegador pide el manifest sin sesión (lo necesita el iPhone para las notificaciones).
 Route::get('/manifest.webmanifest', ManifestController::class)->name('manifest');
@@ -133,8 +136,8 @@ Route::middleware([
         Route::get('/dias-sesiones', HorariosDiasSesiones::class)->name('dias-sesiones.edit');
         Route::get('/rejilla', HorariosRejilla::class)->name('rejilla.edit');
         Route::get('/rejilla/pdf', HorarioRejillaPdfController::class)->name('rejilla.pdf');
-        Route::get('/examenes', ExamenesLista::class)->name('examenes.index');
-        Route::get('/examenes/pdf', ExamenesPdfController::class)->name('examenes.pdf');
+        Route::get('/eventos', EventosLista::class)->name('eventos.index');
+        Route::get('/eventos/pdf', EventosPdfController::class)->name('eventos.pdf');
     });
 
     // Rutas de Administración del Sistema
@@ -259,6 +262,7 @@ Route::middleware([
     Route::get('/catalogos/tipo-estado-presupuestos', CatalogosLista::class)->defaults('clave', 'tipo-estado-presupuestos')->name('catalogos.tipo-estado-presupuestos');
     Route::get('/catalogos/tipo-directivo-comunidades', CatalogosLista::class)->defaults('clave', 'tipo-directivo-comunidades')->name('catalogos.tipo-directivo-comunidades');
     Route::get('/catalogos/tipo-horarios', CatalogosLista::class)->defaults('clave', 'tipo-horarios')->name('catalogos.tipo-horarios');
+    Route::get('/catalogos/tipo-eventos', CatalogosLista::class)->defaults('clave', 'tipo-eventos')->name('catalogos.tipo-eventos');
 
 });
 

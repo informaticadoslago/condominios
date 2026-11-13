@@ -45,6 +45,7 @@ return [
                     'label' => trans_key('menu.Gestión horaria'),
                     'items' => [
                         ['icon' => 'fa-solid fa-clock', 'label' => trans_key('menu.Horarios'), 'route' => 'horarios.index'],
+                        ['icon' => 'fa-solid fa-calendar-check', 'label' => trans_key('menu.Tipos de evento'), 'route' => 'catalogos.tipo-eventos'],
                     ],
                 ],
                 [

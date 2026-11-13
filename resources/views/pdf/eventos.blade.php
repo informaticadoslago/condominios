@@ -1,9 +1,9 @@
-{{-- Los exámenes de un Horario que muestra su lista (con sus filtros), sin la rejilla: A4 vertical. --}}
+{{-- Los eventos del calendario de un Horario que muestra su lista (con sus filtros), sin la rejilla: A4 vertical. --}}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>{{ __('Exámenes') }} {{ $horario->nombre }}</title>
+    <title>{{ __('Calendario') }} {{ $horario->nombre }}</title>
     <style>
         @page { margin: 28mm 10mm 18mm; }
         body  { font-family: DejaVu Sans, sans-serif; font-size: 8.8pt; color: #000; }
@@ -25,10 +25,10 @@
         /* Rayado suave: gris clarito en las filas impares, blanco en las pares. */
         tbody tr:nth-child(odd) { background-color: rgb(241, 241, 242); }
 
-        h2.examenes { font-size: 11pt; margin: 0; }
-        table.examenes-mes { margin-top: 6pt; page-break-inside: avoid; }
-        table.examenes-mes thead th { text-align: left; }
-        td.dia-examen { width: 30%; white-space: nowrap; }
+        h2.eventos { font-size: 11pt; margin: 0; }
+        table.eventos-mes { margin-top: 6pt; page-break-inside: avoid; }
+        table.eventos-mes thead th { text-align: left; }
+        td.dia-evento { width: 30%; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -52,10 +52,10 @@
     </table>
 </div>
 
-@if ($examenesPorMes->isNotEmpty())
-    @include('pdf.parciales.examenes-por-mes')
+@if ($eventosPorMes->isNotEmpty())
+    @include('pdf.parciales.eventos-por-mes')
 @else
-    <p>{{ __('No hay exámenes que mostrar.') }}</p>
+    <p>{{ __('No hay eventos que mostrar.') }}</p>
 @endif
 
 </body>

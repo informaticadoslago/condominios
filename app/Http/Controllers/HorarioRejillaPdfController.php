@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Examen;
+use App\Models\Evento;
 use App\Models\Horario;
 use App\Models\Jornada;
 use App\Services\Horarios\ColocacionSesiones;
@@ -52,8 +52,8 @@ class HorarioRejillaPdfController extends Controller
 
         $horasFilas = Jornada::horasPorFila($diasConfig, $maxSlots, $horario->duracion_sesion_minutos ?? 0);
 
-        // Debajo del horario, los exámenes que quedan (los de hoy incluidos), por meses.
-        $examenesPorMes = Examen::porMes($horario->id);
+        // Debajo del horario, los exámenes y demás eventos que quedan (los de hoy incluidos), por meses.
+        $eventosPorMes = Evento::porMes($horario->id);
 
         // Hasta 5 columnas de día caben en vertical; con 6 o 7 (semana completa) hace
         // falta apaisado para que no se queden estrechas.
@@ -66,7 +66,7 @@ class HorarioRejillaPdfController extends Controller
             'maxSlots' => $maxSlots,
             'asignaciones' => $asignaciones,
             'horasFilas' => $horasFilas,
-            'examenesPorMes' => $examenesPorMes,
+            'eventosPorMes' => $eventosPorMes,
         ])->setPaper('a4', $orientacion);
 
         return $pdf->stream('horario-'.Str::slug($horario->nombre).'.pdf');

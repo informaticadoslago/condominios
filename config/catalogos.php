@@ -3,6 +3,9 @@
 // Catálogos simples (id + descripción + estado) servidos por un único par de
 // componentes Livewire (App\Livewire\Catalogos\Lista / Formulario), parametrizado
 // por la clave de esta config. La clave es la que se usa en la ruta y en el menú.
+//
+// 'usado_por': relaciones del modelo que dicen si una fila está en uso. Con alguna fila
+// en ellas, la lista no deja borrarla definitivamente (lo comprueba antes de borrar).
 return [
     'tipo-ocupaciones' => [
         'modelo'    => \App\Models\TipoOcupacion::class,
@@ -28,10 +31,18 @@ return [
         'modelo'    => \App\Models\TipoDirectivoComunidad::class,
         'titulo'    => 'Tipos de directivo',
         'subtitulo' => 'Puestos de la directiva de las comunidades (presidente, secretario...)',
+        'usado_por' => ['directivos'],
     ],
     'tipo-horarios' => [
         'modelo'    => \App\Models\TipoHorario::class,
         'titulo'    => 'Tipos de horario',
         'subtitulo' => 'Alumno, profesor...',
+        'usado_por' => ['horarios'],
+    ],
+    'tipo-eventos' => [
+        'modelo'    => \App\Models\TipoEvento::class,
+        'titulo'    => 'Tipos de evento',
+        'subtitulo' => 'Eventos del calendario de un horario (examen, junta de evaluación, claustro...)',
+        'usado_por' => ['eventos'],
     ],
 ];

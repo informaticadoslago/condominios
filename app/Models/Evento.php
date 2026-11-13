@@ -5,9 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
-class Examen extends Model
+/**
+ * Un evento del calendario de un horario: un examen, una junta de evaluación, un
+ * claustro… (ver TipoEvento). Solo el examen pide asignatura; en el resto es opcional.
+ */
+class Evento extends Model
 {
-    /** La alarma que propone el formulario para un examen nuevo. */
+    /** La alarma que propone el formulario para un evento nuevo. */
     const ALARMA_POR_DEFECTO = 1440;
 
     /** Filtro "Mostrar" de la lista (y su impresión): los de hoy en adelante, o todos. */
@@ -15,10 +19,11 @@ class Examen extends Model
         PERIODO_FUTUROS = 'futuros',
         PERIODO_TODOS = 'todos';
 
-    protected $table = 'examenes';
+    protected $table = 'eventos';
 
     protected $fillable = [
         'horario_id',
+        'tipo_evento_id',
         'asignatura_id',
         'titulo',
         'fecha',
@@ -29,6 +34,7 @@ class Examen extends Model
 
     protected $casts = [
         'fecha' => 'date',
+        'tipo_evento_id' => 'integer',
         'alarma_minutos' => 'integer',
     ];
 
@@ -47,26 +53,37 @@ class Examen extends Model
     }
 
     /**
-     * Los exámenes del horario en orden y agrupados por mes: ['Noviembre 2026' =>
-     * Collection<Examen>, …]. Es lo que sale al imprimir: debajo del horario semanal (de
-     * fábrica, los que quedan, los de hoy incluidos) y en el PDF de la lista de exámenes
+     * Los eventos del horario en orden y agrupados por mes: ['Noviembre 2026' =>
+     * Collection<Evento>, …]. Es lo que sale al imprimir: debajo del horario semanal (de
+     * fábrica, los que quedan, los de hoy incluidos) y en el PDF de la lista de eventos
      * (con los filtros que tenga puestos la lista).
      */
-    public static function porMes(int $horarioId, bool $soloFuturos = true, ?int $asignaturaId = null): Collection
+    public static function porMes(int $horarioId, bool $soloFuturos = true, ?int $asignaturaId = null, ?int $tipoEventoId = null): Collection
     {
-        return self::with('asignatura.modulo')
+        return self::with(['asignatura.modulo', 'tipoEvento'])
             ->where('horario_id', $horarioId)
             ->when($soloFuturos, fn ($q) => $q->where('fecha', '>=', today()->toDateString()))
             ->when($asignaturaId, fn ($q) => $q->where('asignatura_id', $asignaturaId))
+            ->when($tipoEventoId, fn ($q) => $q->where('tipo_evento_id', $tipoEventoId))
             ->orderBy('fecha')
             ->orderBy('hora')
             ->get()
-            ->groupBy(fn (self $examen) => ucfirst($examen->fecha->isoFormat('MMMM YYYY')));
+            ->groupBy(fn (self $evento) => ucfirst($evento->fecha->isoFormat('MMMM YYYY')));
+    }
+
+    public function esExamen(): bool
+    {
+        return $this->tipo_evento_id === TipoEvento::EXAMEN;
     }
 
     public function horario()
     {
         return $this->belongsTo(Horario::class);
+    }
+
+    public function tipoEvento()
+    {
+        return $this->belongsTo(TipoEvento::class);
     }
 
     public function asignatura()

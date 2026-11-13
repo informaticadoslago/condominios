@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Livewire\Examenes;
+namespace App\Livewire\Eventos;
 
 use App\Livewire\ListaComponent;
 use App\Models\Asignatura;
-use App\Models\Examen;
+use App\Models\Evento;
 use App\Models\Horario;
+use App\Models\TipoEvento;
 use Livewire\Attributes\On;
 
 class Lista extends ListaComponent
@@ -20,7 +21,7 @@ class Lista extends ListaComponent
         $this->direction = 'asc';
     }
 
-    #[On('examen-guardado')]
+    #[On('evento-guardado')]
     public function refrescar()
     {
         // el evento fuerza el re-render de la lista
@@ -38,7 +39,9 @@ class Lista extends ListaComponent
             'dia'        => __('Día'),
             'hora'       => __('Hora'),
             'hora_fin'   => __('Hora fin'),
+            'tipo'       => __('Tipo'),
             'asignatura' => __('Asignatura'),
+            'titulo'     => __('Texto del evento'),
         ];
     }
 
@@ -52,11 +55,20 @@ class Lista extends ListaComponent
                 'etiqueta' => __('Mostrar'),
                 'tipo'     => 'select',
                 'opciones' => [
-                    Examen::PERIODO_FUTUROS => __('Futuros'),
-                    Examen::PERIODO_TODOS   => __('Todos'),
+                    Evento::PERIODO_FUTUROS => __('Futuros'),
+                    Evento::PERIODO_TODOS   => __('Todos'),
                 ],
-                'neutro'   => Examen::PERIODO_TODOS,
+                'neutro'   => Evento::PERIODO_TODOS,
                 'aplicar'  => fn ($query, $valor) => $query->where('fecha', '>=', today()->toDateString()),
+            ],
+            [
+                // Todos los tipos, también los dados de baja: puede haber eventos suyos.
+                'clave'    => 'tipo_evento_id',
+                'etiqueta' => __('Tipo'),
+                'tipo'     => 'select',
+                'opciones' => [0 => __('Todos')] + TipoEvento::orderBy('descripcion')->pluck('descripcion', 'id')->all(),
+                'neutro'   => 0,
+                'aplicar'  => fn ($query, $valor) => $query->where('tipo_evento_id', $valor),
             ],
             [
                 // Sin caché: las asignaturas son de cada horario y se dan de alta a menudo.
@@ -75,11 +87,11 @@ class Lista extends ListaComponent
         ];
     }
 
-    /** De fábrica, solo los exámenes que aún no han pasado. */
+    /** De fábrica, solo los eventos que aún no han pasado. */
     protected function filtrosPorDefecto(): array
     {
         return array_merge(parent::filtrosPorDefecto(), [
-            'periodo' => Examen::PERIODO_FUTUROS,
+            'periodo' => Evento::PERIODO_FUTUROS,
         ]);
     }
 
@@ -89,7 +101,7 @@ class Lista extends ListaComponent
         $horario = Horario::find(session('horario_actual_id'));
 
         if ($horario) {
-            $this->urlCalendario  = route('examenes.ics', $horario->token_calendario);
+            $this->urlCalendario  = route('eventos.ics', $horario->token_calendario);
             $this->verSuscripcion = true;
         }
     }
@@ -102,32 +114,32 @@ class Lista extends ListaComponent
     public function confirmarEliminar($id)
     {
         $this->dispatch('swalConfirm', [
-            'title'              => __('¿Eliminar el examen?'),
-            'text'               => __('Se quitará del calendario de exámenes.'),
+            'title'              => __('¿Eliminar el evento?'),
+            'text'               => __('Se quitará del calendario.'),
             'icon'               => 'warning',
             'showCancelButton'   => true,
             'confirmButtonColor' => '#d33',
             'cancelButtonColor'  => '#f1c40f',
             'confirmButtonText'  => __('Sí, eliminar'),
             'cancelButtonText'   => __('Cancelar'),
-            'confirmCallback'    => 'ejecutarEliminarExamen',
-            'cancelCallback'     => 'eliminarExamenCancelado',
+            'confirmCallback'    => 'ejecutarEliminarEvento',
+            'cancelCallback'     => 'eliminarEventoCancelado',
             'id'                 => $id,
         ]);
     }
 
-    #[On('ejecutarEliminarExamen')]
+    #[On('ejecutarEliminarEvento')]
     public function ejecutarEliminar($id)
     {
-        $examen = Examen::where('horario_id', session('horario_actual_id'))->find($id);
+        $evento = Evento::where('horario_id', session('horario_actual_id'))->find($id);
 
-        if ($examen) {
-            $examen->delete();
-            $this->dispatch('toast-success', ['title' => __('Examen eliminado')]);
+        if ($evento) {
+            $evento->delete();
+            $this->dispatch('toast-success', ['title' => __('Evento eliminado')]);
         }
     }
 
-    #[On('eliminarExamenCancelado')]
+    #[On('eliminarEventoCancelado')]
     public function eliminarCancelado($id = null)
     {
         // el usuario canceló; no hacemos nada
@@ -136,7 +148,7 @@ class Lista extends ListaComponent
     public function render()
     {
         $items = $this->aplicarFiltros(
-            Examen::with('asignatura.modulo')
+            Evento::with(['asignatura.modulo', 'tipoEvento'])
                 ->where('horario_id', session('horario_actual_id'))
         )
             ->orderBy($this->sort, $this->direction)
@@ -145,6 +157,6 @@ class Lista extends ListaComponent
             ->orderBy('id')
             ->paginate($this->lineasXPagina);
 
-        return view('livewire.examenes.lista', compact('items'));
+        return view('livewire.eventos.lista', compact('items'));
     }
 }

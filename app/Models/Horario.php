@@ -44,9 +44,9 @@ class Horario extends Model
         return $this->hasMany(HorarioSesion::class);
     }
 
-    public function examenes()
+    public function eventos()
     {
-        return $this->hasMany(Examen::class);
+        return $this->hasMany(Evento::class);
     }
 
     /**
@@ -83,7 +83,7 @@ class Horario extends Model
         return $horaMasTemprana ? Jornada::minutosDesdeMedianoche($horaMasTemprana) : null;
     }
 
-    /** El código de la dirección .ics del calendario de exámenes (ver ExamenesIcsController). */
+    /** El código de la dirección .ics del calendario de eventos (ver EventosIcsController). */
     public static function nuevoTokenCalendario(): string
     {
         return Str::random(40);

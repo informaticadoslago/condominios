@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Livewire\Examenes;
+namespace App\Livewire\Eventos;
 
 use App\Models\Asignatura;
-use App\Models\Examen;
+use App\Models\Evento;
 use App\Models\Horario;
 use App\Models\Jornada;
+use App\Models\TipoEvento;
 use App\Services\Horarios\ColocacionSesiones;
 use App\Support\DiaSemana;
 use Carbon\Carbon;
@@ -21,18 +22,23 @@ class Formulario extends Component
     public bool $abrir = false;
     public ?int $itemId = null;
 
+    /** Al modificar, el tipo que ya tenía: se deja elegir aunque esté dado de baja. */
+    #[Locked]
+    public ?int $tipoOriginalId = null;
+
     /** Al modificar, la asignatura que ya tenía: se deja elegir aunque esté dada de baja. */
     #[Locked]
     public ?int $asignaturaOriginalId = null;
 
+    public $tipo_evento_id = TipoEvento::EXAMEN;
     public $asignatura_id = '';
     public string $titulo = '';
     public string $fecha = '';
     public string $hora = '';
     public string $hora_fin = '';
 
-    /** Minutos antes del inicio (ver Examen::opcionesAlarma()), o '' para sin alarma. */
-    public $alarma_minutos = Examen::ALARMA_POR_DEFECTO;
+    /** Minutos antes del inicio (ver Evento::opcionesAlarma()), o '' para sin alarma. */
+    public $alarma_minutos = Evento::ALARMA_POR_DEFECTO;
 
     /**
      * Lo elegido en el desplegable de hora: la hora 'H:i' de inicio de una de las
@@ -43,19 +49,25 @@ class Formulario extends Component
     protected function rules()
     {
         return [
-            'asignatura_id' => [
+            'tipo_evento_id' => [
                 'required',
+                Rule::exists('tipo_eventos', 'id')
+                    ->where(fn ($q) => $this->soloActivosUOriginal($q)),
+            ],
+            // Solo el examen pide asignatura: una junta o un claustro no son de ninguna.
+            'asignatura_id' => [
+                $this->esExamen() ? 'required' : 'nullable',
                 Rule::exists('asignaturas', 'id')
                     ->where('horario_id', session('horario_actual_id'))
                     ->where(fn ($q) => $this->soloActivasOOriginal($q)),
             ],
             'titulo'   => ['required', 'string', 'max:150'],
-            // Un examen nuevo no puede caer en un día que ya ha pasado (hoy sí vale). Al
+            // Un evento nuevo no puede caer en un día que ya ha pasado (hoy sí vale). Al
             // modificar sí, para poder corregir uno que ya se hizo.
             'fecha'    => $this->itemId ? ['required', 'date'] : ['required', 'date', 'after_or_equal:today'],
             'hora'     => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora'],
-            'alarma_minutos' => ['nullable', Rule::in(array_keys(Examen::opcionesAlarma()))],
+            'alarma_minutos' => ['nullable', Rule::in(array_keys(Evento::opcionesAlarma()))],
         ];
     }
 
@@ -64,7 +76,8 @@ class Formulario extends Component
         return [
             'required'       => 'Debe rellenar :attribute',
             'max'            => 'Máxima longitud de :attribute = :max',
-            'exists'         => 'La asignatura no es válida',
+            'tipo_evento_id.exists' => 'El tipo de evento no es válido',
+            'asignatura_id.exists'  => 'La asignatura no es válida',
             'date_format'    => 'La hora no es válida',
             'hora_fin.after' => 'La hora de fin tiene que ser posterior a la de inicio',
             'fecha.after_or_equal' => 'La fecha no puede ser anterior a hoy',
@@ -75,6 +88,7 @@ class Formulario extends Component
     protected function validationAttributes()
     {
         return [
+            'tipo_evento_id' => __('tipo'),
             'asignatura_id' => __('asignatura'),
             'titulo'        => __('texto del evento'),
             'fecha'         => __('fecha'),
@@ -83,9 +97,24 @@ class Formulario extends Component
         ];
     }
 
+    private function esExamen(): bool
+    {
+        return (int) $this->tipo_evento_id === TipoEvento::EXAMEN;
+    }
+
     /**
-     * A una asignatura dada de baja no se le ponen exámenes nuevos; al modificar se deja
-     * también la que ya tenía el examen, aunque se haya dado de baja después.
+     * Con un tipo dado de baja no se crean eventos nuevos; al modificar se deja también
+     * el que ya tenía el evento, aunque se haya dado de baja después.
+     */
+    private function soloActivosUOriginal($query)
+    {
+        return $query->where('estado_id', TipoEvento::ESTADO_ACTIVO)
+            ->when($this->tipoOriginalId, fn ($q, $id) => $q->orWhere('id', $id));
+    }
+
+    /**
+     * A una asignatura dada de baja no se le ponen eventos nuevos; al modificar se deja
+     * también la que ya tenía el evento, aunque se haya dado de baja después.
      */
     private function soloActivasOOriginal($query)
     {
@@ -93,7 +122,7 @@ class Formulario extends Component
             ->when($this->asignaturaOriginalId, fn ($q, $id) => $q->orWhere('id', $id));
     }
 
-    #[On('abrir-crear-examen')]
+    #[On('abrir-crear-evento')]
     public function crear()
     {
         $this->reset();
@@ -101,17 +130,19 @@ class Formulario extends Component
         $this->abrir = true;
     }
 
-    #[On('examen-editar')]
+    #[On('evento-editar')]
     public function editar($id)
     {
-        $item = Examen::where('horario_id', session('horario_actual_id'))->find($id);
+        $item = Evento::where('horario_id', session('horario_actual_id'))->find($id);
         if (! $item) {
             return;
         }
         $this->reset();
         $this->itemId               = $item->id;
+        $this->tipoOriginalId       = $item->tipo_evento_id;
+        $this->tipo_evento_id       = $item->tipo_evento_id;
         $this->asignaturaOriginalId = $item->asignatura_id;
-        $this->asignatura_id        = $item->asignatura_id;
+        $this->asignatura_id        = $item->asignatura_id ?? '';
         $this->titulo               = $item->titulo;
         $this->fecha                = $item->fecha->format('Y-m-d');
         $this->hora                 = substr($item->hora, 0, 5);
@@ -126,17 +157,37 @@ class Formulario extends Component
         $this->abrir = true;
     }
 
-    /**
-     * Al elegir la asignatura se propone el texto del evento; se puede cambiar (y si luego
-     * se cambia de asignatura, se vuelve a proponer).
-     */
+    public function updatedTipoEventoId()
+    {
+        $this->proponerTitulo();
+        $this->descartarEleccionInvalida();
+    }
+
     public function updatedAsignaturaId()
     {
-        $asignatura = Asignatura::with('modulo')->where('horario_id', session('horario_actual_id'))->find($this->asignatura_id);
-
-        $this->titulo = $asignatura ? __('Examen de :asignatura', ['asignatura' => $asignatura->nombreConModulo()]) : '';
-
+        $this->proponerTitulo();
         $this->descartarEleccionInvalida();
+    }
+
+    /**
+     * Al elegir el tipo o la asignatura se propone el texto del evento: "Examen de
+     * <asignatura>", o el nombre del tipo si no lleva asignatura. Se puede cambiar (y si
+     * luego se cambia de tipo o de asignatura, se vuelve a proponer).
+     */
+    private function proponerTitulo()
+    {
+        $tipo       = TipoEvento::find($this->tipo_evento_id);
+        $asignatura = $this->asignatura_id
+            ? Asignatura::with('modulo')->where('horario_id', session('horario_actual_id'))->find($this->asignatura_id)
+            : null;
+
+        $this->titulo = match (true) {
+            ! $tipo => '',
+            $asignatura && $this->esExamen() => __('Examen de :asignatura', ['asignatura' => $asignatura->nombreConModulo()]),
+            (bool) $asignatura => __(':tipo de :asignatura', ['tipo' => $tipo->descripcion, 'asignatura' => $asignatura->nombreConModulo()]),
+            $this->esExamen() => '',
+            default => $tipo->descripcion,
+        };
     }
 
     public function updatedFecha()
@@ -144,9 +195,18 @@ class Formulario extends Component
         $this->descartarEleccionInvalida();
     }
 
-    /** Si la sesión elegida no es de la nueva asignatura o del nuevo día, hay que volver a elegir. */
+    /**
+     * Si la sesión elegida no es de la nueva asignatura o del nuevo día, hay que volver a
+     * elegir. Sin asignatura no hay sesiones entre las que elegir: la hora se escribe.
+     */
     private function descartarEleccionInvalida()
     {
+        if (! $this->asignatura_id && ! $this->esExamen()) {
+            $this->eleccionHora = self::HORA_PERSONALIZADA;
+
+            return;
+        }
+
         if ($this->eleccionHora === self::HORA_PERSONALIZADA) {
             return;
         }
@@ -159,7 +219,7 @@ class Formulario extends Component
     }
 
     /**
-     * Elegida una sesión, el examen empieza a su hora. Al pasar a personalizada se deja la
+     * Elegida una sesión, el evento empieza a su hora. Al pasar a personalizada se deja la
      * que hubiera, como punto de partida para cambiarla.
      */
     public function updatedEleccionHora()
@@ -176,7 +236,7 @@ class Formulario extends Component
         $this->proponerHoraFin();
     }
 
-    /** De fábrica el examen dura una sesión del horario (una hora si no la tiene); luego se puede cambiar. */
+    /** De fábrica el evento dura una sesión del horario (una hora si no la tiene); luego se puede cambiar. */
     private function proponerHoraFin()
     {
         if (! preg_match('/^\d{2}:\d{2}$/', $this->hora)) {
@@ -249,18 +309,20 @@ class Formulario extends Component
 
         $data = $this->validate();
 
+        $data['tipo_evento_id'] = (int) $this->tipo_evento_id;
+        $data['asignatura_id']  = $this->asignatura_id ? (int) $this->asignatura_id : null;
         $data['alarma_minutos'] = $this->alarma_minutos === '' || $this->alarma_minutos === null ? null : (int) $this->alarma_minutos;
 
         if ($this->itemId) {
-            Examen::where('horario_id', session('horario_actual_id'))->findOrFail($this->itemId)->update($data);
-            $this->dispatch('toast-success', ['title' => __('Examen modificado')]);
+            Evento::where('horario_id', session('horario_actual_id'))->findOrFail($this->itemId)->update($data);
+            $this->dispatch('toast-success', ['title' => __('Evento modificado')]);
         } else {
             $data['horario_id'] = session('horario_actual_id');
-            Examen::create($data);
-            $this->dispatch('toast-success', ['title' => __('Examen creado')]);
+            Evento::create($data);
+            $this->dispatch('toast-success', ['title' => __('Evento creado')]);
         }
 
-        $this->dispatch('examen-guardado');
+        $this->dispatch('evento-guardado');
         $this->cerrar();
     }
 
@@ -271,6 +333,11 @@ class Formulario extends Component
 
     public function render()
     {
+        $tipos = TipoEvento::query()
+            ->where(fn ($q) => $this->soloActivosUOriginal($q))
+            ->orderBy('descripcion')
+            ->pluck('descripcion', 'id');
+
         $asignaturas = Asignatura::with('modulo')
             ->where('horario_id', session('horario_actual_id'))
             ->where(fn ($q) => $this->soloActivasOOriginal($q))
@@ -278,9 +345,11 @@ class Formulario extends Component
             ->get()
             ->mapWithKeys(fn (Asignatura $asignatura) => [$asignatura->id => $asignatura->nombreConModulo()]);
 
-        return view('livewire.examenes.formulario', [
+        return view('livewire.eventos.formulario', [
+            'tipos'       => $tipos,
             'asignaturas' => $asignaturas,
             'sesiones'    => $this->sesionesDelDia(),
+            'esExamen'    => $this->esExamen(),
         ]);
     }
 }

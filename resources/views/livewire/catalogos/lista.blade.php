@@ -59,9 +59,11 @@
                                                 <i class="fa-solid fa-trash"> </i>
                                             </x-button>
                                         @else
+                                            {{-- Clic normal: reactivar. Mayús+clic: borrado físico (irreversible), que
+                                                 solo sale adelante si ningún otro registro lo usa. --}}
                                             <x-button type="button" class="bg-green-600 hover:bg-green-700 text-white"
-                                                wire:click="confirmarReactivar({{ $item->id }})"
-                                                title="{{ __('Reactivar') }}">
+                                                x-on:click="$event.shiftKey ? $wire.confirmarEliminarFisico({{ $item->id }}) : $wire.confirmarReactivar({{ $item->id }})"
+                                                title="{{ __('Reactivar (Mayús+clic: borrar definitivamente)') }}">
                                                 <i class="fa-solid fa-arrow-rotate-left"> </i>
                                             </x-button>
                                         @endif

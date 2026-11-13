@@ -2,24 +2,26 @@
 
 namespace App\Services\Horarios;
 
-use App\Models\Examen;
+use App\Models\Evento;
 use App\Models\Horario;
 use Carbon\Carbon;
 
 /**
- * Los exámenes de un horario en formato iCalendar (RFC 5545), para suscribirse desde
+ * Los eventos (exámenes, juntas, claustros…) de un horario en formato iCalendar (RFC 5545), para suscribirse desde
  * Google Calendar, el calendario del iPhone, Outlook… Las horas se guardan en hora local
  * (la zona de la aplicación) y aquí se pasan a UTC: así el fichero no tiene que declarar
  * la zona horaria y el cambio de hora cae donde toca.
  *
- * Cada examen lleva un UID fijo (su id): al volver a leer el fichero, el calendario
- * actualiza o quita el evento que ya tenía en vez de duplicarlo.
+ * Cada evento lleva un UID fijo (su id): al volver a leer el fichero, el calendario
+ * actualiza o quita el evento que ya tenía en vez de duplicarlo. El UID sigue empezando
+ * por "examen-", como cuando solo había exámenes, para que a quien ya estaba suscrito
+ * no le cambien los que ya tiene.
  */
-class CalendarioExamenesIcs
+class CalendarioEventosIcs
 {
     public function generar(Horario $horario): string
     {
-        $examenes = Examen::where('horario_id', $horario->id)
+        $eventos = Evento::where('horario_id', $horario->id)
             ->orderBy('fecha')
             ->orderBy('hora')
             ->get();
@@ -29,30 +31,30 @@ class CalendarioExamenesIcs
         $lineas = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            'PRODID:-//'.$dominio.'//Examenes//ES',
+            'PRODID:-//'.$dominio.'//Calendario//ES',
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
-            'X-WR-CALNAME:'.$this->texto(__('Exámenes :horario', ['horario' => $horario->nombre])),
+            'X-WR-CALNAME:'.$this->texto(__('Calendario :horario', ['horario' => $horario->nombre])),
         ];
 
-        foreach ($examenes as $examen) {
+        foreach ($eventos as $evento) {
             array_push($lineas,
                 'BEGIN:VEVENT',
-                'UID:examen-'.$examen->id.'@'.$dominio,
-                'DTSTAMP:'.$this->utc($examen->updated_at ?? now()),
-                'DTSTART:'.$this->utc($this->momento($examen->fecha, $examen->hora)),
-                'DTEND:'.$this->utc($this->momento($examen->fecha, $examen->hora_fin)),
-                'SUMMARY:'.$this->texto($examen->titulo),
+                'UID:examen-'.$evento->id.'@'.$dominio,
+                'DTSTAMP:'.$this->utc($evento->updated_at ?? now()),
+                'DTSTART:'.$this->utc($this->momento($evento->fecha, $evento->hora)),
+                'DTEND:'.$this->utc($this->momento($evento->fecha, $evento->hora_fin)),
+                'SUMMARY:'.$this->texto($evento->titulo),
             );
 
             // La alarma la respeta (o no) cada calendario: el del iPhone sí; Google, en los
             // calendarios suscritos, aplica las notificaciones que tenga configuradas cada uno.
-            if ($examen->alarma_minutos) {
+            if ($evento->alarma_minutos) {
                 array_push($lineas,
                     'BEGIN:VALARM',
                     'ACTION:DISPLAY',
-                    'DESCRIPTION:'.$this->texto($examen->titulo),
-                    'TRIGGER:'.$this->antelacion($examen->alarma_minutos),
+                    'DESCRIPTION:'.$this->texto($evento->titulo),
+                    'TRIGGER:'.$this->antelacion($evento->alarma_minutos),
                     'END:VALARM',
                 );
             }

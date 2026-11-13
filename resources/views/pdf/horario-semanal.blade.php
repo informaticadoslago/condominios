@@ -29,10 +29,10 @@
         /* Rayado suave: gris clarito en las filas impares, blanco en las pares. */
         tbody tr:nth-child(odd) { background-color: rgb(241, 241, 242); }
 
-        h2.examenes { font-size: 11pt; margin: 14pt 0 0; }
-        table.examenes-mes { margin-top: 6pt; page-break-inside: avoid; }
-        table.examenes-mes thead th { text-align: left; }
-        td.dia-examen { width: 30%; white-space: nowrap; }
+        h2.eventos { font-size: 11pt; margin: 14pt 0 0; }
+        table.eventos-mes { margin-top: 6pt; page-break-inside: avoid; }
+        table.eventos-mes thead th { text-align: left; }
+        td.dia-evento { width: 30%; white-space: nowrap; }
 
         /* Horario de profesor: una fila cada 5 minutos. Las celdas vacías no llevan letra,
            para que la fila pueda ser más baja que una línea de texto. */
@@ -166,8 +166,8 @@
     </table>
 @endif
 
-@if ($examenesPorMes->isNotEmpty())
-    @include('pdf.parciales.examenes-por-mes')
+@if ($eventosPorMes->isNotEmpty())
+    @include('pdf.parciales.eventos-por-mes')
 @endif
 
 </body>

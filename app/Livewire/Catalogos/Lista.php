@@ -59,6 +59,27 @@ class Lista extends ListaComponent
         $this->direction = 'asc';
     }
 
+    /**
+     * Si la fila está en uso, según las relaciones 'usado_por' del catálogo: en ese caso
+     * no se borra definitivamente. Se mira aquí, sin esperar a que la base de datos
+     * rechace el borrado.
+     */
+    protected function enUso($item): bool
+    {
+        foreach (config("catalogos.{$this->clave}.usado_por", []) as $relacion) {
+            if ($item->{$relacion}()->exists()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function avisarEnUso(): void
+    {
+        $this->dispatch('toast-error', ['title' => __('No se puede borrar: hay otros registros que lo usan')]);
+    }
+
     #[On('catalogo-guardado')]
     public function refrescar()
     {
@@ -69,6 +90,18 @@ class Lista extends ListaComponent
     public function confirmarEliminarFisico($id)
     {
         if ($this->bloqueado) {
+            return;
+        }
+
+        // En uso no se pregunta siquiera: se avisa y se queda como está.
+        $modelo = $this->modelo;
+        $item   = $modelo::find($id);
+        if (! $item) {
+            return;
+        }
+        if ($this->enUso($item)) {
+            $this->avisarEnUso();
+
             return;
         }
 
@@ -100,6 +133,13 @@ class Lista extends ListaComponent
             return;
         }
 
+        // Otra vez, por si ha empezado a usarse entre la pregunta y la respuesta.
+        if ($this->enUso($item)) {
+            $this->avisarEnUso();
+
+            return;
+        }
+
         try {
             // Si el modelo lleva historial de cambios de estado (ConHistorialEstado),
             // se borra también: si no, quedaría huérfano tras borrar la fila.
@@ -111,6 +151,7 @@ class Lista extends ListaComponent
             $this->dispatch('toast-success', ['title' => __('Registro borrado definitivamente')]);
         } catch (QueryException $e) {
             // SQLSTATE 23000: violación de integridad (la FK restrict de otra tabla la usa).
+            // Red de seguridad para los catálogos que no declaran 'usado_por'.
             if ($e->getCode() === '23000') {
                 $this->dispatch('toast-error', ['title' => __('No se puede borrar: hay otros registros que lo usan')]);
             } else {

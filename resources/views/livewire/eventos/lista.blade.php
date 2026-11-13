@@ -1,13 +1,13 @@
 <x-botonera-page>
     <x-slot name="title">
-        {{ __('Exámenes') }}
+        {{ __('Calendario') }}
     </x-slot>
     <x-slot name="subtitulo">
-        {{ __('Calendario de exámenes del horario') }}
+        {{ __('Exámenes, juntas y demás eventos del horario') }}
     </x-slot>
     <x-slot name="botonera">
-        <x-button type="button" class="btn btn-nuevo" id="btn-nuevo-examen"
-            wire:click="$dispatch('abrir-crear-examen')" title="{{ __('Nuevo') }}">
+        <x-button type="button" class="btn btn-nuevo" id="btn-nuevo-evento"
+            wire:click="$dispatch('abrir-crear-evento')" title="{{ __('Nuevo') }}">
             <i class="fa-solid fa-plus"> </i>{{ __('Nuevo') }}
         </x-button>
         @include('livewire.parciales.boton-acceso-directo')
@@ -22,11 +22,11 @@
                 </x-secondary-button>
                 {{-- Lo que muestra la lista (sus filtros), por meses, en otra pestaña y sin el horario. --}}
                 <x-secondary-button type="button" title="{{ __('Imprimir') }}"
-                    onclick="window.open('{{ route('examenes.pdf', ['periodo' => $filtros['periodo'] ?? null, 'asignatura_id' => ($filtros['asignatura_id'] ?? 0) ?: null]) }}', '_blank')">
+                    onclick="window.open('{{ route('eventos.pdf', ['periodo' => $filtros['periodo'] ?? null, 'tipo_evento_id' => ($filtros['tipo_evento_id'] ?? 0) ?: null, 'asignatura_id' => ($filtros['asignatura_id'] ?? 0) ?: null]) }}', '_blank')">
                     <i class="fa-solid fa-print mr-1"></i>{{ __('Imprimir') }}
                 </x-secondary-button>
-                <x-secondary-button type="button" id="btn-suscribirse-examenes" wire:click="abrirSuscripcion"
-                    title="{{ __('Suscribirse al calendario de exámenes') }}">
+                <x-secondary-button type="button" id="btn-suscribirse-calendario" wire:click="abrirSuscripcion"
+                    title="{{ __('Suscribirse al calendario') }}">
                     <i class="fa-solid fa-calendar-plus mr-1"></i>{{ __('Suscribirse') }}
                 </x-secondary-button>
             </x-slot>
@@ -68,8 +68,14 @@
                                     @case('hora_fin')
                                         <th class="py-3 px-6">{{ __('Hora fin') }}</th>
                                         @break
+                                    @case('tipo')
+                                        <th class="py-3 px-6">{{ __('Tipo') }}</th>
+                                        @break
                                     @case('asignatura')
                                         <th class="py-3 px-6">{{ __('Asignatura') }}</th>
+                                        @break
+                                    @case('titulo')
+                                        <th class="py-3 px-6">{{ __('Texto del evento') }}</th>
                                         @break
                                 @endswitch
                             @endforeach
@@ -93,19 +99,25 @@
                                         @case('hora_fin')
                                             <td class="px-6 py-4">{{ substr($item->hora_fin, 0, 5) }}</td>
                                             @break
+                                        @case('tipo')
+                                            <td class="px-6 py-4">{{ $item->tipoEvento?->descripcion }}</td>
+                                            @break
                                         @case('asignatura')
                                             <td class="px-6 py-4">{{ $item->asignatura?->nombreConModulo() }}</td>
+                                            @break
+                                        @case('titulo')
+                                            <td class="px-6 py-4">{{ $item->titulo }}</td>
                                             @break
                                     @endswitch
                                 @endforeach
                                 <td class="px-4 whitespace-nowrap">
-                                    <x-button type="button" class="btn-editar" id="btn-editar-examen-{{ $item->id }}"
-                                        wire:click="$dispatch('examen-editar', {id: {{ $item->id }}})"
+                                    <x-button type="button" class="btn-editar" id="btn-editar-evento-{{ $item->id }}"
+                                        wire:click="$dispatch('evento-editar', {id: {{ $item->id }}})"
                                         title="{{ __('Modificar') }}">
                                         <i class="fa-solid fa-pen"> </i>
                                     </x-button>
                                     <x-button type="button" class="bg-red-600 hover:bg-red-700 text-white ml-1"
-                                        id="btn-eliminar-examen-{{ $item->id }}"
+                                        id="btn-eliminar-evento-{{ $item->id }}"
                                         wire:click="confirmarEliminar({{ $item->id }})" title="{{ __('Eliminar') }}">
                                         <i class="fa-solid fa-trash"> </i>
                                     </x-button>
@@ -124,17 +136,17 @@
             @endif
         </x-dosl.tabla>
 
-        @livewire('examenes.formulario')
+        @livewire('eventos.formulario')
 
         <x-dosl.dialog-modal wire:model.live="verSuscripcion" class="backdrop-blur" maxWidth="2xl">
             <x-slot name="title">
-                {{ __('Suscribirse al calendario de exámenes') }}
+                {{ __('Suscribirse al calendario') }}
             </x-slot>
 
             <x-slot name="content">
                 @php($webcal = preg_replace('#^https?://#', 'webcal://', $urlCalendario))
                 <p class="text-sm">
-                    {{ __('Quien se suscriba a esta dirección verá los exámenes de este horario en su calendario, y los cambios que se hagan aquí le llegarán solos.') }}
+                    {{ __('Quien se suscriba a esta dirección verá los exámenes y demás eventos de este horario en su calendario, y los cambios que se hagan aquí le llegarán solos.') }}
                 </p>
 
                 {{-- copiar(): clipboard moderno cuando el navegador lo deja (hace falta https),
@@ -189,10 +201,10 @@
                         {{ __('Ajustes → Calendario → Cuentas → Añadir cuenta → Otra → Añadir calendario suscrito, y pegue la dirección.') }}
                     </p>
                     <p class="text-gray-500">
-                        {{ __('Google vuelve a leer el calendario cada varias horas: un examen nuevo o cambiado puede tardar en aparecer.') }}
+                        {{ __('Google vuelve a leer el calendario cada varias horas: un evento nuevo o cambiado puede tardar en aparecer.') }}
                     </p>
                     <p class="text-gray-500">
-                        {{ __('Quien tenga la dirección puede ver los exámenes sin entrar en la aplicación: compártala solo con quien corresponda.') }}
+                        {{ __('Quien tenga la dirección puede ver el calendario sin entrar en la aplicación: compártala solo con quien corresponda.') }}
                     </p>
                 </div>
             </x-slot>
