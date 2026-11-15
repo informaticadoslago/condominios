@@ -19,6 +19,15 @@
     <x-slot name="content">
         <x-dosl.tabla>
             @if (count($apuntes))
+                {{-- La revisión de lo importado es una tabla de cuatro columnas: con el móvil en
+                     vertical no cabe, así que ahí no se ofrece. --}}
+                <x-slot name="botonera">
+                    <x-secondary-button type="button" class="max-md:portrait:hidden" id="btn-importar-notas"
+                        wire:click="$dispatch('abrir-importar-notas')" title="{{ __('Importar notas de un CSV') }}">
+                        <i class="fa-solid fa-file-import mr-1"></i>{{ __('Importar') }}
+                    </x-secondary-button>
+                </x-slot>
+
                 {{-- saltarNota10: con la casilla marcada, el tabulador no para en la nota sobre 10 y va
                      de nota en nota. Solo vive en el navegador; no se guarda. --}}
                 <div x-data="{ saltarNota10: false }">
@@ -83,5 +92,7 @@
                 <div class="py-3 px-6">{{ __('La asignatura no tiene alumnos.') }}</div>
             @endif
         </x-dosl.tabla>
+
+        @livewire('pruebas.importar-notas', ['pruebaId' => $prueba->id])
     </x-slot>
 </x-botonera-page>

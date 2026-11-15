@@ -4,6 +4,7 @@ namespace Tests\Feature\Pruebas;
 
 use App\Livewire\Evaluaciones\Lista as EvaluacionesLista;
 use App\Livewire\Pruebas\Formulario;
+use App\Livewire\Pruebas\ImportarNotas;
 use App\Livewire\Pruebas\Lista;
 use App\Livewire\Pruebas\Notas;
 use App\Models\Alumno;
@@ -264,5 +265,96 @@ class PruebasTest extends TestCase
         // Con otro orden en pantalla no se arrastra.
         $lista->call('ordenar', 'fecha')->call('mover', $a, $c);
         $this->assertSame(['A', 'B', 'C', 'Otra evaluación'], $orden());
+    }
+
+    public function test_importar_notas_de_un_csv(): void
+    {
+        $this->prueba('Tema 1', $this->primera, '2026-10-10');
+        $prueba = Prueba::firstWhere('nombre', 'Tema 1');
+
+        $apunte = function (string $nombre, string $apellido1, string $apellido2) {
+            $alumno = Alumno::create(['horario_id' => $this->horario->id, 'nombre' => $nombre, 'apellido1' => $apellido1, 'apellido2' => $apellido2, 'fecha_nacimiento' => '2010-01-01']);
+
+            return AsignaturaAlumno::create(['asignatura_id' => $this->mates->id, 'alumno_id' => $alumno->id, 'grupo' => 'A', 'estado_id' => 1]);
+        };
+        $yerai = $apunte('Yerai', 'de la Torre', 'Gómez');
+        $sergio = $apunte('Sergio', 'García', 'Orvich');
+        PruebaNota::create(['prueba_id' => $prueba->id, 'asignatura_alumno_id' => $sergio->id, 'nota' => 3, 'nota_sobre_10' => 1]);
+
+        $csv = <<<'CSV'
+            Apelido(s),Nome,"Enderezo de correo",Departamento,Estado,"Arrancado o",Completado,"Tempo levado","Cualificación/10,00","P. 1 /0,33","P. 2 /0,33"
+            "de la Torre Gómez",Yerai,y@example.com,,Finalizada,"22 de outubro de 2026  1:02 PM","22 de outubro de 2026  1:42 PM","39 mins 59 segs.","3,50","'-0,17","0,33"
+            "Garcia Orvich",Sergio,s@example.com,,Finalizada,"22 de outubro de 2026  1:03 PM","22 de outubro de 2026  1:16 PM","13 mins 42 segs.","8,17","0,33",-
+            "Pardo Rey",Kevin,k@example.com,,Finalizada,"22 de outubro de 2026  1:04 PM","22 de outubro de 2026  1:58 PM","53 mins 45 segs.","9,00","0,33","0,33"
+            "García López",Ana,a@example.com,,"En curso","22 de outubro de 2026  1:04 PM",-,-,-,-,-
+            "Media xeral",,,,,,,,"5,90","0,24","0,24"
+            CSV;
+
+        $modal = Livewire::test(ImportarNotas::class, ['pruebaId' => $prueba->id])
+            ->call('abrirModal')
+            ->set('texto', 'esto no es un csv')
+            ->call('revisar')
+            ->assertHasErrors(['texto'])
+            ->set('texto', $csv)
+            ->call('revisar')
+            ->assertHasNoErrors()
+            ->assertSet('revisado', true);
+
+        // La media no cuenta; Kevin no está en la asignatura y Ana no tiene nota.
+        $filas = $modal->get('filas');
+        $this->assertCount(4, $filas);
+        $this->assertSame([null, null, 'No está en la asignatura', 'Sin nota'], array_column($filas, 'error'));
+        $this->assertEquals(10.5, $filas[0]['nota_prueba']);
+        $this->assertEquals(3, $filas[1]['nota_actual']);
+
+        $modal->call('importar')->assertDispatched('notas-importadas')->assertSet('abrir', false);
+
+        // La prueba es sobre 30: 3,50 sobre 10 son 10,5; la nota que había se sustituye.
+        $this->assertEquals([10.5, 3.5], [$yerai->notas()->first()->nota, $yerai->notas()->first()->nota_sobre_10]);
+        $this->assertEquals([24.51, 8.17], [$sergio->notas()->first()->nota, $sergio->notas()->first()->nota_sobre_10]);
+        $this->assertSame(2, PruebaNota::where('prueba_id', $prueba->id)->count());
+
+        // La pantalla de notas recoge lo importado y enseña el botón.
+        Livewire::test(Notas::class, ['asignatura' => $this->mates, 'prueba' => $prueba])
+            ->assertSeeHtml('btn-importar-notas')
+            ->assertSet("notas.{$yerai->id}.nota", '10,5')
+            ->dispatch('notas-importadas')
+            ->assertSet("notas.{$sergio->id}.nota10", '8,17');
+    }
+
+    public function test_importar_notas_de_un_listado_copiado_de_la_pantalla(): void
+    {
+        $this->prueba('Tema 1', $this->primera, '2026-10-10');
+        $prueba = Prueba::firstWhere('nombre', 'Tema 1');
+
+        // Mariana acaba igual que Ana: la línea «Ana García López» es de Ana, que coincide entera.
+        $alumna = Alumno::create(['horario_id' => $this->horario->id, 'nombre' => 'Mariana', 'apellido1' => 'García', 'apellido2' => 'López', 'fecha_nacimiento' => '2010-01-01']);
+        $mariana = AsignaturaAlumno::create(['asignatura_id' => $this->mates->id, 'alumno_id' => $alumna->id, 'grupo' => 'A', 'estado_id' => 1]);
+
+        $listado = "Ana Garcia López\nana@example.com\n-\n 5,50\n 3,83\n"
+            ."MGMariana García López\nmariana@example.com\n-\n-\n 10,00\n"
+            ."KPKevin Pardo Rey\nkevin@example.com\n-\n 5,00\n-\n"
+            ."Media xeral\t\n-\n5,66 (32)\n";
+
+        $modal = Livewire::test(ImportarNotas::class, ['pruebaId' => $prueba->id])
+            ->call('abrirModal')
+            ->set('texto', $listado)
+            ->call('revisar')
+            ->assertHasNoErrors()
+            // Solo las columnas con alguna nota, y por defecto la última.
+            ->assertSet('columnas', [2 => '5,5 · 5', 3 => '3,83 · 10'])
+            ->assertSet('columna', 3);
+
+        $this->assertSame([null, null, 'Sin nota'], array_column($modal->get('filas'), 'error'));
+        $this->assertSame([$this->apunte->id, $mariana->id, null], array_column($modal->get('filas'), 'apunte_id'));
+
+        $modal->set('columna', '2');
+        $this->assertSame([null, 'Sin nota', 'No está en la asignatura'], array_column($modal->get('filas'), 'error'));
+
+        $modal->call('importar');
+
+        // Sobre 10 en una prueba sobre 30.
+        $this->assertSame(1, PruebaNota::where('prueba_id', $prueba->id)->count());
+        $this->assertEquals([16.5, 5.5], [$this->apunte->notas()->first()->nota, $this->apunte->notas()->first()->nota_sobre_10]);
     }
 }

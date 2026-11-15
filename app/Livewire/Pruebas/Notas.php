@@ -7,6 +7,7 @@ use App\Models\AsignaturaAlumno;
 use App\Models\Prueba;
 use App\Models\PruebaNota;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -35,8 +36,17 @@ class Notas extends Component
         );
 
         $this->pruebaId = $prueba->id;
+        $this->cargar();
+    }
 
-        foreach ($this->apuntes($prueba) as $apunte) {
+    /** Las notas guardadas, a las casillas; también tras importar (ver ImportarNotas). */
+    #[On('notas-importadas')]
+    public function cargar()
+    {
+        $this->resetValidation();
+        $this->notas = [];
+
+        foreach ($this->apuntes($this->prueba()) as $apunte) {
             $this->pintar($apunte->id, $apunte->notas->first());
         }
     }
