@@ -3,7 +3,9 @@
 namespace App\Services\Horarios;
 
 use App\Models\AccesoDirecto;
+use App\Models\Alumno;
 use App\Models\Asignatura;
+use App\Models\AsignaturaAlumno;
 use App\Models\Evento;
 use App\Models\Horario;
 use App\Models\HorarioSesion;
@@ -21,7 +23,9 @@ use Spatie\Permission\Models\Role;
  * horario entero falla con un 1451. Lo mismo con asignaturas.modulo_id, RESTRICT hacia
  * modulos. Por eso aquí se borran horario_sesiones, eventos, asignaturas y modulos
  * explícitamente, en ese orden, antes de tocar el horario; jornadas sí puede cascada
- * sola (nada tiene un FK RESTRICT hacia ella).
+ * sola (nada tiene un FK RESTRICT hacia ella). Los apuntes de alumnos (asignatura_alumnos)
+ * son RESTRICT hacia asignaturas y hacia alumnos, así que van los primeros, y detrás los
+ * alumnos del horario.
  */
 class HorarioEliminador
 {
@@ -35,6 +39,8 @@ class HorarioEliminador
 
             HorarioSesion::where('horario_id', $horario->id)->delete();
             Evento::where('horario_id', $horario->id)->delete();
+            AsignaturaAlumno::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))->delete();
+            Alumno::where('horario_id', $horario->id)->delete();
             Asignatura::where('horario_id', $horario->id)->delete();
             Modulo::where('horario_id', $horario->id)->delete();
 

@@ -15,12 +15,12 @@ use ZipArchive;
  * El equivalente, para Horarios, de ImportadorZipComunidad: reconstruye en la base de
  * datos lo que exportó HorarioExportador. Mucho más simple que aquel porque Horario no
  * tiene documentos adjuntos ni enlaces con otros módulos: solo hay que remapear
- * horario_id / modulo_id / jornada_id / asignatura_id al insertar, para no chocar con ids que ya existan.
+ * horario_id / modulo_id / jornada_id / asignatura_id / alumno_id al insertar, para no chocar con ids que ya existan.
  */
 class ImportadorZipHorario
 {
     /** De la raíz hacia las hojas: cada tabla puede depender de las anteriores. */
-    private const ORDEN_TABLAS = ['horarios', 'modulos', 'asignaturas', 'jornadas', 'jornada_recreos', 'horario_sesiones'];
+    private const ORDEN_TABLAS = ['horarios', 'modulos', 'asignaturas', 'jornadas', 'jornada_recreos', 'horario_sesiones', 'alumnos', 'asignatura_alumnos'];
 
     public function importar(string $rutaTemporal, ?string $nombreFichero = null): void
     {
@@ -140,6 +140,7 @@ class ImportadorZipHorario
 
             case 'modulos':
             case 'jornadas':
+            case 'alumnos':
                 $this->remapearColumna($datos, 'horario_id', 'horarios', $mapaIds);
                 break;
 
@@ -157,6 +158,11 @@ class ImportadorZipHorario
             case 'horario_sesiones':
                 $this->remapearColumna($datos, 'horario_id', 'horarios', $mapaIds);
                 $this->remapearColumna($datos, 'asignatura_id', 'asignaturas', $mapaIds);
+                break;
+
+            case 'asignatura_alumnos':
+                $this->remapearColumna($datos, 'asignatura_id', 'asignaturas', $mapaIds);
+                $this->remapearColumna($datos, 'alumno_id', 'alumnos', $mapaIds);
                 break;
         }
 

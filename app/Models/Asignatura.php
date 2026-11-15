@@ -47,6 +47,12 @@ class Asignatura extends Model
         return $this->belongsTo(Estado::class);
     }
 
+    /** Apuntes de alumnos en la asignatura (solo en horarios de profesor). */
+    public function apuntesAlumnos()
+    {
+        return $this->hasMany(AsignaturaAlumno::class);
+    }
+
     /**
      * Paleta fija de tonos suaves para pintar cada asignatura en la rejilla (pantalla y
      * PDF) sin tener que guardar un color: el mismo id siempre cae en el mismo tono.

@@ -7,6 +7,7 @@ use App\Livewire\Traits\ConFiltroEstado;
 use App\Livewire\Traits\ConHistorialEstadoModal;
 use App\Models\Asignatura;
 use App\Models\Estado;
+use App\Models\Horario;
 use App\Models\Modulo;
 use Livewire\Attributes\On;
 
@@ -144,6 +145,9 @@ class Lista extends ListaComponent
             ->orderBy('id')
             ->paginate($this->lineasXPagina);
 
-        return view('livewire.asignaturas.lista', compact('items'));
+        // La lista de alumnos de cada asignatura solo existe en los horarios de profesor.
+        $conAlumnos = (bool) Horario::find(session('horario_actual_id'))?->esDeProfesor();
+
+        return view('livewire.asignaturas.lista', compact('items', 'conAlumnos'));
     }
 }
