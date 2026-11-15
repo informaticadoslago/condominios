@@ -79,10 +79,10 @@ class Lista extends ListaComponent
         return Evaluacion::where('curso_id', $this->cursoId)->find($id);
     }
 
-    /** Hoy nada referencia a una evaluación: siempre se puede borrar. */
+    /** Una evaluación con pruebas no se borra. */
     protected function enUso(Model $registro): bool
     {
-        return false;
+        return $registro->pruebas()->exists();
     }
 
     public function render()

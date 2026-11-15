@@ -98,6 +98,11 @@
                                             class="inline-flex items-center px-4 py-2 mr-1 bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition ease-in-out duration-150">
                                             <i class="fa-solid fa-users"> </i>
                                         </a>
+                                        <a href="{{ route('asignaturas.pruebas', $item->id) }}" wire:navigate
+                                            id="btn-pruebas-asignatura-{{ $item->id }}" title="{{ __('Pruebas evaluables') }}"
+                                            class="inline-flex items-center px-4 py-2 mr-1 bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition ease-in-out duration-150">
+                                            <i class="fa-solid fa-clipboard-check"> </i>
+                                        </a>
                                     @endif
                                     <x-button type="button" class="btn-editar" id="btn-editar-asignatura-{{ $item->id }}"
                                         wire:click="$dispatch('asignatura-editar', {id: {{ $item->id }}})"

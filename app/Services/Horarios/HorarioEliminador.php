@@ -12,6 +12,8 @@ use App\Models\Evento;
 use App\Models\Horario;
 use App\Models\HorarioSesion;
 use App\Models\Modulo;
+use App\Models\Prueba;
+use App\Models\PruebaNota;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
@@ -41,6 +43,11 @@ class HorarioEliminador
 
             HorarioSesion::where('horario_id', $horario->id)->delete();
             Evento::where('horario_id', $horario->id)->delete();
+            // Notas y pruebas, antes que los apuntes, las asignaturas y las evaluaciones a los
+            // que apuntan (todas sus FK son RESTRICT).
+            $pruebas = Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'));
+            PruebaNota::whereIn('prueba_id', (clone $pruebas)->select('id'))->delete();
+            $pruebas->delete();
             AsignaturaAlumno::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))->delete();
             Alumno::where('horario_id', $horario->id)->delete();
             Asignatura::where('horario_id', $horario->id)->delete();

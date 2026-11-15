@@ -159,6 +159,13 @@ class Lista extends ListaComponent
             return;
         }
 
+        // Con notas en alguna prueba no se borra.
+        if ($apunte->notas()->exists()) {
+            $this->dispatch('toast-error', ['title' => __('No se puede borrar: el alumno tiene notas en esta asignatura')]);
+
+            return;
+        }
+
         $this->dispatch('swalConfirm', [
             'title'              => __('¿Borrar definitivamente?'),
             'text'               => $apunte->alumno->apuntes()->count() > 1
@@ -182,6 +189,13 @@ class Lista extends ListaComponent
         $apunte = $this->apunte($id);
 
         if (! $apunte || $apunte->estado_id == AsignaturaAlumno::ESTADO_ACTIVO) {
+            return;
+        }
+
+        // Con notas en alguna prueba no se borra.
+        if ($apunte->notas()->exists()) {
+            $this->dispatch('toast-error', ['title' => __('No se puede borrar: el alumno tiene notas en esta asignatura')]);
+
             return;
         }
 

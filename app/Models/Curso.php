@@ -51,6 +51,16 @@ class Curso extends Model
         return Attribute::get(fn () => $this->nombre);
     }
 
+    /** El curso activo del horario en el que cae hoy, si lo hay. */
+    public static function actual(int $horarioId): ?self
+    {
+        return self::where('horario_id', $horarioId)
+            ->where('estado_id', self::ESTADO_ACTIVO)
+            ->whereDate('fecha_inicio', '<=', today())
+            ->whereDate('fecha_fin', '>=', today())
+            ->first();
+    }
+
     /**
      * Si en el horario hay otro curso, activo o no, con algún día dentro de esas fechas:
      * entre dos fechas solo puede haber un curso.

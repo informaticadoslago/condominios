@@ -46,6 +46,21 @@ class Evaluacion extends Model
         return Attribute::get(fn () => $this->nombre);
     }
 
+    public function pruebas()
+    {
+        return $this->hasMany(Prueba::class);
+    }
+
+    /** La evaluación activa del curso en la que cae hoy, si la hay. */
+    public static function actual(int $cursoId): ?self
+    {
+        return self::where('curso_id', $cursoId)
+            ->where('estado_id', self::ESTADO_ACTIVO)
+            ->whereDate('fecha_inicio', '<=', today())
+            ->whereDate('fecha_fin', '>=', today())
+            ->first();
+    }
+
     /** Si en el curso hay otra evaluación, activa o no, con algún día dentro de esas fechas. */
     public static function seSolapa(int $cursoId, string $inicio, string $fin, ?int $ignorarId = null): bool
     {

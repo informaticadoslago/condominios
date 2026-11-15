@@ -39,6 +39,11 @@ class AsignaturaAlumno extends Model
         return $this->belongsTo(Estado::class);
     }
 
+    public function notas()
+    {
+        return $this->hasMany(PruebaNota::class);
+    }
+
     /** Título del historial de estados (ver ConHistorialEstadoModal). */
     protected function nombreCompleto(): Attribute
     {
