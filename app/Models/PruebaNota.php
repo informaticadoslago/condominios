@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 /** Nota de un alumno (por su apunte en la asignatura) en una prueba. */
 class PruebaNota extends Model
 {
-    protected $table = 'prueba_notas';
+    protected $table = 'prueba_evaluable_notas';
 
     protected $fillable = [
         'prueba_id',

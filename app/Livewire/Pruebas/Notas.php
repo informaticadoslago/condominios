@@ -27,9 +27,11 @@ class Notas extends Component
 
     public function mount(Asignatura $asignatura, Prueba $prueba)
     {
-        // Solo pruebas de esa asignatura, del horario abierto, y solo si es de profesor.
+        // Solo pruebas de esa asignatura, del horario abierto, y solo si es de profesor. Las
+        // pruebas con partes no tienen notas propias: las suyas se ven en NotasPartes.
         abort_unless(
-            $prueba->asignatura_id == $asignatura->id
+            ! $prueba->con_partes
+                && $prueba->asignatura_id == $asignatura->id
                 && $asignatura->horario_id == session('horario_actual_id')
                 && $asignatura->horario?->esDeProfesor(),
             404

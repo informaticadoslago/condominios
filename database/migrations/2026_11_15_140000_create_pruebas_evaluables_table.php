@@ -13,15 +13,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('pruebas', function (Blueprint $table) {
+        Schema::create('pruebas_evaluables', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('asignatura_id')->index('pruebas_asignatura_id_foreign');
-            $table->unsignedBigInteger('evaluacion_id')->index('pruebas_evaluacion_id_foreign');
+            $table->unsignedBigInteger('asignatura_id')->index('pruebas_evaluables_asignatura_id_foreign');
+            $table->unsignedBigInteger('evaluacion_id')->index('pruebas_evaluables_evaluacion_id_foreign');
             $table->string('nombre', 100);
             $table->date('fecha');
             $table->decimal('puntuacion_maxima', 6, 2);
             $table->decimal('peso', 5, 2);
-            $table->unsignedBigInteger('estado_id')->default(1)->index('pruebas_estado_id_foreign');
+            $table->unsignedBigInteger('estado_id')->default(1)->index('pruebas_evaluables_estado_id_foreign');
             $table->timestamps();
 
             $table->unique(['asignatura_id', 'evaluacion_id', 'nombre']);
@@ -34,6 +34,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('pruebas');
+        Schema::dropIfExists('pruebas_evaluables');
     }
 };

@@ -69,6 +69,7 @@ use App\Livewire\Cursos\Lista as CursosLista;
 use App\Livewire\Evaluaciones\Lista as EvaluacionesLista;
 use App\Livewire\Pruebas\Lista as PruebasLista;
 use App\Livewire\Pruebas\Notas as PruebasNotas;
+use App\Livewire\Pruebas\NotasPartes as PruebasNotasPartes;
 use App\Livewire\Modulos\Lista as ModulosLista;
 use App\Livewire\Eventos\Lista as EventosLista;
 use App\Livewire\Maestros\Periodicidades\Lista as PeriodicidadesLista;
@@ -146,6 +147,7 @@ Route::middleware([
         Route::get('/asignaturas/{asignatura}/pruebas', PruebasLista::class)->name('asignaturas.pruebas');
         Route::get('/asignaturas/{asignatura}/pruebas/pdf', PruebasNotasPdfController::class)->name('asignaturas.pruebas.pdf');
         Route::get('/asignaturas/{asignatura}/pruebas/{prueba}/notas', PruebasNotas::class)->name('asignaturas.pruebas.notas');
+        Route::get('/asignaturas/{asignatura}/pruebas/{prueba}/partes', PruebasNotasPartes::class)->name('asignaturas.pruebas.partes');
         // Cursos y sus evaluaciones, solo en horarios de profesor. El nombre de la segunda
         // empieza por 'cursos.' para que el menú siga marcando Cursos.
         Route::get('/cursos', CursosLista::class)->name('cursos.index');

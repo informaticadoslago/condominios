@@ -47,6 +47,8 @@ class HorarioEliminador
             // que apuntan (todas sus FK son RESTRICT).
             $pruebas = Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'));
             PruebaNota::whereIn('prueba_id', (clone $pruebas)->select('id'))->delete();
+            // Primero las partes: cada una apunta a la prueba que la lleva dentro.
+            (clone $pruebas)->whereNotNull('prueba_id')->delete();
             $pruebas->delete();
             AsignaturaAlumno::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))->delete();
             Alumno::where('horario_id', $horario->id)->delete();

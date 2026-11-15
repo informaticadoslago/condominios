@@ -69,7 +69,10 @@
                         @endif
                     </td>
                     @foreach ($hoja['pruebas'] as $prueba)
-                        <td class="nota">{{ \App\Models\Prueba::numero($apunte->notas->firstWhere('prueba_id', $prueba->id)?->nota_sobre_10) }}</td>
+                        {{-- De la prueba con partes, la nota final (la media de sus partes o su retoque). --}}
+                        <td class="nota">{{ \App\Models\Prueba::numero($prueba->con_partes
+                            ? ($finales[$prueba->id][$apunte->id] ?? null)
+                            : $apunte->notas->firstWhere('prueba_id', $prueba->id)?->nota_sobre_10) }}</td>
                     @endforeach
                 </tr>
             @endforeach

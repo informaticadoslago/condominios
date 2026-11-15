@@ -71,10 +71,10 @@ class HorarioExportador extends ExportadorZip
             'evaluaciones'     => Evaluacion::whereIn('curso_id', Curso::where('horario_id', $horario->id)->select('id'))
                 ->orderBy('id')
                 ->get(),
-            'pruebas'          => Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))
+            'pruebas_evaluables' => Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))
                 ->orderBy('id')
                 ->get(),
-            'prueba_notas'     => PruebaNota::whereIn('prueba_id', Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))->select('id'))
+            'prueba_evaluable_notas' => PruebaNota::whereIn('prueba_id', Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))->select('id'))
                 ->orderBy('id')
                 ->get(),
         ];
@@ -116,8 +116,9 @@ class HorarioExportador extends ExportadorZip
         8. `asignatura_alumnos` (referencia `asignaturas` y `alumnos`)
         9. `cursos`
         10. `evaluaciones` (referencia `cursos`)
-        11. `pruebas` (referencia `asignaturas` y `evaluaciones`)
-        12. `prueba_notas` (referencia `pruebas` y `asignatura_alumnos`)
+        11. `pruebas_evaluables` (referencia `asignaturas` y `evaluaciones`, y en `prueba_id` a otra fila de
+            `pruebas_evaluables`: la prueba de la que es parte, que puede venir después en el fichero)
+        12. `prueba_evaluable_notas` (referencia `pruebas_evaluables` y `asignatura_alumnos`)
 
         ## NO incluido en la exportación
 

@@ -7,6 +7,7 @@ use App\Livewire\Pruebas\Formulario;
 use App\Livewire\Pruebas\ImportarNotas;
 use App\Livewire\Pruebas\Lista;
 use App\Livewire\Pruebas\Notas;
+use App\Livewire\Pruebas\NotasPartes;
 use App\Models\Alumno;
 use App\Models\Asignatura;
 use App\Models\AsignaturaAlumno;
@@ -255,16 +256,244 @@ class PruebasTest extends TestCase
 
         $lista = Livewire::test(Lista::class, ['asignatura' => $this->mates])->assertSeeInOrder(['A', 'B', 'C']);
 
-        // Hacia abajo: queda después de la fila donde se suelta. Hacia arriba: antes.
-        $lista->call('mover', $a, $c)->assertSeeInOrder(['B', 'C', 'A']);
+        // Queda antes o después de la fila donde se suelta, según la mitad en la que se suelte.
+        $lista->call('soltar', $a, $c, 'despues')->assertSeeInOrder(['B', 'C', 'A']);
         $this->assertSame(['B', 'C', 'A', 'Otra evaluación'], $orden());
 
-        $lista->call('mover', $a, $b)->assertSeeInOrder(['A', 'B', 'C']);
+        $lista->call('soltar', $a, $b, 'antes')->assertSeeInOrder(['A', 'B', 'C']);
         $this->assertSame(['A', 'B', 'C', 'Otra evaluación'], $orden());
 
         // Con otro orden en pantalla no se arrastra.
-        $lista->call('ordenar', 'fecha')->call('mover', $a, $c);
+        $lista->call('ordenar', 'fecha')->call('soltar', $a, $c, 'despues');
         $this->assertSame(['A', 'B', 'C', 'Otra evaluación'], $orden());
+    }
+
+    /** Una prueba con partes «UD1» en la primera evaluación, con dos partes de 40 % y 60 %. */
+    private function ud1ConPartes(): array
+    {
+        Livewire::test(Formulario::class, ['asignaturaId' => $this->mates->id])
+            ->call('crear', $this->primera->id)
+            ->set('nombre', 'UD1')->set('fecha', '2026-10-30')->set('peso', '15')
+            ->set('con_partes', true)
+            ->call('guardar')->assertHasNoErrors();
+        $ud1 = Prueba::where('nombre', 'UD1')->firstOrFail();
+
+        foreach ([['UD1 Teoría', '20', '40'], ['UD1 Práctica', '10', '60']] as [$nombre, $maxima, $peso]) {
+            Livewire::test(Formulario::class, ['asignaturaId' => $this->mates->id])
+                ->call('crear', $this->primera->id, $ud1->id)
+                ->set('nombre', $nombre)->set('fecha', '2026-10-20')->set('puntuacion_maxima', $maxima)->set('peso', $peso)
+                ->call('guardar')->assertHasNoErrors();
+        }
+
+        return [$ud1, Prueba::where('nombre', 'UD1 Teoría')->firstOrFail(), Prueba::where('nombre', 'UD1 Práctica')->firstOrFail()];
+    }
+
+    private function nota(Prueba $prueba, float $sobre10, ?AsignaturaAlumno $apunte = null): void
+    {
+        PruebaNota::updateOrCreate(
+            ['prueba_id' => $prueba->id, 'asignatura_alumno_id' => ($apunte ?? $this->apunte)->id],
+            ['nota' => $sobre10 * $prueba->puntuacion_maxima / 10, 'nota_sobre_10' => $sobre10]
+        );
+    }
+
+    public function test_la_prueba_con_partes_no_tiene_puntuacion_y_sus_partes_cuelgan_de_ella(): void
+    {
+        [$ud1, $teoria, $practica] = $this->ud1ConPartes();
+
+        $this->assertTrue($ud1->con_partes);
+        $this->assertNull($ud1->puntuacion_maxima);
+        $this->assertSame(5.0, $ud1->nota_minima);
+        $this->assertSame([$teoria->id, $practica->id], $ud1->partes->modelKeys());
+        $this->assertSame($this->primera->id, $teoria->evaluacion_id);
+
+        // En la suma de la evaluación solo cuenta la prueba (15), no sus partes; las partes suman 100.
+        Livewire::test(Lista::class, ['asignatura' => $this->mates])
+            ->assertSeeInOrder(['UD1', 'UD1 Teoría', 'UD1 Práctica'])
+            ->assertSeeHtml('<span class="font-semibold">15 %</span>')
+            ->assertSeeHtml('<span class="font-semibold">100 %</span>');
+
+        // Con una parte de baja suman 40: en rojo.
+        $practica->update(['estado_id' => Prueba::ESTADO_BAJA]);
+        Livewire::test(Lista::class, ['asignatura' => $this->mates])
+            ->set('filtros.estado_id', '')
+            ->assertSeeHtml('<span class="font-semibold text-red-600">40 %</span>');
+
+        // Con partes dentro no deja de ser «con partes», y no tiene pantalla de notas propia.
+        Livewire::test(Formulario::class, ['asignaturaId' => $this->mates->id])
+            ->call('editar', $ud1->id)
+            ->set('con_partes', false)->set('puntuacion_maxima', '10')
+            ->call('guardar')->assertHasErrors(['con_partes']);
+        Livewire::test(Notas::class, ['asignatura' => $this->mates, 'prueba' => $ud1])->assertStatus(404);
+        Livewire::test(NotasPartes::class, ['asignatura' => $this->mates, 'prueba' => $teoria])->assertStatus(404);
+    }
+
+    public function test_la_nota_de_la_prueba_con_partes_es_la_media_con_minimo_por_parte(): void
+    {
+        [$ud1, $teoria, $practica] = $this->ud1ConPartes();
+        $final = fn () => $ud1->fresh()->notasFinales()[$this->apunte->id]['final'] ?? null;
+
+        // Sin nota en ninguna parte no hay nota final, pero el alumno sale en la lista.
+        $this->assertNull($final());
+        Livewire::test(NotasPartes::class, ['asignatura' => $this->mates, 'prueba' => $ud1])
+            ->assertSee('García')
+            ->assertDontSeeHtml('id="final-'.$this->apunte->id.'"');
+
+        // Las dos partes aprobadas: la media con sus pesos (40 % y 60 %).
+        $this->nota($teoria, 6);
+        $this->nota($practica, 8);
+        $this->assertSame(7.2, $final());
+
+        // Una parte suspensa y media aprobada: 4. Media suspensa: se queda como sale.
+        $this->nota($teoria, 4);
+        $this->assertSame(4.0, $final());           // 4·0,4 + 8·0,6 = 6,4
+        $this->nota($practica, 3);
+        $this->assertSame(3.4, $final());
+        $this->nota($teoria, 4.5);
+        $this->nota($practica, 4.5);
+        $this->assertSame(4.5, $final());
+
+        // La parte sin nota cuenta como 0: 10 y vacío da 4.
+        $this->nota($teoria, 10);
+        PruebaNota::where('prueba_id', $practica->id)->delete();
+        $this->assertSame(4.0, $final());           // media 4, y suspensa
+
+        $this->nota($practica, 10);
+        PruebaNota::where('prueba_id', $teoria->id)->delete();
+        $this->assertSame(4.0, $final());           // media 6, aprobada con una parte a 0
+
+        // Sin mínimo, la media tal cual; con otro mínimo, el que se ponga.
+        $ud1->update(['nota_minima' => 0]);
+        $this->assertSame(6.0, $final());
+        $this->nota($teoria, 5);
+        $ud1->update(['nota_minima' => 6]);
+        $this->assertSame(4.0, $final());           // media 8, pero la teoría no llega a 6
+
+        // Si falta una parte entera, se pondera con el peso que hay.
+        $ud1->update(['nota_minima' => 5]);
+        $practica->update(['estado_id' => Prueba::ESTADO_BAJA]);
+        $this->nota($teoria, 7);
+        $this->assertSame(7.0, $final());
+    }
+
+    public function test_la_nota_final_se_retoca_y_el_retoque_vale_mientras_no_cambie_la_media(): void
+    {
+        [$ud1, $teoria, $practica] = $this->ud1ConPartes();
+        $this->nota($teoria, 6);
+        $this->nota($practica, 8);
+        $id = $this->apunte->id;
+        $final = fn () => $ud1->fresh()->notasFinales()[$id];
+
+        $pantalla = Livewire::test(NotasPartes::class, ['asignatura' => $this->mates, 'prueba' => $ud1])
+            ->assertSet("finales.{$id}", '7,2');
+
+        $pantalla->call('redondear', $id, 1)->assertSet("finales.{$id}", '8');
+        $this->assertSame([7.2, 8.0, true], [$final()['calculada'], $final()['final'], $final()['retocada']]);
+        $pantalla->call('redondear', $id, -1)->assertSet("finales.{$id}", '7');
+
+        $pantalla->set("finales.{$id}", '7,5')->assertHasNoErrors();
+        $this->assertSame(7.5, $final()['final']);
+        $pantalla->set("finales.{$id}", '11')->assertHasErrors(["finales.{$id}"]);
+        $this->assertSame(7.5, $final()['final']);
+
+        // Vacía vuelve a la media.
+        $pantalla->set("finales.{$id}", '')->assertSet("finales.{$id}", '7,2');
+        $this->assertFalse($final()['retocada']);
+        $this->assertSame(0, $ud1->notas()->count());
+
+        // Al cambiar la nota de una parte, el retoque deja de valer.
+        $pantalla->set("finales.{$id}", '9');
+        $this->nota($teoria, 7);
+        $this->assertSame(7.6, $final()['final']);
+        $this->assertFalse($final()['retocada']);
+    }
+
+    public function test_arrastrando_se_meten_y_se_sacan_partes(): void
+    {
+        [$ud1, $teoria, $practica] = $this->ud1ConPartes();
+        $this->prueba('Suelta', $this->primera, '2026-11-01', peso: '10');
+        $this->prueba('De la segunda', $this->segunda, '2027-02-01', peso: '10');
+        $suelta = Prueba::where('nombre', 'Suelta')->firstOrFail();
+        $segunda = Prueba::where('nombre', 'De la segunda')->firstOrFail();
+        $this->nota($suelta, 7);
+
+        $arbol = fn () => Prueba::where('asignatura_id', $this->mates->id)->orderBy('orden')->get()
+            ->map(fn (Prueba $p) => ($p->prueba_id ? '  ' : '').$p->nombre)->all();
+
+        $lista = Livewire::test(Lista::class, ['asignatura' => $this->mates]);
+
+        // Dentro de la prueba con partes: entra la última, con sus notas.
+        $lista->call('soltar', $suelta->id, $ud1->id, 'dentro');
+        $this->assertSame(['UD1', '  UD1 Teoría', '  UD1 Práctica', '  Suelta', 'De la segunda'], $arbol());
+        $this->assertSame(1, $suelta->notas()->count());
+
+        // Al lado de una parte: se queda dentro, en ese sitio.
+        $lista->call('soltar', $suelta->id, $teoria->id, 'antes');
+        $this->assertSame(['UD1', '  Suelta', '  UD1 Teoría', '  UD1 Práctica', 'De la segunda'], $arbol());
+
+        // Al lado de una prueba suelta: sale de la prueba.
+        $lista->call('soltar', $suelta->id, $ud1->id, 'antes');
+        $this->assertSame(['Suelta', 'UD1', '  UD1 Teoría', '  UD1 Práctica', 'De la segunda'], $arbol());
+        $this->assertNull($suelta->fresh()->prueba_id);
+
+        // La prueba con partes se mueve con sus partes detrás.
+        $lista->call('soltar', $ud1->id, $segunda->id, 'despues');
+        $this->assertSame(['Suelta', 'De la segunda', 'UD1', '  UD1 Teoría', '  UD1 Práctica'], $arbol());
+
+        // No entra: otra evaluación, una prueba sin partes como destino, o una prueba con partes dentro de otra.
+        $lista->call('soltar', $segunda->id, $ud1->id, 'dentro');
+        $lista->call('soltar', $teoria->id, $suelta->id, 'dentro');
+        $lista->call('soltar', $ud1->id, $teoria->id, 'antes');
+        $this->assertSame(['Suelta', 'De la segunda', 'UD1', '  UD1 Teoría', '  UD1 Práctica'], $arbol());
+
+        // Con partes dentro no se borra; vacía sí, y se lleva sus retoques.
+        $this->nota($teoria, 6);
+        Livewire::test(NotasPartes::class, ['asignatura' => $this->mates, 'prueba' => $ud1])->call('redondear', $this->apunte->id, 1);
+        $lista->call('ejecutarEliminarFisico', $ud1->id);
+        $this->assertNotNull($ud1->fresh());
+        $lista->call('soltar', $teoria->id, $suelta->id, 'despues')->call('soltar', $practica->id, $suelta->id, 'despues');
+        $lista->call('ejecutarEliminarFisico', $ud1->id);
+        $this->assertNull($ud1->fresh());
+    }
+
+    public function test_el_zip_y_el_pdf_llevan_las_partes(): void
+    {
+        [$ud1, $teoria, $practica] = $this->ud1ConPartes();
+        // La parte, con un id menor que el de su prueba: en el ZIP va antes que ella.
+        $this->prueba('Vieja', $this->primera, '2026-10-05', peso: '10');
+        Livewire::test(Formulario::class, ['asignaturaId' => $this->mates->id])
+            ->call('crear', $this->primera->id)
+            ->set('nombre', 'UD2')->set('fecha', '2026-11-30')->set('peso', '15')->set('con_partes', true)
+            ->call('guardar')->assertHasNoErrors();
+        $vieja = Prueba::where('nombre', 'Vieja')->firstOrFail();
+        $ud2 = Prueba::where('nombre', 'UD2')->firstOrFail();
+        Livewire::test(Lista::class, ['asignatura' => $this->mates])->call('soltar', $vieja->id, $ud2->id, 'dentro');
+        $this->assertSame($ud2->id, $vieja->fresh()->prueba_id);
+
+        $this->nota($teoria, 6);
+        $this->nota($practica, 8);
+
+        $pdf = app(\App\Http\Controllers\PruebasNotasPdfController::class)(
+            \Illuminate\Http\Request::create('/', 'GET', ['evaluacion_id' => $this->primera->id]),
+            $this->mates
+        );
+        $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+
+        Storage::fake('coms');
+        Storage::fake('local');
+        $zip = app(HorarioExportador::class)->exportar($this->horario);
+        Storage::disk('local')->put('tmp/horario.zip', Storage::disk('coms')->get($zip));
+        app(ImportadorZipHorario::class)->importar('tmp/horario.zip');
+
+        $copia = Horario::where('id', '!=', $this->horario->id)->firstOrFail();
+        $copiadas = Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $copia->id)->select('id'))->get()->keyBy('nombre');
+        $this->assertCount(5, $copiadas);
+        $this->assertSame($copiadas['UD1']->id, $copiadas['UD1 Teoría']->prueba_id);
+        $this->assertSame($copiadas['UD2']->id, $copiadas['Vieja']->prueba_id);
+        $this->assertTrue($copiadas['UD1']->con_partes);
+        $this->assertSame(7.2, $copiadas['UD1']->notasFinales()[AsignaturaAlumno::whereIn('asignatura_id', Asignatura::where('horario_id', $copia->id)->select('id'))->firstOrFail()->id]['final']);
+
+        app(HorarioEliminador::class)->eliminar($copia);
+        $this->assertSame(5, Prueba::count());
     }
 
     public function test_importar_notas_de_un_csv(): void

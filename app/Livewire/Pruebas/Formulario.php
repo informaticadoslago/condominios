@@ -21,11 +21,26 @@ class Formulario extends Component
     /** Si la prueba que se modifica ya tiene notas: cambiar la puntuación máxima las recalcula. */
     public bool $tieneNotas = false;
 
+    /** Si la prueba que se modifica lleva partes dentro: ya no puede dejar de ser «con partes» ni cambiar de evaluación. */
+    public bool $tienePartes = false;
+
+    /** La prueba de la que es parte (o va a serlo, si es nueva); null si es una prueba suelta. */
+    #[Locked]
+    public ?int $contenedoraId = null;
+
+    public string $contenedoraNombre = '';
+
     public $evaluacion_id = '';
     public string $nombre = '';
     public string $fecha = '';
     public string $puntuacion_maxima = '';
     public string $peso = '';
+
+    /** Prueba con partes: sin puntuación máxima ni notas propias; su nota es la media de sus partes. */
+    public bool $con_partes = false;
+
+    /** La nota sobre 10 que hay que sacar en cada parte para que la media valga; 0 = sin mínimo. */
+    public string $nota_minima = '5';
 
     /** Las evaluaciones de los cursos del horario abierto. */
     private function evaluaciones()
@@ -43,14 +58,17 @@ class Formulario extends Component
             'evaluacion_id' => ['required', Rule::in($this->evaluaciones()->pluck('id')->all())],
             'nombre' => [
                 'required', 'string', 'max:100',
-                Rule::unique('pruebas', 'nombre')
+                Rule::unique('pruebas_evaluables', 'nombre')
                     ->where('asignatura_id', $this->asignaturaId)
                     ->where('evaluacion_id', $this->evaluacion_id ?: 0)
                     ->ignore($this->itemId),
             ],
             'fecha'             => ['required', 'date'],
-            'puntuacion_maxima' => ['required', 'numeric', 'gt:0', 'max:9999.99'],
+            // La prueba con partes no tiene puntuación máxima; a cambio, tiene nota mínima por parte.
+            'puntuacion_maxima' => $this->con_partes ? ['nullable'] : ['required', 'numeric', 'gt:0', 'max:9999.99'],
+            'nota_minima'       => $this->con_partes ? ['required', 'numeric', 'min:0', 'max:10'] : ['nullable'],
             'peso'              => ['required', 'numeric', 'gt:0', 'max:100'],
+            'con_partes'        => ['boolean'],
         ];
     }
 
@@ -59,6 +77,7 @@ class Formulario extends Component
         return [
             'required' => 'Debe rellenar :attribute',
             'max'      => ':attribute no puede pasar de :max',
+            'min'      => ':attribute no puede ser menor que :min',
             'unique'   => 'Ya existe una prueba con ese nombre en la evaluación',
             'date'     => 'La :attribute no es válida',
             'numeric'  => ':attribute debe ser un número',
@@ -74,18 +93,45 @@ class Formulario extends Component
             'nombre'            => __('nombre'),
             'fecha'             => __('fecha'),
             'puntuacion_maxima' => __('la puntuación máxima'),
+            'nota_minima'       => __('la nota mínima'),
             'peso'              => __('el peso'),
         ];
     }
 
-    /** Se abre con la evaluación que la lista tenga en el filtro, si tiene alguna. */
+    /**
+     * Se abre con la evaluación que la lista tenga en el filtro, si tiene alguna. Con
+     * $pruebaId, lo que se crea es una parte de esa prueba (y en su evaluación).
+     */
     #[On('abrir-crear-prueba')]
-    public function crear($evaluacionId = null)
+    public function crear($evaluacionId = null, $pruebaId = null)
     {
-        $this->reset(['itemId', 'tieneNotas', 'evaluacion_id', 'nombre', 'fecha', 'puntuacion_maxima', 'peso']);
+        $this->reset(['itemId', 'tieneNotas', 'tienePartes', 'contenedoraId', 'contenedoraNombre', 'evaluacion_id', 'nombre', 'fecha', 'puntuacion_maxima', 'peso', 'con_partes', 'nota_minima']);
         $this->evaluacion_id = $evaluacionId ?: '';
+
+        if ($pruebaId) {
+            $contenedora = $this->contenedoras()->find($pruebaId);
+            if (! $contenedora) {
+                return;
+            }
+            $this->deContenedora($contenedora);
+        }
+
         $this->resetValidation();
         $this->abrir = true;
+    }
+
+    /** Las pruebas de la asignatura que pueden llevar partes dentro. */
+    private function contenedoras()
+    {
+        return Prueba::where('asignatura_id', $this->asignaturaId)->where('con_partes', true)->whereNull('prueba_id');
+    }
+
+    /** La parte es de la evaluación de su prueba. */
+    private function deContenedora(Prueba $contenedora): void
+    {
+        $this->contenedoraId = $contenedora->id;
+        $this->contenedoraNombre = $contenedora->nombre;
+        $this->evaluacion_id = $contenedora->evaluacion_id;
     }
 
     #[On('prueba-editar')]
@@ -95,13 +141,20 @@ class Formulario extends Component
         if (! $item) {
             return;
         }
+        $this->reset(['contenedoraId', 'contenedoraNombre']);
         $this->itemId = $item->id;
-        $this->tieneNotas = $item->notas()->exists();
+        $this->tieneNotas = ! $item->con_partes && $item->notas()->exists();
+        $this->tienePartes = $item->partes()->exists();
         $this->evaluacion_id = $item->evaluacion_id;
         $this->nombre = $item->nombre;
         $this->fecha = $item->fecha->toDateString();
         $this->puntuacion_maxima = str_replace(',', '.', Prueba::numero($item->puntuacion_maxima));
         $this->peso = str_replace(',', '.', Prueba::numero($item->peso));
+        $this->con_partes = $item->con_partes;
+        $this->nota_minima = str_replace(',', '.', Prueba::numero($item->nota_minima));
+        if ($item->contenedora) {
+            $this->deContenedora($item->contenedora);
+        }
         $this->resetValidation();
         $this->abrir = true;
     }
@@ -111,9 +164,23 @@ class Formulario extends Component
         // Se admite la coma decimal.
         $this->puntuacion_maxima = str_replace(',', '.', trim($this->puntuacion_maxima));
         $this->peso = str_replace(',', '.', trim($this->peso));
+        $this->nota_minima = str_replace(',', '.', trim($this->nota_minima));
+
+        // Una parte no lleva partes, y va en la evaluación de su prueba.
+        $contenedora = $this->contenedoraId ? $this->contenedoras()->find($this->contenedoraId) : null;
+        if ($this->contenedoraId && ! $contenedora) {
+            return;
+        }
+        if ($contenedora) {
+            $this->con_partes = false;
+            $this->evaluacion_id = $contenedora->evaluacion_id;
+        }
 
         $data = $this->validate();
         $data['nombre'] = trim($data['nombre']);
+        // Cada tipo de prueba guarda solo lo suyo.
+        $data['puntuacion_maxima'] = $data['con_partes'] ? null : $data['puntuacion_maxima'];
+        $data['nota_minima'] = $data['con_partes'] ? $data['nota_minima'] : 5;
 
         $evaluacion = $this->evaluaciones()->firstWhere('id', (int) $data['evaluacion_id']);
         if ($data['fecha'] < $evaluacion->fecha_inicio->toDateString() || $data['fecha'] > $evaluacion->fecha_fin->toDateString()) {
@@ -131,7 +198,20 @@ class Formulario extends Component
                 return;
             }
 
-            $notaMasAlta = (float) $prueba->notas()->max('nota');
+            // Lo que ya cuelga de la prueba manda: con notas propias no pasa a tener partes, y
+            // con partes dentro ni deja de tenerlas ni cambia de evaluación (son de la misma).
+            if ($data['con_partes'] && ! $prueba->con_partes && $prueba->notas()->exists()) {
+                $this->addError('con_partes', __('Esta prueba ya tiene notas: no puede pasar a tener partes.'));
+
+                return;
+            }
+            if ($prueba->partes()->exists() && (! $data['con_partes'] || (int) $data['evaluacion_id'] !== $prueba->evaluacion_id)) {
+                $this->addError($data['con_partes'] ? 'evaluacion_id' : 'con_partes', __('Esta prueba tiene partes dentro: antes hay que sacarlas.'));
+
+                return;
+            }
+
+            $notaMasAlta = $data['con_partes'] ? 0 : (float) $prueba->notas()->max('nota');
             if ($notaMasAlta > (float) $data['puntuacion_maxima']) {
                 $this->addError('puntuacion_maxima', __('Hay notas más altas que esa puntuación (hasta :nota).', ['nota' => Prueba::numero($notaMasAlta)]));
 
@@ -139,7 +219,11 @@ class Formulario extends Component
             }
 
             DB::transaction(function () use ($prueba, $data) {
-                $cambiaMaxima = (float) $data['puntuacion_maxima'] !== $prueba->puntuacion_maxima;
+                $cambiaMaxima = ! $data['con_partes'] && (float) $data['puntuacion_maxima'] !== $prueba->puntuacion_maxima;
+                // Al dejar de ser «con partes», los retoques de la nota final ya no son de nada.
+                if ($prueba->con_partes && ! $data['con_partes']) {
+                    $prueba->notas()->delete();
+                }
                 $prueba->update($data);
 
                 // Con otra puntuación máxima, las notas sobre 10 se recalculan todas: los
@@ -152,7 +236,11 @@ class Formulario extends Component
             });
             $this->dispatch('toast-success', ['title' => __('Prueba modificada')]);
         } else {
-            Prueba::create($data + ['asignatura_id' => $this->asignaturaId, 'estado_id' => Prueba::ESTADO_ACTIVO]);
+            Prueba::create($data + [
+                'asignatura_id' => $this->asignaturaId,
+                'prueba_id'     => $contenedora?->id,
+                'estado_id'     => Prueba::ESTADO_ACTIVO,
+            ]);
             $this->dispatch('toast-success', ['title' => __('Prueba creada')]);
         }
 

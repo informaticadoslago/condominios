@@ -20,7 +20,7 @@ use ZipArchive;
 class ImportadorZipHorario
 {
     /** De la raíz hacia las hojas: cada tabla puede depender de las anteriores. */
-    private const ORDEN_TABLAS = ['horarios', 'modulos', 'asignaturas', 'jornadas', 'jornada_recreos', 'horario_sesiones', 'alumnos', 'asignatura_alumnos', 'cursos', 'evaluaciones', 'pruebas', 'prueba_notas'];
+    private const ORDEN_TABLAS = ['horarios', 'modulos', 'asignaturas', 'jornadas', 'jornada_recreos', 'horario_sesiones', 'alumnos', 'asignatura_alumnos', 'cursos', 'evaluaciones', 'pruebas_evaluables', 'prueba_evaluable_notas'];
 
     public function importar(string $rutaTemporal, ?string $nombreFichero = null): void
     {
@@ -69,11 +69,15 @@ class ImportadorZipHorario
                     try {
                         $bloques = [];
                         foreach ($xml->children() as $tabla => $filas) {
-                            $bloques[(string) $tabla] = $filas;
+                            // Los ZIP anteriores al cambio de nombre de estas dos tablas.
+                            $tabla = ['pruebas' => 'pruebas_evaluables', 'prueba_notas' => 'prueba_evaluable_notas'][(string) $tabla] ?? (string) $tabla;
+                            $bloques[$tabla] = $filas;
                         }
 
                         $horarioId = null;
                         $duracionSesion = 0;
+                        // [id nuevo de la parte => id original de su prueba]: ver más abajo.
+                        $partesPendientes = [];
 
                         foreach (self::ORDEN_TABLAS as $tabla) {
                             if (! isset($bloques[$tabla])) {
@@ -86,6 +90,13 @@ class ImportadorZipHorario
 
                                 $idOriginal = isset($datosOriginales['id']) ? (int) $datosOriginales['id'] : null;
                                 unset($datos['id']);
+
+                                // Una parte puede venir antes que la prueba que la lleva dentro: se
+                                // inserta sin ella y se enlaza cuando ya están todas las pruebas.
+                                $pruebaOriginal = $tabla === 'pruebas_evaluables' ? ($datos['prueba_id'] ?? null) : null;
+                                if ($tabla === 'pruebas_evaluables') {
+                                    $datos['prueba_id'] = null;
+                                }
 
                                 $recreosAntiguos = $tabla === 'jornadas'
                                     ? $this->extraerRecreosAntiguos($datos, $duracionSesion)
@@ -101,9 +112,22 @@ class ImportadorZipHorario
                                     $mapaIds[$tabla][$idOriginal] = $idNuevo;
                                 }
 
+                                if ($pruebaOriginal !== null && $pruebaOriginal !== '') {
+                                    $partesPendientes[$idNuevo] = (int) $pruebaOriginal;
+                                }
+
                                 if ($tabla === 'horarios') {
                                     $horarioId = $idNuevo;
                                     $duracionSesion = (int) ($datos['duracion_sesion_minutos'] ?? 0);
+                                }
+                            }
+
+                            if ($tabla === 'pruebas_evaluables') {
+                                foreach ($partesPendientes as $parteId => $pruebaOriginal) {
+                                    if (! isset($mapaIds['pruebas_evaluables'][$pruebaOriginal])) {
+                                        throw new RuntimeException("No se pudo remapear pruebas_evaluables.id={$pruebaOriginal} (columna prueba_id).");
+                                    }
+                                    DB::table('pruebas_evaluables')->where('id', $parteId)->update(['prueba_id' => $mapaIds['pruebas_evaluables'][$pruebaOriginal]]);
                                 }
                             }
                         }
@@ -170,13 +194,13 @@ class ImportadorZipHorario
                 $this->remapearColumna($datos, 'curso_id', 'cursos', $mapaIds);
                 break;
 
-            case 'pruebas':
+            case 'pruebas_evaluables':
                 $this->remapearColumna($datos, 'asignatura_id', 'asignaturas', $mapaIds);
                 $this->remapearColumna($datos, 'evaluacion_id', 'evaluaciones', $mapaIds);
                 break;
 
-            case 'prueba_notas':
-                $this->remapearColumna($datos, 'prueba_id', 'pruebas', $mapaIds);
+            case 'prueba_evaluable_notas':
+                $this->remapearColumna($datos, 'prueba_id', 'pruebas_evaluables', $mapaIds);
                 $this->remapearColumna($datos, 'asignatura_alumno_id', 'asignatura_alumnos', $mapaIds);
                 break;
         }

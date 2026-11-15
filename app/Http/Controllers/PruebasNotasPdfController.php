@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 /**
  * Las notas de una asignatura en una evaluación, en papel: una fila por alumno y una
  * columna por prueba activa, en el orden de impresión de las pruebas, con la nota sobre 10.
+ * De una prueba con partes salen primero sus partes y después ella, con la nota final.
  */
 class PruebasNotasPdfController extends Controller
 {
@@ -36,15 +37,26 @@ class PruebasNotasPdfController extends Controller
             404
         );
 
-        $pruebas = Prueba::where('asignatura_id', $asignatura->id)
+        $activas = fn ($q) => $q->where('estado_id', Prueba::ESTADO_ACTIVO);
+        $pruebas = Prueba::with(['partes' => $activas])
+            ->where('asignatura_id', $asignatura->id)
             ->where('evaluacion_id', $evaluacion->id)
+            ->whereNull('prueba_id')
             ->where('estado_id', Prueba::ESTADO_ACTIVO)
             ->orderBy('orden')
             ->orderBy('id')
-            ->get();
+            ->get()
+            ->toBase()
+            ->flatMap(fn (Prueba $prueba) => [...$prueba->partes, $prueba])
+            ->values();
+
+        // La nota final de cada prueba con partes, por alumno: [id de la prueba => [id del apunte => nota]].
+        $finales = $pruebas->where('con_partes', true)
+            ->mapWithKeys(fn (Prueba $prueba) => [$prueba->id => array_map(fn ($notas) => $notas['final'], $prueba->notasFinales())])
+            ->all();
 
         // Los alumnos activos y, además, los de baja que tengan nota en alguna de las pruebas.
-        $delInforme = fn ($q) => $q->whereIn('prueba_id', $pruebas->modelKeys());
+        $delInforme = fn ($q) => $q->whereIn('prueba_id', $pruebas->pluck('id')->all());
         $apuntes = AsignaturaAlumno::with(['alumno', 'notas' => $delInforme])
             ->where('asignatura_id', $asignatura->id)
             ->where(fn ($q) => $q
@@ -68,6 +80,7 @@ class PruebasNotasPdfController extends Controller
             'asignatura' => $asignatura,
             'evaluacion' => $evaluacion,
             'hojas'      => $hojas,
+            'finales'    => $finales,
             // En milímetros, sin contar el relleno de las celdas (unos 3 por columna): el A4
             // apaisado deja 277 entre márgenes.
             'anchoAlumno' => 76,
