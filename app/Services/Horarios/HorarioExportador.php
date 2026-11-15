@@ -5,6 +5,8 @@ namespace App\Services\Horarios;
 use App\Models\Alumno;
 use App\Models\Asignatura;
 use App\Models\AsignaturaAlumno;
+use App\Models\Curso;
+use App\Models\Evaluacion;
 use App\Models\Horario;
 use App\Models\HorarioSesion;
 use App\Models\Jornada;
@@ -17,7 +19,7 @@ use Illuminate\Support\Str;
 /**
  * El equivalente, para Horarios, de ContabilidadExportador: se lleva un horario entero
  * (jornadas y sus recreos, módulos, asignaturas, las sesiones que las asignan a cada día/hueco,
- * y los alumnos con sus apuntes en cada asignatura) a un .zip en
+ * los alumnos con sus apuntes en cada asignatura, y los cursos con sus evaluaciones) a un .zip en
  * el disco 'coms'. Horario no tiene FK a Comunidad ni a la contabilidad, así que no hay
  * ningún enlace con otro módulo que resolver.
  *
@@ -63,6 +65,10 @@ class HorarioExportador extends ExportadorZip
             'asignatura_alumnos' => AsignaturaAlumno::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))
                 ->orderBy('id')
                 ->get(),
+            'cursos'           => Curso::where('horario_id', $horario->id)->orderBy('id')->get(),
+            'evaluaciones'     => Evaluacion::whereIn('curso_id', Curso::where('horario_id', $horario->id)->select('id'))
+                ->orderBy('id')
+                ->get(),
         ];
     }
 
@@ -100,6 +106,8 @@ class HorarioExportador extends ExportadorZip
            día de la semana y número de sesión, no por id)
         7. `alumnos`
         8. `asignatura_alumnos` (referencia `asignaturas` y `alumnos`)
+        9. `cursos`
+        10. `evaluaciones` (referencia `cursos`)
 
         ## NO incluido en la exportación
 

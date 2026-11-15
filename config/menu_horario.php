@@ -18,6 +18,8 @@ return [
                 ['icon' => 'fa-regular fa-house', 'label' => trans_key('menu.dashboard'), 'route' => 'dashboard-horario'],
                 ['icon' => 'fa-solid fa-layer-group', 'label' => trans_key('menu.Módulos'), 'route' => 'modulos.index'],
                 ['icon' => 'fa-solid fa-book', 'label' => trans_key('menu.Asignaturas'), 'route' => 'asignaturas.index'],
+                // 'solo_profesor': la entrada solo sale en los horarios de profesor (ver layouts/app).
+                ['icon' => 'fa-solid fa-graduation-cap', 'label' => trans_key('menu.Cursos'), 'route' => 'cursos.index', 'solo_profesor' => true],
                 ['icon' => 'fa-solid fa-calendar-week', 'label' => trans_key('menu.Días y sesiones'), 'route' => 'dias-sesiones.edit'],
                 ['icon' => 'fa-solid fa-table-cells', 'label' => trans_key('menu.Horario semanal'), 'route' => 'rejilla.edit'],
                 ['icon' => 'fa-solid fa-calendar-check', 'label' => trans_key('menu.Calendario'), 'route' => 'eventos.index'],

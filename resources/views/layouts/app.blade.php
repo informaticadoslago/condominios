@@ -49,6 +49,18 @@
             // Entorno totalmente independiente de comunidad y empresa contable:
             // si está activo, su menú manda por encima de cualquier otro.
             $menuLateral = config('menu_horario');
+
+            // Las entradas marcadas 'solo_profesor' no salen en los horarios de alumno.
+            if (! $horarioActual->esDeProfesor()) {
+                foreach ($menuLateral['content'] as $i => $bloque) {
+                    if (isset($bloque['items'])) {
+                        $menuLateral['content'][$i]['items'] = array_values(array_filter(
+                            $bloque['items'],
+                            fn ($item) => empty($item['solo_profesor'])
+                        ));
+                    }
+                }
+            }
         } elseif ($empresaContableActual) {
             // Dentro de una empresa contable: menú dedicado a su gestión contable,
             // exclusivo (ya no es la pantalla principal con gestión administrativa +

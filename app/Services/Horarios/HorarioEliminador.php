@@ -6,6 +6,8 @@ use App\Models\AccesoDirecto;
 use App\Models\Alumno;
 use App\Models\Asignatura;
 use App\Models\AsignaturaAlumno;
+use App\Models\Curso;
+use App\Models\Evaluacion;
 use App\Models\Evento;
 use App\Models\Horario;
 use App\Models\HorarioSesion;
@@ -25,7 +27,7 @@ use Spatie\Permission\Models\Role;
  * explícitamente, en ese orden, antes de tocar el horario; jornadas sí puede cascada
  * sola (nada tiene un FK RESTRICT hacia ella). Los apuntes de alumnos (asignatura_alumnos)
  * son RESTRICT hacia asignaturas y hacia alumnos, así que van los primeros, y detrás los
- * alumnos del horario.
+ * alumnos del horario. Las evaluaciones son RESTRICT hacia cursos: se borran antes que ellos.
  */
 class HorarioEliminador
 {
@@ -43,6 +45,8 @@ class HorarioEliminador
             Alumno::where('horario_id', $horario->id)->delete();
             Asignatura::where('horario_id', $horario->id)->delete();
             Modulo::where('horario_id', $horario->id)->delete();
+            Evaluacion::whereIn('curso_id', Curso::where('horario_id', $horario->id)->select('id'))->delete();
+            Curso::where('horario_id', $horario->id)->delete();
 
             $horario->delete();
         });

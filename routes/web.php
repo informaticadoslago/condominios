@@ -64,6 +64,8 @@ use App\Livewire\Horarios\DiasSesiones as HorariosDiasSesiones;
 use App\Livewire\Horarios\Rejilla as HorariosRejilla;
 use App\Livewire\Asignaturas\Lista as AsignaturasLista;
 use App\Livewire\Alumnos\Lista as AlumnosLista;
+use App\Livewire\Cursos\Lista as CursosLista;
+use App\Livewire\Evaluaciones\Lista as EvaluacionesLista;
 use App\Livewire\Modulos\Lista as ModulosLista;
 use App\Livewire\Eventos\Lista as EventosLista;
 use App\Livewire\Maestros\Periodicidades\Lista as PeriodicidadesLista;
@@ -137,6 +139,10 @@ Route::middleware([
         // Alumnos de una asignatura, solo en horarios de profesor. El nombre empieza por
         // 'asignaturas.' para que el menú siga marcando Asignaturas.
         Route::get('/asignaturas/{asignatura}/alumnos', AlumnosLista::class)->name('asignaturas.alumnos');
+        // Cursos y sus evaluaciones, solo en horarios de profesor. El nombre de la segunda
+        // empieza por 'cursos.' para que el menú siga marcando Cursos.
+        Route::get('/cursos', CursosLista::class)->name('cursos.index');
+        Route::get('/cursos/{curso}/evaluaciones', EvaluacionesLista::class)->name('cursos.evaluaciones');
         Route::get('/dias-sesiones', HorariosDiasSesiones::class)->name('dias-sesiones.edit');
         Route::get('/rejilla', HorariosRejilla::class)->name('rejilla.edit');
         Route::get('/rejilla/pdf', HorarioRejillaPdfController::class)->name('rejilla.pdf');

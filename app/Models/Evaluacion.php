@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Traits\ConHistorialEstado;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
+
+/** Evaluación de un curso: un periodo con nombre dentro de las fechas del curso. */
+class Evaluacion extends Model
+{
+    use ConHistorialEstado;
+
+    const
+        ESTADO_ACTIVO = 1,
+        ESTADO_BAJA = 2;
+
+    protected $table = 'evaluaciones';
+
+    protected $fillable = [
+        'curso_id',
+        'nombre',
+        'fecha_inicio',
+        'fecha_fin',
+        'estado_id',
+    ];
+
+    protected $casts = [
+        'fecha_inicio' => 'date',
+        'fecha_fin'    => 'date',
+    ];
+
+    public function curso()
+    {
+        return $this->belongsTo(Curso::class);
+    }
+
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class);
+    }
+
+    /** Título del historial de estados (ver ConHistorialEstadoModal). */
+    protected function nombreCompleto(): Attribute
+    {
+        return Attribute::get(fn () => $this->nombre);
+    }
+
+    /** Si en el curso hay otra evaluación, activa o no, con algún día dentro de esas fechas. */
+    public static function seSolapa(int $cursoId, string $inicio, string $fin, ?int $ignorarId = null): bool
+    {
+        return self::where('curso_id', $cursoId)
+            ->whereDate('fecha_inicio', '<=', $fin)
+            ->whereDate('fecha_fin', '>=', $inicio)
+            ->when($ignorarId, fn ($q) => $q->whereKeyNot($ignorarId))
+            ->exists();
+    }
+}
