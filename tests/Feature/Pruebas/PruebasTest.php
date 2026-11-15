@@ -331,7 +331,8 @@ class PruebasTest extends TestCase
         $alumna = Alumno::create(['horario_id' => $this->horario->id, 'nombre' => 'Mariana', 'apellido1' => 'García', 'apellido2' => 'López', 'fecha_nacimiento' => '2010-01-01']);
         $mariana = AsignaturaAlumno::create(['asignatura_id' => $this->mates->id, 'alumno_id' => $alumna->id, 'grupo' => 'A', 'estado_id' => 1]);
 
-        $listado = "Ana Garcia López\nana@example.com\n-\n 5,50\n 3,83\n"
+        $listado = "Nome / Apelido(s)\nEnderezo de correo\nDepartamento\nArdora[Eliminación en curso] MEDIDAS\nTarefaTarefa de aula\nProbaExamen TEST - UD1\n"
+            ."Ana Garcia López\nana@example.com\n-\n 5,50\n 3,83\n"
             ."MGMariana García López\nmariana@example.com\n-\n-\n 10,00\n"
             ."KPKevin Pardo Rey\nkevin@example.com\n-\n 5,00\n-\n"
             ."Media xeral\t\n-\n5,66 (32)\n";
@@ -341,14 +342,22 @@ class PruebasTest extends TestCase
             ->set('texto', $listado)
             ->call('revisar')
             ->assertHasNoErrors()
-            // Solo las columnas con alguna nota, y por defecto la última.
-            ->assertSet('columnas', [2 => '5,5 · 5', 3 => '3,83 · 10'])
-            ->assertSet('columna', 3);
+            // Solo las columnas con alguna nota; la elige quien importa, y hasta entonces no hay nada que importar.
+            ->assertSet('columnas', [2 => 'Tarefa de aula', 3 => 'Examen TEST - UD1'])
+            ->assertSet('columna', null)
+            ->assertSeeHtml('btn-columna-notas-2')
+            ->assertDontSeeHtml('btn-confirmar-importar-notas')
+            // Sin columna elegida, Importar no guarda nada.
+            ->call('importar')
+            ->assertSet('abrir', true)
+            ->set('columna', 3);
+
+        $this->assertSame(0, PruebaNota::where('prueba_id', $prueba->id)->count());
 
         $this->assertSame([null, null, 'Sin nota'], array_column($modal->get('filas'), 'error'));
         $this->assertSame([$this->apunte->id, $mariana->id, null], array_column($modal->get('filas'), 'apunte_id'));
 
-        $modal->set('columna', '2');
+        $modal->set('columna', 2);
         $this->assertSame([null, 'Sin nota', 'No está en la asignatura'], array_column($modal->get('filas'), 'error'));
 
         $modal->call('importar');
@@ -356,5 +365,27 @@ class PruebasTest extends TestCase
         // Sobre 10 en una prueba sobre 30.
         $this->assertSame(1, PruebaNota::where('prueba_id', $prueba->id)->count());
         $this->assertEquals([16.5, 5.5], [$this->apunte->notas()->first()->nota, $this->apunte->notas()->first()->nota_sobre_10]);
+    }
+
+    public function test_el_informe_de_notas_de_la_evaluacion_se_abre_como_pdf(): void
+    {
+        $this->actingAs(\App\Models\User::factory()->create());
+        $this->prueba('Tema 1', $this->primera, '2026-10-10');
+
+        // El botón solo sale con una evaluación elegida en el filtro.
+        Livewire::test(Lista::class, ['asignatura' => $this->mates])
+            ->assertSeeHtml('btn-imprimir-notas')
+            ->set('filtros.evaluacion_id', '')
+            ->assertDontSeeHtml('btn-imprimir-notas');
+
+        $respuesta = $this->get(route('asignaturas.pruebas.pdf', ['asignatura' => $this->mates->id, 'evaluacion_id' => $this->primera->id]));
+        $respuesta->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('inline', $respuesta->headers->get('Content-Disposition'));
+
+        // Una evaluación de otro horario no vale.
+        $otro = Horario::create(['nombre' => 'Otro', 'tipo_horario_id' => TipoHorario::PROFESOR, 'duracion_sesion_minutos' => 50]);
+        $curso = Curso::create(['horario_id' => $otro->id, 'nombre' => 'X', 'fecha_inicio' => '2026-09-01', 'fecha_fin' => '2027-06-30', 'estado_id' => 1]);
+        $ajena = Evaluacion::create(['curso_id' => $curso->id, 'nombre' => '1ª', 'fecha_inicio' => '2026-09-01', 'fecha_fin' => '2026-12-20', 'estado_id' => 1]);
+        $this->get(route('asignaturas.pruebas.pdf', ['asignatura' => $this->mates->id, 'evaluacion_id' => $ajena->id]))->assertNotFound();
     }
 }

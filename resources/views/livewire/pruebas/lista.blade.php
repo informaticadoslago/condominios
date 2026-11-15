@@ -29,6 +29,13 @@
                 <x-secondary-button type="button" wire:click="borrarFiltro" title="{{ __('Borrar filtro') }}">
                     <i class="fa-solid fa-filter-circle-xmark mr-1"></i>{{ __('Borrar filtro') }}
                 </x-secondary-button>
+                {{-- Las notas de la evaluación elegida en el filtro, en otra pestaña; sin evaluación no hay informe. --}}
+                @if ($filtros['evaluacion_id'] ?? null)
+                    <x-secondary-button type="button" id="btn-imprimir-notas" title="{{ __('Imprimir las notas de la evaluación') }}"
+                        onclick="window.open('{{ route('asignaturas.pruebas.pdf', ['asignatura' => $asignatura->id, 'evaluacion_id' => $filtros['evaluacion_id']]) }}', '_blank')">
+                        <i class="fa-solid fa-print mr-1"></i>{{ __('Imprimir') }}
+                    </x-secondary-button>
+                @endif
             </x-slot>
 
             <div class="py-3 px-6 flex items-center">

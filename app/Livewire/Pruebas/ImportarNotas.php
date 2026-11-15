@@ -34,7 +34,7 @@ class ImportarNotas extends Component
 
     public bool $revisado = false;
 
-    /** Solo con el listado copiado de la pantalla: [número de columna => pista] de las que traen notas. */
+    /** Solo con el listado copiado de la pantalla: [número de columna => nombre] de las que traen notas. */
     public array $columnas = [];
 
     /** La columna del listado de la que se toman las notas. */
@@ -60,7 +60,8 @@ class ImportarNotas extends Component
         }
 
         $this->columnas = $leido['columnas'];
-        $this->columna = $leido['columna'];
+        $this->columna = null;
+        $leido = $this->leer();
         $this->filas = $this->cotejar($leido);
         $this->revisado = true;
     }
@@ -77,8 +78,8 @@ class ImportarNotas extends Component
     /**
      * Lo pegado, sea el CSV o el listado copiado de la pantalla, con la misma forma: la
      * puntuación máxima y una fila por alumno con su nota. Del listado se toma la columna
-     * elegida o, si no hay ninguna elegida, la última que trae notas. Null si no se
-     * entiende ninguno de los dos.
+     * elegida; mientras no se elige ninguna, las filas van sin nota. Null si no se entiende
+     * ninguno de los dos.
      */
     private function leer(): ?array
     {
@@ -94,22 +95,26 @@ class ImportarNotas extends Component
             return null;
         }
 
-        $columna = $this->columna !== null && isset($listado['columnas'][$this->columna]) ? $this->columna : array_key_last($listado['columnas']);
+        // Sin columna elegida no hay notas que leer: no se adivina cuál es la de la prueba.
+        $columna = $this->columna !== null && isset($listado['columnas'][$this->columna]) ? $this->columna : null;
 
         return [
             'maximo'   => LectorNotasListado::MAXIMO,
             'columnas' => $listado['columnas'],
             'columna'  => $columna,
-            'filas'    => array_map(function (array $fila) use ($columna) {
-                $nota = $fila['valores'][$columna] ?? null;
+            'filas'    => array_map(function (array $fila) use ($columna, $listado) {
+                $nota = $columna === null ? null : ($fila['valores'][$columna] ?? null);
 
                 return [
-                    'texto' => $fila['texto'],
-                    'nota'  => $nota,
-                    'error' => match (true) {
-                        $nota === null                         => __('Sin nota'),
+                    'texto'   => $fila['texto'],
+                    // Para la tabla en la que se elige la columna: solo las que traen notas.
+                    'valores' => array_map(fn ($c) => $fila['valores'][$c] ?? null, array_combine(array_keys($listado['columnas']), array_keys($listado['columnas']))),
+                    'nota'    => $nota,
+                    'error'   => match (true) {
+                        $columna === null                  => null,
+                        $nota === null                     => __('Sin nota'),
                         $nota > LectorNotasListado::MAXIMO => __('Nota fuera de rango'),
-                        default                                => null,
+                        default                            => null,
                     },
                 ];
             }, $listado['filas']),
@@ -195,7 +200,12 @@ class ImportarNotas extends Component
     {
         // Se vuelve a leer el texto: lo que se guarda no sale de lo que mandó el navegador.
         $leido = $this->leer();
-        $filas = $leido ? array_filter($this->cotejar($leido), fn (array $fila) => $fila['error'] === null) : [];
+        $filas = $leido && ! $this->faltaColumna() ? array_filter($this->cotejar($leido), fn (array $fila) => $fila['error'] === null) : [];
+
+        if (! $filas) {
+            return;
+        }
+
         $prueba = Prueba::findOrFail($this->pruebaId);
 
         DB::transaction(function () use ($filas, $prueba) {
@@ -212,6 +222,12 @@ class ImportarNotas extends Component
         $this->cerrar();
     }
 
+    /** Con el listado, mientras no se elige la columna de la prueba no hay nada que importar. */
+    private function faltaColumna(): bool
+    {
+        return $this->columnas && $this->columna === null;
+    }
+
     public function cerrar()
     {
         $this->abrir = false;
@@ -221,7 +237,7 @@ class ImportarNotas extends Component
     {
         return view('livewire.pruebas.importar-notas', [
             'prueba'  => Prueba::findOrFail($this->pruebaId),
-            'validos' => count(array_filter($this->filas, fn (array $fila) => $fila['error'] === null)),
+            'validos' => $this->faltaColumna() ? 0 : count(array_filter($this->filas, fn (array $fila) => $fila['error'] === null)),
         ]);
     }
 }

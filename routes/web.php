@@ -18,6 +18,7 @@ use App\Http\Controllers\MovimientosContablesPdfController;
 use App\Http\Controllers\PresupuestoConceptosPdfController;
 use App\Http\Controllers\PresupuestoRepartoPdfController;
 use App\Http\Controllers\RemesaFicheroController;
+use App\Http\Controllers\PruebasNotasPdfController;
 use App\Http\Controllers\RemesaInformePdfController;
 use App\Livewire\Remesas\Lista as RemesasLista;
 use App\Http\Controllers\EmpresaContableContextoController;
@@ -143,6 +144,7 @@ Route::middleware([
         Route::get('/asignaturas/{asignatura}/alumnos', AlumnosLista::class)->name('asignaturas.alumnos');
         // Pruebas evaluables de una asignatura y las notas de cada prueba; igual, solo de profesor.
         Route::get('/asignaturas/{asignatura}/pruebas', PruebasLista::class)->name('asignaturas.pruebas');
+        Route::get('/asignaturas/{asignatura}/pruebas/pdf', PruebasNotasPdfController::class)->name('asignaturas.pruebas.pdf');
         Route::get('/asignaturas/{asignatura}/pruebas/{prueba}/notas', PruebasNotas::class)->name('asignaturas.pruebas.notas');
         // Cursos y sus evaluaciones, solo en horarios de profesor. El nombre de la segunda
         // empieza por 'cursos.' para que el menú siga marcando Cursos.
