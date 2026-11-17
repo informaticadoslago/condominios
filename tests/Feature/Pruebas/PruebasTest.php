@@ -617,4 +617,120 @@ class PruebasTest extends TestCase
         $ajena = Evaluacion::create(['curso_id' => $curso->id, 'nombre' => '1ª', 'fecha_inicio' => '2026-09-01', 'fecha_fin' => '2026-12-20', 'estado_id' => 1]);
         $this->get(route('asignaturas.pruebas.pdf', ['asignatura' => $this->mates->id, 'evaluacion_id' => $ajena->id]))->assertNotFound();
     }
+
+    /** Una prueba que se califica con palabras: 2 = Apto / No apto, 3 = Entregado / No entregado. */
+    private function conPalabras(string $nombre, int $tipo, ?Prueba $contenedora = null, string $peso = '40'): Prueba
+    {
+        Livewire::test(Formulario::class, ['asignaturaId' => $this->mates->id])
+            ->call('crear', $this->primera->id, $contenedora?->id)
+            ->set('nombre', $nombre)->set('fecha', '2026-10-20')->set('peso', $peso)
+            ->set('tipo_calificacion', $tipo)
+            ->call('guardar')->assertHasNoErrors();
+
+        return Prueba::where('nombre', $nombre)->firstOrFail();
+    }
+
+    public function test_apto_y_entregado_se_guardan_como_1_o_0_y_se_ven_con_palabras(): void
+    {
+        $id = $this->apunte->id;
+        $apto = $this->conPalabras('Exposición', Prueba::CALIFICACION_APTO);
+        $entrega = $this->conPalabras('Actividad 1', Prueba::CALIFICACION_ENTREGADO);
+
+        // Son pruebas sobre 1, sin que nadie lo escriba.
+        $this->assertSame(1.0, $apto->puntuacion_maxima);
+        $this->assertSame(Prueba::CALIFICACION_ENTREGADO, $entrega->tipo_calificacion);
+        Livewire::test(Lista::class, ['asignatura' => $this->mates])->assertSee('Apto / No apto')->assertSee('Entregado / No entregado');
+
+        // Apto / No apto: sin calificar no hay nota; no hay casillas de números ni Importar.
+        $notas = Livewire::test(Notas::class, ['asignatura' => $this->mates, 'prueba' => $apto])
+            ->assertSet("notas.{$id}.valor", '')
+            ->assertDontSeeHtml("nota10-{$id}")
+            ->assertDontSeeHtml('btn-importar-notas')
+            ->set("notas.{$id}.valor", '1');
+        $this->assertSame([1.0, 10.0], [PruebaNota::firstOrFail()->nota, PruebaNota::firstOrFail()->nota_sobre_10]);
+        $notas->set("notas.{$id}.valor", '0');
+        $this->assertSame([0.0, 0.0], [PruebaNota::firstOrFail()->nota, PruebaNota::firstOrFail()->nota_sobre_10]);
+        $this->assertSame('No apto', $apto->notaVisible(0));
+        // Un número no entra en una prueba de palabras, ni las flechas la tocan.
+        $notas->set("notas.{$id}.nota", '0,5')->call('redondear', $id, 1);
+        $this->assertSame(0.0, PruebaNota::firstOrFail()->nota_sobre_10);
+        $notas->set("notas.{$id}.valor", '');
+        $this->assertSame(0, PruebaNota::count());
+        $this->assertSame('', $apto->notaVisible(null));
+
+        // Entregado / No entregado: nunca vacío.
+        $notas = Livewire::test(Notas::class, ['asignatura' => $this->mates, 'prueba' => $entrega])
+            ->assertSet("notas.{$id}.valor", false)
+            // (El subtítulo dice «Entregado / No entregado»: lo de la fila se distingue por el rojo.)
+            ->assertSeeHtml('text-red-600')
+            ->set("notas.{$id}.valor", true)
+            ->assertDontSeeHtml('text-red-600');
+        $this->assertSame(10.0, PruebaNota::firstOrFail()->nota_sobre_10);
+        Livewire::test(Notas::class, ['asignatura' => $this->mates, 'prueba' => $entrega])->assertSet("notas.{$id}.valor", true);
+
+        // Con notas, no se cambia cómo se califica.
+        Livewire::test(Formulario::class, ['asignaturaId' => $this->mates->id])
+            ->call('editar', $entrega->id)
+            ->set('tipo_calificacion', Prueba::CALIFICACION_NUMERICA)->set('puntuacion_maxima', '10')
+            ->call('guardar')->assertHasErrors(['tipo_calificacion']);
+
+        $notas->set("notas.{$id}.valor", false)->assertSeeHtml('text-red-600');
+        $this->assertSame(0, PruebaNota::count());
+        $this->assertSame('No entregado', $entrega->notaVisible(null));
+
+        // Sin notas sí: pasa a numérica con su puntuación.
+        Livewire::test(Formulario::class, ['asignaturaId' => $this->mates->id])
+            ->call('editar', $entrega->id)
+            ->assertSet('puntuacion_maxima', '')
+            ->set('tipo_calificacion', Prueba::CALIFICACION_NUMERICA)
+            ->call('guardar')->assertHasErrors(['puntuacion_maxima'])
+            ->set('puntuacion_maxima', '20')
+            ->call('guardar')->assertHasNoErrors();
+        $this->assertSame(20.0, $entrega->fresh()->puntuacion_maxima);
+
+        // No se importan notas a una prueba de palabras.
+        Livewire::test(ImportarNotas::class, ['pruebaId' => $apto->id])->call('abrirModal')->assertSet('abrir', false);
+    }
+
+    public function test_las_entregas_como_partes_cuentan_0_si_no_se_entregan(): void
+    {
+        Livewire::test(Formulario::class, ['asignaturaId' => $this->mates->id])
+            ->call('crear', $this->primera->id)
+            ->set('nombre', 'Actividades')->set('fecha', '2026-10-30')->set('peso', '15')
+            ->set('con_partes', true)->set('nota_minima', '0')
+            ->call('guardar')->assertHasNoErrors();
+        $actividades = Prueba::where('nombre', 'Actividades')->firstOrFail();
+        $a1 = $this->conPalabras('A1', Prueba::CALIFICACION_ENTREGADO, $actividades, '50');
+        $a2 = $this->conPalabras('A2', Prueba::CALIFICACION_ENTREGADO, $actividades, '25');
+        $a3 = $this->conPalabras('A3', Prueba::CALIFICACION_APTO, $actividades, '25');
+        $id = $this->apunte->id;
+
+        // Sin entregar nada ya hay nota: un 0.
+        $this->assertSame(0.0, $actividades->notasFinales()[$id]['final']);
+
+        Livewire::test(Notas::class, ['asignatura' => $this->mates, 'prueba' => $a1])->set("notas.{$id}.valor", true);
+        Livewire::test(Notas::class, ['asignatura' => $this->mates, 'prueba' => $a3])->set("notas.{$id}.valor", '1');
+        $finales = $actividades->notasFinales()[$id];
+        $this->assertSame([$a1->id => 10.0, $a2->id => 0.0, $a3->id => 10.0], $finales['partes']);
+        $this->assertSame(7.5, $finales['final']);
+
+        Livewire::test(NotasPartes::class, ['asignatura' => $this->mates, 'prueba' => $actividades])
+            ->assertSee('No entregado')->assertSee('Apto')->assertSet("finales.{$id}", '7,5');
+
+        // El ZIP lleva el tipo de calificación.
+        Storage::fake('coms');
+        Storage::fake('local');
+        $zip = app(HorarioExportador::class)->exportar($this->horario);
+        Storage::disk('local')->put('tmp/horario.zip', Storage::disk('coms')->get($zip));
+        app(ImportadorZipHorario::class)->importar('tmp/horario.zip');
+        $copia = Horario::where('id', '!=', $this->horario->id)->firstOrFail();
+        $copiada = Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $copia->id)->select('id'))->where('nombre', 'A3')->firstOrFail();
+        $this->assertSame(Prueba::CALIFICACION_APTO, $copiada->tipo_calificacion);
+
+        $pdf = app(\App\Http\Controllers\PruebasNotasPdfController::class)(
+            \Illuminate\Http\Request::create('/', 'GET', ['evaluacion_id' => $this->primera->id]),
+            $this->mates
+        );
+        $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+    }
 }

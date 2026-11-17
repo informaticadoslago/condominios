@@ -4,7 +4,11 @@
     </x-slot>
     <x-slot name="subtitulo">
         {{ $prueba->asignatura->nombreConModulo() }} · {{ $prueba->evaluacion->curso->nombre }} · {{ $prueba->evaluacion->nombre }}
-        · {{ __('sobre') }} {{ \App\Models\Prueba::numero($prueba->puntuacion_maxima) }}
+        @if ($prueba->esNumerica())
+            · {{ __('sobre') }} {{ \App\Models\Prueba::numero($prueba->puntuacion_maxima) }}
+        @else
+            · {{ \App\Models\Prueba::tiposCalificacion()[$prueba->tipo_calificacion] }}
+        @endif
         · {{ __('peso') }} {{ \App\Models\Prueba::numero($prueba->peso) }} %
     </x-slot>
     <x-slot name="botonera">
@@ -18,7 +22,55 @@
 
     <x-slot name="content">
         <x-dosl.tabla>
-            @if (count($apuntes))
+            @if (count($apuntes) && ! $prueba->esNumerica())
+                {{-- Con palabras: se elige y se guarda al momento. --}}
+                @php([$buena, $mala] = $prueba->palabras())
+                <p class="py-3 px-6 text-sm border-b">
+                    {{ $prueba->esDeEntrega()
+                        ? __('Marca quién ha entregado; se guarda al momento. Quien no está marcado no ha entregado, y cuenta como 0.')
+                        : __('Elige la calificación de cada alumno; se guarda al momento.') }}
+                </p>
+                <table class="table-striped w-full table-auto text-sm text-left">
+                    <thead class="font-medium border-b">
+                        <tr>
+                            <th class="py-3 px-6">{{ __('Alumno') }}</th>
+                            <th class="py-3 px-6">{{ __('Grupo') }}</th>
+                            <th class="py-3 px-6">{{ __('Calificación') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        @foreach ($apuntes as $apunte)
+                            <tr wire:key="nota-{{ $apunte->id }}">
+                                <td class="px-6 py-2">
+                                    {{ $apunte->alumno->nombreCompleto }}
+                                    @if ($apunte->estado_id != \App\Models\AsignaturaAlumno::ESTADO_ACTIVO)
+                                        <span class="text-xs text-gray-500">({{ __('baja') }})</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-2">{{ $apunte->grupo }}</td>
+                                <td class="px-6 py-2">
+                                    @if ($prueba->esDeEntrega())
+                                        <label class="inline-flex items-center gap-2 py-2 cursor-pointer" for="valor-{{ $apunte->id }}">
+                                            <input type="checkbox" id="valor-{{ $apunte->id }}" class="rounded"
+                                                wire:model.live="notas.{{ $apunte->id }}.valor" />
+                                            <span @class(['text-red-600' => ! ($notas[$apunte->id]['valor'] ?? false)])>
+                                                {{ ($notas[$apunte->id]['valor'] ?? false) ? $buena : $mala }}
+                                            </span>
+                                        </label>
+                                    @else
+                                        <x-select id="valor-{{ $apunte->id }}" class="py-2"
+                                            wire:model.live="notas.{{ $apunte->id }}.valor">
+                                            <option value="">{{ __('--') }}</option>
+                                            <option value="1">{{ $buena }}</option>
+                                            <option value="0">{{ $mala }}</option>
+                                        </x-select>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @elseif (count($apuntes))
                 {{-- La revisión de lo importado es una tabla de cuatro columnas: con el móvil en
                      vertical no cabe, así que ahí no se ofrece. --}}
                 <x-slot name="botonera">
@@ -93,6 +145,8 @@
             @endif
         </x-dosl.tabla>
 
-        @livewire('pruebas.importar-notas', ['pruebaId' => $prueba->id])
+        @if ($prueba->esNumerica())
+            @livewire('pruebas.importar-notas', ['pruebaId' => $prueba->id])
+        @endif
     </x-slot>
 </x-botonera-page>

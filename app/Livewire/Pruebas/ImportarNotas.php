@@ -43,6 +43,11 @@ class ImportarNotas extends Component
     #[On('abrir-importar-notas')]
     public function abrirModal()
     {
+        // Solo se importan números: Apto / No apto y Entregado / No entregado se ponen a mano.
+        if (! Prueba::findOrFail($this->pruebaId)->esNumerica()) {
+            return;
+        }
+
         $this->reset(['texto', 'filas', 'revisado', 'columnas', 'columna']);
         $this->resetValidation();
         $this->abrir = true;
@@ -207,6 +212,9 @@ class ImportarNotas extends Component
         }
 
         $prueba = Prueba::findOrFail($this->pruebaId);
+        if (! $prueba->esNumerica()) {
+            return;
+        }
 
         DB::transaction(function () use ($filas, $prueba) {
             foreach ($filas as $fila) {

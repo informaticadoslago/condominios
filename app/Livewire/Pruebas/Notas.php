@@ -16,14 +16,25 @@ use Livewire\Component;
  * ella. Al escribir la primera se calcula la segunda; la segunda se puede retocar a mano
  * (o con las flechas, al entero de arriba o de abajo) y se queda así hasta que se vuelva
  * a tocar la primera.
+ *
+ * En una prueba que no es numérica (Apto / No apto, Entregado / No entregado) no hay
+ * casillas: se elige la palabra, y por dentro se guarda 1 o 0 (y 10 o 0 sobre 10).
  */
 class Notas extends Component
 {
     #[Locked]
     public int $pruebaId;
 
-    /** [id del apunte => ['nota' => '', 'nota10' => '']], como texto y con coma decimal. */
+    /**
+     * [id del apunte => ['nota' => '', 'nota10' => '', 'valor' => '']]: las notas como texto y
+     * con coma decimal; 'valor' es lo elegido en una prueba que no es numérica: '1', '0' o ''
+     * (sin calificar) en Apto / No apto, y marcado o no en Entregado / No entregado.
+     */
     public array $notas = [];
+
+    /** Si la prueba es de Entregado / No entregado: ver pintar. */
+    #[Locked]
+    public bool $deEntrega = false;
 
     public function mount(Asignatura $asignatura, Prueba $prueba)
     {
@@ -38,6 +49,7 @@ class Notas extends Component
         );
 
         $this->pruebaId = $prueba->id;
+        $this->deEntrega = $prueba->esDeEntrega();
         $this->cargar();
     }
 
@@ -74,6 +86,9 @@ class Notas extends Component
         $this->notas[$apunteId] = [
             'nota'   => Prueba::numero($nota?->nota),
             'nota10' => Prueba::numero($nota?->nota_sobre_10),
+            'valor'  => $this->deEntrega
+                ? (float) $nota?->nota > 0
+                : ($nota?->nota === null ? '' : ($nota->nota > 0 ? '1' : '0')),
         ];
     }
 
@@ -100,13 +115,24 @@ class Notas extends Component
         return is_numeric($texto) && $texto >= 0 && $texto <= $maximo ? round((float) $texto, 2) : false;
     }
 
-    /** Se guarda la casilla que se acaba de dejar: $clave es «<apunte>.nota» o «<apunte>.nota10». */
+    /**
+     * Se guarda la casilla que se acaba de dejar: $clave es «<apunte>.nota» o «<apunte>.nota10»
+     * y, en una prueba que no es numérica, «<apunte>.valor».
+     */
     public function updatedNotas($valor, $clave)
     {
         [$apunteId, $campo] = explode('.', $clave) + [null, null];
         $prueba = $this->prueba();
 
-        if (! in_array($campo, ['nota', 'nota10'], true) || ! $this->apunteValido($prueba, $apunteId)) {
+        // Cada tipo de prueba, solo con sus casillas.
+        $campos = $prueba->esNumerica() ? ['nota', 'nota10'] : ['valor'];
+        if (! in_array($campo, $campos, true) || ! $this->apunteValido($prueba, $apunteId)) {
+            return;
+        }
+
+        if ($campo === 'valor') {
+            $this->guardarPalabra($prueba, (int) $apunteId, $valor);
+
             return;
         }
 
@@ -142,13 +168,33 @@ class Notas extends Component
         $this->guardar($prueba, (int) $apunteId, $nota, $datos);
     }
 
+    /**
+     * Lo elegido en una prueba que no es numérica: 1 la palabra buena, 0 la mala y nada, sin
+     * calificar. En las de entrega solo hay entregado o no, y el «no» es no tener nota: así
+     * la prueba en la que nadie ha entregado nada sigue sin notas.
+     */
+    private function guardarPalabra(Prueba $prueba, int $apunteId, $valor): void
+    {
+        $buena = $valor === true || $valor === 1 || $valor === '1';
+        $mala = ! $prueba->esDeEntrega() && ($valor === 0 || $valor === '0');
+
+        $nota = PruebaNota::where('prueba_id', $prueba->id)->where('asignatura_alumno_id', $apunteId)->first();
+        $datos = match (true) {
+            $buena  => ['nota' => 1, 'nota_sobre_10' => 10],
+            $mala   => ['nota' => 0, 'nota_sobre_10' => 0],
+            default => null,
+        };
+
+        $this->guardar($prueba, $apunteId, $nota, $datos);
+    }
+
     /** Las flechas junto a la nota sobre 10: al entero siguiente (+1) o al anterior (-1). */
     public function redondear($apunteId, int $sentido)
     {
         $prueba = $this->prueba();
         $nota = PruebaNota::where('prueba_id', $prueba->id)->where('asignatura_alumno_id', $apunteId)->first();
 
-        if (! $nota) {
+        if (! $nota || ! $prueba->esNumerica()) {
             return;
         }
 

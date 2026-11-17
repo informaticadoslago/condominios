@@ -28,6 +28,8 @@
         /* El alumno, en letra grande: es lo que se busca al leer la hoja. */
         table.notas td.alumno { font-size: 13pt; white-space: nowrap; }
         table.notas td.nota { text-align: center; font-size: 12pt; }
+        /* La nota con palabras (Apto, No entregado…), en letra pequeña para que quepa en la columna. */
+        table.notas td.palabra { font-size: 6.5pt; }
         table.notas tbody tr:nth-child(odd) { background-color: rgb(241, 241, 242); }
         .baja { font-size: 8pt; color: #555; }
         .salto { page-break-after: always; }
@@ -70,9 +72,9 @@
                     </td>
                     @foreach ($hoja['pruebas'] as $prueba)
                         {{-- De la prueba con partes, la nota final (la media de sus partes o su retoque). --}}
-                        <td class="nota">{{ \App\Models\Prueba::numero($prueba->con_partes
-                            ? ($finales[$prueba->id][$apunte->id] ?? null)
-                            : $apunte->notas->firstWhere('prueba_id', $prueba->id)?->nota_sobre_10) }}</td>
+                        <td @class(['nota', 'palabra' => ! $prueba->con_partes && ! $prueba->esNumerica()])>{{ $prueba->con_partes
+                            ? \App\Models\Prueba::numero($finales[$prueba->id][$apunte->id] ?? null)
+                            : $prueba->notaVisible($apunte->notas->firstWhere('prueba_id', $prueba->id)?->nota_sobre_10) }}</td>
                     @endforeach
                 </tr>
             @endforeach

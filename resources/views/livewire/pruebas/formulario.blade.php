@@ -49,6 +49,19 @@
             </div>
         @else
             <div class="mt-4">
+                <x-label for="pr-calificacion" :value="__('Se califica con')" />
+                <x-select id="pr-calificacion" class="block mt-1 w-full py-3 disabled:opacity-50" wire:model.live="tipo_calificacion"
+                    :disabled="$tieneNotas">
+                    @foreach (\App\Models\Prueba::tiposCalificacion() as $tipo => $nombreTipo)
+                        <option value="{{ $tipo }}">{{ $nombreTipo }}</option>
+                    @endforeach
+                </x-select>
+                <x-input-error for="tipo_calificacion" class="mt-2" />
+            </div>
+        @endif
+        {{-- La que se califica con palabras no tiene puntuación máxima que escribir. --}}
+        @if (! $con_partes && $numerica)
+            <div class="mt-4">
                 <x-label for="pr-maxima" :value="__('Nota sobre (puntuación máxima)')" />
                 <x-input id="pr-maxima" class="block mt-1 w-full" type="text" inputmode="decimal" wire:model="puntuacion_maxima" placeholder="30" />
                 <x-input-error for="puntuacion_maxima" class="mt-2" />

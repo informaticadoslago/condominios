@@ -44,7 +44,11 @@
                 <td class="px-6 py-4">{{ $evaluacion->nombre.' ('.$evaluacion->curso->nombre.')' }}</td>
                 @break
             @case('puntuacion_maxima')
-                <td class="px-6 py-4 text-right">{{ $item->con_partes ? '' : \App\Models\Prueba::numero($item->puntuacion_maxima) }}</td>
+                <td class="px-6 py-4 text-right">{{ match (true) {
+                    $item->con_partes  => '',
+                    $item->esNumerica() => \App\Models\Prueba::numero($item->puntuacion_maxima),
+                    default            => \App\Models\Prueba::tiposCalificacion()[$item->tipo_calificacion] ?? '',
+                } }}</td>
                 @break
             @case('peso')
                 {{-- El de una parte es dentro de su prueba, no en la evaluación. --}}

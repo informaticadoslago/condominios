@@ -66,7 +66,8 @@
                                     @php($nota = $delAlumno['partes'][$parte->id] ?? null)
                                     {{-- En rojo, la que no llega al mínimo (también la que falta, que cuenta como 0). --}}
                                     <td @class(['px-6 py-2 text-right', 'text-red-600' => $delAlumno && $prueba->nota_minima > 0 && (float) $nota < $prueba->nota_minima])>
-                                        {{ $delAlumno ? \App\Models\Prueba::numero($nota ?? 0) : '' }}
+                                        {{-- La parte que no es numérica, con su palabra; sin calificar, vacía (aunque cuente como 0). --}}
+                                        {{ $delAlumno ? $parte->notaVisible($parte->esNumerica() ? ($nota ?? 0) : $nota) : '' }}
                                     </td>
                                 @endforeach
                                 <td class="px-6 py-2">
