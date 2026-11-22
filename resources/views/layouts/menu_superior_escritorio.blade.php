@@ -75,6 +75,10 @@
                         </flux:navmenu.item>
                     @endImpersonating
 
+                    <flux:navmenu.item href="#" icon="information-circle" class="text-zinc-800 dark:text-white" x-data
+                        x-on:click.prevent="Livewire.dispatch('abrir-acerca-de')">{{ __('Acerca de…') }}
+                    </flux:navmenu.item>
+
                     <flux:navmenu.separator />
 
                     <x-dosl.logout-button label="Salir" />

@@ -29,6 +29,11 @@
                         </flux:navmenu.item>
                     @endif
 
+                    {{-- x-data: Alpine solo procesa directivas dentro de un árbol con x-data. --}}
+                    <flux:navmenu.item href="#" icon="information-circle" class="text-zinc-800 dark:text-white" x-data
+                        x-on:click.prevent="Livewire.dispatch('abrir-acerca-de')">{{ __('Acerca de…') }}
+                    </flux:navmenu.item>
+
                     <flux:navmenu.separator />
 
                     <x-dosl.logout-button label="Salir" />

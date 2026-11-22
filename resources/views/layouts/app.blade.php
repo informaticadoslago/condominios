@@ -169,6 +169,8 @@
 
     @livewire('notificaciones-push')
 
+    @livewire('acerca-de')
+
     @include('layouts.visor-pdf')
 
     @stack('modals')

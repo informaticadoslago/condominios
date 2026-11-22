@@ -15,6 +15,7 @@ php artisan <comando>
 | [`doslago:db-reset`](#doslagodb-reset) | Recrea la BD de una "comunidad" y migra | Borra la BD de esa comunidad |
 | [`doslago:db-restore`](#doslagodb-restore) | Analiza y restaura un backup completo (BD + storage) | **Irreversible** |
 | [`doslago:installresources`](#doslagoinstallresources) | Copia los logos y el service worker a `public/` | Ninguno (solo copia ficheros) |
+| [`doslago:version`](#doslagoversion) | Escribe en el `.env` la versión que enseña «Acerca de…» | Ninguno (solo toca dos variables del `.env`) |
 | [`condominios:fakeseed`](#condominiosfakeseed) | Genera datos ficticios de demo | Solo en modo debug |
 | [`condominios:comunidades-listar`](#condominioscomunidades-listar) | Lista comunidades con `id` y nombre, una por línea | Ninguno (solo lectura) |
 | [`condominios:comunidad-exportar`](#condominioscomunidad-exportar) | Exporta una comunidad completa a `.zip` | Ninguno (solo lectura) |
@@ -130,6 +131,39 @@ También copia el service worker de las notificaciones push (`resources/js/sw.js
 `public/sw.js` (en `.gitignore`). Sin él no se pueden activar las notificaciones.
 
 Solo copia ficheros: seguro de ejecutar en cualquier entorno, incluida producción.
+
+---
+
+## `doslago:version`
+
+```bash
+php artisan doslago:version [--no-git-exe]
+```
+
+Se lanza **en cada despliegue**, después de actualizar el código y antes de
+`config:cache`. Mira el último commit y escribe en el `.env`:
+
+- `LAST_GIT_TAG`: su etiqueta, o vacía si no tiene (con commits posteriores a una
+  etiqueta, el código ya no es el de esa etiqueta).
+- `LAST_GIT_DATE`: su fecha (`AAAA-MM-DD`).
+
+«Acerca de…» (menú del perfil) enseña «Versión v1.8.1 del dd/mm/aaaa», o «Versión del
+dd/mm/aaaa» si no hay etiqueta. La web nunca ejecuta git: solo lee esas dos variables.
+
+Sin opciones, ejecuta el programa git. Con `--no-git-exe` (para Plesk, donde git no
+está al alcance) no lo ejecuta: lee de la carpeta `.git` el commit instalado y la
+dirección del repositorio (`origin`), y pregunta al servidor que lo aloja:
+
+- La etiqueta la da cualquier servidor de git (GitHub, GitLab, Bitbucket…).
+- La fecha, solo GitHub y GitLab (también un GitLab propio). Con otro servidor queda
+  vacía; si además el commit no tiene etiqueta, la versión es desconocida.
+- Un repositorio privado solo se puede consultar si la dirección de `.git/config` lleva
+  el usuario y el token (`https://usuario:token@…`). Por ssh (`git@…`) se pregunta por
+  https, que solo vale con un repositorio público.
+
+Si no consigue saber la versión no falla: deja las dos variables vacías, avisa del
+motivo, y «Acerca de…» dice «Versión desconocida». Si las variables no están en el
+`.env`, las añade al final.
 
 ---
 

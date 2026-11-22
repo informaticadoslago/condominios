@@ -19,6 +19,7 @@ usan en ningún sitio del código** — para no perder tiempo buscando qué hace
 | `APP_URL` | URL base de la aplicación. |
 | `APP_LOCALE` / `APP_FALLBACK_LOCALE` / `APP_FAKER_LOCALE` | Idioma de la app / idioma de respaldo / locale de Faker (datos de prueba). |
 | `APP_TIMEZONE` | Zona horaria. |
+| `LAST_GIT_TAG` / `LAST_GIT_DATE` | Versión del código desplegado que enseña «Acerca de…»: etiqueta del último commit (vacía si no tiene) y su fecha (`AAAA-MM-DD`). No se tocan a mano: las escribe `doslago:version` al desplegar. Con las dos sale «Versión v1.8.1 del dd/mm/aaaa»; sin etiqueta, «Versión del dd/mm/aaaa»; sin las dos, «Versión desconocida». |
 
 ## Base de datos
 
