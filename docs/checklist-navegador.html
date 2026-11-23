@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checklist del navegador</title>
+<style>
+    :root {
+        --fondo: #ffffff; --texto: #1f2328; --suave: #656d76; --borde: #d0d7de;
+        --grupo: #eef2f7; --commit: #f6f8fa; --bien: #1a7f37; --bienf: #dafbe1;
+        --mal: #cf222e; --malf: #ffebe9; --dusk: #0969da;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --fondo: #0d1117; --texto: #e6edf3; --suave: #8d96a0; --borde: #30363d;
+            --grupo: #1c2431; --commit: #161b22; --bien: #3fb950; --bienf: #12261e;
+            --mal: #f85149; --malf: #2d1215; --dusk: #4493f8;
+        }
+    }
+    body { margin: 0; padding: 16px; background: var(--fondo); color: var(--texto);
+           font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .ayuda { color: var(--suave); margin: 0 0 12px; max-width: 900px; }
+    .barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    button, input[type=date] { font: inherit; padding: 4px 10px; border: 1px solid var(--borde);
+           border-radius: 6px; background: var(--commit); color: var(--texto); cursor: pointer; }
+    .envoltorio { overflow-x: auto; border: 1px solid var(--borde); border-radius: 6px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid var(--borde); padding: 6px 8px; vertical-align: top; text-align: left; }
+    thead th { position: sticky; top: 0; background: var(--fondo); white-space: nowrap; }
+    td.id { white-space: nowrap; font-weight: 600; }
+    td.tipo { white-space: nowrap; font-size: 12px; }
+    td.tipo.dusk { color: var(--dusk); }
+    td.tipo.manual { color: var(--suave); }
+    tr.grupo td { background: var(--grupo); font-weight: 700; font-size: 15px; }
+    tr.commit td { background: var(--commit); color: var(--suave); font-size: 13px; }
+    tr.commit code { color: var(--texto); }
+    th.fecha, td.marca { width: 76px; text-align: center; }
+    th.fecha button { padding: 0 6px; margin-left: 4px; border: 0; background: none; color: var(--suave); }
+    td.marca { cursor: pointer; user-select: none; font-size: 18px; font-weight: 700; }
+    td.marca.bien { color: var(--bien); background: var(--bienf); }
+    td.marca.mal { color: var(--mal); background: var(--malf); }
+    .nota { color: var(--mal); font-weight: 600; }
+    tfoot td { font-size: 12px; color: var(--suave); text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>Checklist del navegador</h1>
+<p class="ayuda">
+    Solo lo que las pruebas automáticas no ven: lo que depende de pulsar en la página, arrastrar, el aspecto o el PDF.
+    Los cálculos, lo que se guarda, el ZIP y los borrados ya los comprueban las pruebas automáticas y no están aquí.
+    <b>Nueva fecha</b> añade una columna; cada casilla va pasando de vacía a ✔ (bien), a ✘ (falla) y otra vez a vacía.
+    Las marcas se guardan en este navegador; <b>Exportar</b> las baja a un fichero por si se pierden.
+    <b>Tipo</b>: «Automatizable» se podría probar con un navegador automático; «Manual» hay que mirarlo.
+</p>
+
+<div class="barra">
+    <input type="date" id="fecha-nueva">
+    <button type="button" id="btn-nueva-fecha">Nueva fecha</button>
+    <button type="button" id="btn-exportar">Exportar marcas</button>
+    <button type="button" id="btn-importar">Importar marcas</button>
+    <input type="file" id="fichero-importar" accept="application/json" hidden>
+</div>
+
+<div class="envoltorio">
+<table id="tabla">
+    <thead>
+        <tr><th>Id</th><th>Qué hacer y qué tiene que pasar</th><th>Tipo</th></tr>
+    </thead>
+    <tbody>
+
+        <tr class="grupo"><td colspan="3">Sin etiqueta todavía (después de v1.8.1)</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>sin commit</code> · Evaluación: nota de la evaluación con sus medias</td></tr>
+        <tr data-id="EV1"><td class="id">EV1</td><td>En Pruebas evaluables, con una evaluación elegida en el filtro, sale un botón ⋮ detrás de Imprimir; al pulsarlo se despliega con la opción <b>Evaluación</b>. Con la evaluación del filtro vacía, el botón ⋮ no sale.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="EV2"><td class="id">EV2</td><td>Pulsar <b>Evaluación</b> abre la pantalla «Evaluación: (nombre)» de esa asignatura y esa evaluación.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="EV3"><td class="id">EV3</td><td>Pulsar ▲ o ▼ junto a la Nota: el número de la casilla pasa al entero siguiente o anterior sin recargar, y cambia la media de la Nota en la última fila. <span class="nota">Ahora falla: la casilla no cambia.</span></td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="EV4"><td class="id">EV4</td><td>Escribir una nota en la casilla y salir con Tab: con F5 sigue ahí. Borrarla y salir: vuelve a la de la columna Evaluación. Escribir 11: sale un error debajo.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="EV5"><td class="id">EV5</td><td>Pulsar el nombre de una prueba en la cabecera lleva a sus notas; el de una prueba con partes, a la pantalla de sus partes.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="EV6"><td class="id">EV6</td><td>Aspecto: partes en gris con «(40 % de …)», cada prueba con su peso, columna Evaluación en negrita y una fila <b>Media</b> al pie con una media en cada columna (también en Evaluación y Nota).</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="EV7"><td class="id">EV7</td><td>Imprimir, desde la evaluación y desde la lista de pruebas, abre el PDF en otra pestaña: cada hoja acaba con las columnas Evaluación y Nota en negrita y lleva la fila Media al pie; con más de 8 pruebas sigue en otra hoja, que repite Evaluación y Nota.</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="EV8"><td class="id">EV8</td><td>En el móvil, la tabla de la evaluación se desplaza a lo ancho sin descuadrar la página, y el menú ⋮ de la lista se puede abrir.</td><td class="tipo manual">Manual</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>6daa8ee</code> · Acerca de… en el menú del perfil</td></tr>
+        <tr data-id="AD1"><td class="id">AD1</td><td>Escritorio: menú del perfil → <b>Acerca de…</b> abre un cuadro pequeño con el nombre de la app y la versión; se cierra bien.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="AD2"><td class="id">AD2</td><td>Móvil: lo mismo desde el menú del móvil.</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="AD3"><td class="id">AD3</td><td>En el servidor, después de desplegar y ejecutar <code>doslago:version</code>: el cuadro dice «Versión vX.Y.Z del dd/mm/aaaa» si lo desplegado tiene etiqueta, o «Versión del dd/mm/aaaa» si no.</td><td class="tipo manual">Manual</td></tr>
+
+        <tr class="grupo"><td colspan="3">v1.8.1</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>fc4e76c</code> · Calificar con número, Apto / No apto o Entregado / No entregado</td></tr>
+        <tr data-id="TC1"><td class="id">TC1</td><td>En el formulario de una prueba, al elegir Apto / No apto o Entregado / No entregado desaparece o se bloquea la puntuación máxima. En una prueba que ya tiene notas, el tipo de calificación sale bloqueado.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="TC2"><td class="id">TC2</td><td>Notas de una prueba Apto / No apto: un desplegable por alumno; al elegir se guarda sin pulsar nada más (con F5 sigue ahí); se puede dejar sin calificar; no sale el botón Importar.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="TC3"><td class="id">TC3</td><td>Notas de una prueba de entrega: una casilla por alumno; sin marcar pone «No entregado» en rojo; al marcarla pasa a «Entregado» y se guarda (con F5 sigue ahí).</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="TC4"><td class="id">TC4</td><td>En el PDF, las pruebas con palabras salen en letra pequeña (Apto, No entregado…) y caben en su columna.</td><td class="tipo manual">Manual</td></tr>
+
+        <tr class="grupo"><td colspan="3">v1.8.0</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>3b18de9</code> · Pruebas con partes</td></tr>
+        <tr data-id="PA1"><td class="id">PA1</td><td>En la lista, las partes salen debajo de su prueba, como en un árbol, y la suma de las partes sale en rojo si no es 100.</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="PA2"><td class="id">PA2</td><td>Arrastrar una prueba sobre el centro de una prueba con partes (se marca con un recuadro azul) la mete dentro; sobre la parte de arriba o de abajo de una fila (raya azul) la deja antes o después.</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="PA3"><td class="id">PA3</td><td>Arrastrar una parte al lado de una prueba suelta la saca de su prueba.</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="PA4"><td class="id">PA4</td><td>Soltar donde no se puede (una prueba con partes dentro de otra, o en otra evaluación) enseña un aviso rojo y no cambia nada.</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="PA5"><td class="id">PA5</td><td>El botón de nueva parte en la fila de una prueba con partes abre el formulario con la parte ya dentro de ella.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="PA6"><td class="id">PA6</td><td>Pantalla de partes: ▲ y ▼ junto a la nota final cambian el número de la casilla sin recargar; escribir otra y salir con Tab la guarda (con F5 sigue ahí). <span class="nota">Usa el mismo mecanismo que EV3: mirar si también falla.</span></td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="PA7"><td class="id">PA7</td><td>En la pantalla de partes, pulsar el nombre de una parte en la cabecera lleva a sus notas.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="PA8"><td class="id">PA8</td><td>En el PDF, de una prueba con partes salen primero sus partes y luego ella, con la nota final.</td><td class="tipo manual">Manual</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>2938c89</code> · Imprimir las notas de la evaluación; elegir la columna al importar un listado</td></tr>
+        <tr data-id="IM1"><td class="id">IM1</td><td>Imprimir solo sale con una evaluación en el filtro, y abre el PDF en otra pestaña.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="IM2"><td class="id">IM2</td><td>El PDF: A4 apaisado; cabecera con la asignatura, el curso y la evaluación; pie con el nombre del programa y la fecha y hora; alumnos en letra grande, veinte por hoja.</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="IM3"><td class="id">IM3</td><td>Importar un listado copiado de la pantalla: la revisión enseña todas las columnas que traen notas, con el nombre de su cabecera; hasta pulsar una cabecera no se puede importar, y la pulsada queda marcada.</td><td class="tipo dusk">Automatizable</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>98cd766</code> · Importar notas</td></tr>
+        <tr data-id="IN1"><td class="id">IN1</td><td>En las notas de una prueba numérica, Importar abre un cuadro de texto; al pegar el CSV de calificaciones y pulsar Revisar se ve lo leído, con los que no casan o vienen repetidos en rojo; Importar lo guarda y las notas de la pantalla cambian sin recargar.</td><td class="tipo dusk">Automatizable</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>5a2b2d7</code> · Pruebas evaluables y sus notas</td></tr>
+        <tr data-id="PE1"><td class="id">PE1</td><td>En Asignaturas (horario de profesor), cada fila tiene el botón Pruebas evaluables, que lleva a su lista; el menú sigue marcando Asignaturas.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="PE2"><td class="id">PE2</td><td>Arrastrar filas cambia el orden. Solo se arrastra con la lista en el orden de la columna ≡ y sin búsqueda; con otro orden, el icono sale gris.</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="PE3"><td class="id">PE3</td><td>Notas de una prueba: escribir la nota sobre X y salir con Tab pone la nota sobre 10 en la misma fila sin recargar.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="PE4"><td class="id">PE4</td><td>▲ y ▼ junto a la nota sobre 10 cambian el número de la casilla al entero siguiente o anterior.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="PE5"><td class="id">PE5</td><td>Con la casilla «el tabulador no para en la nota sobre 10» marcada, Tab salta de una nota sobre X a la del alumno siguiente.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="PE6"><td class="id">PE6</td><td>Mayús+clic sobre el botón de reactivar de una prueba de baja pide confirmación y la borra; si tiene notas, sale un aviso rojo y no la borra.</td><td class="tipo dusk">Automatizable</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>db33cb3</code> · Cursos y evaluaciones</td></tr>
+        <tr data-id="CU1"><td class="id">CU1</td><td>En un horario de profesor, Cursos sale en el menú (escritorio y móvil), y sigue marcado dentro de las evaluaciones de un curso.</td><td class="tipo manual">Manual</td></tr>
+        <tr data-id="CU2"><td class="id">CU2</td><td>El botón de evaluaciones de un curso lleva a su lista, y Volver regresa a Cursos.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="CU3"><td class="id">CU3</td><td>Mayús+clic sobre reactivar, en un curso o una evaluación de baja: pide confirmación y lo borra; si tiene evaluaciones o pruebas, aviso rojo y no lo borra.</td><td class="tipo dusk">Automatizable</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>ff89b8f</code> · Alumnos de una asignatura</td></tr>
+        <tr data-id="AL1"><td class="id">AL1</td><td>En Asignaturas, el botón Alumnos lleva a la lista de alumnos de esa asignatura; el menú sigue marcando Asignaturas.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="AL2"><td class="id">AL2</td><td>Importar: al pegar el listado y pulsar Revisar se ven los alumnos con su fecha y grupo; Importar los guarda y la lista cambia sin recargar.</td><td class="tipo dusk">Automatizable</td></tr>
+        <tr data-id="AL3"><td class="id">AL3</td><td>Mayús+clic sobre reactivar, en un alumno de baja: pide confirmación (avisando si es su última asignatura) y lo borra; con notas, aviso rojo y no lo borra.</td><td class="tipo dusk">Automatizable</td></tr>
+
+        <tr class="commit"><td colspan="3"><code>284e288</code> · Actualización de paquetes (composer y js)</td></tr>
+        <tr data-id="GE1"><td class="id">GE1</td><td>Abrir varias pantallas cualquiera, abrir un desplegable y un modal: todo funciona y la consola (F12) no enseña errores en rojo.</td><td class="tipo manual">Manual</td></tr>
+
+    </tbody>
+    <tfoot>
+        <tr id="resumen"><td colspan="3"></td></tr>
+    </tfoot>
+</table>
+</div>
+
+<script>
+(function () {
+    var CLAVE = 'checklist-navegador-doslago';
+    var SIMBOLO = { bien: '✔', mal: '✘' };
+
+    // { fechas: ['2026-11-22', ...], marcas: { 'EV1|2026-11-22': 'bien' | 'mal' } }
+    var estado = { fechas: [], marcas: {} };
+
+    function cargar() {
+        try {
+            var guardado = JSON.parse(localStorage.getItem(CLAVE) || 'null');
+            if (guardado && Array.isArray(guardado.fechas) && guardado.marcas) estado = guardado;
+        } catch (e) { /* sin almacenamiento: se trabaja sin guardar */ }
+    }
+
+    function guardar() {
+        try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (e) { /* idem */ }
+    }
+
+    function fechaLegible(iso) {
+        var p = iso.split('-');
+        return p[2] + '/' + p[1] + '/' + p[0].slice(2);
+    }
+
+    function pintar() {
+        var tabla = document.getElementById('tabla');
+        var cabecera = tabla.tHead.rows[0];
+        while (cabecera.cells.length > 3) cabecera.deleteCell(-1);
+        estado.fechas.forEach(function (fecha) {
+            var th = document.createElement('th');
+            th.className = 'fecha';
+            th.textContent = fechaLegible(fecha);
+            var quitar = document.createElement('button');
+            quitar.type = 'button';
+            quitar.title = 'Quitar esta fecha';
+            quitar.textContent = '×';
+            quitar.onclick = function () {
+                if (!confirm('¿Quitar la columna del ' + fechaLegible(fecha) + ' con sus marcas?')) return;
+                estado.fechas = estado.fechas.filter(function (f) { return f !== fecha; });
+                Object.keys(estado.marcas).forEach(function (k) { if (k.endsWith('|' + fecha)) delete estado.marcas[k]; });
+                guardar();
+                pintar();
+            };
+            th.appendChild(quitar);
+            cabecera.appendChild(th);
+        });
+
+        Array.prototype.forEach.call(tabla.tBodies[0].rows, function (fila) {
+            var id = fila.getAttribute('data-id');
+            if (!id) {
+                fila.cells[0].colSpan = 3 + estado.fechas.length;
+                return;
+            }
+            while (fila.cells.length > 3) fila.deleteCell(-1);
+            estado.fechas.forEach(function (fecha) {
+                var td = fila.insertCell(-1);
+                var clave = id + '|' + fecha;
+                var marca = estado.marcas[clave] || '';
+                td.className = 'marca ' + marca;
+                td.textContent = SIMBOLO[marca] || '';
+                td.title = id + ' · ' + fechaLegible(fecha);
+                td.onclick = function () {
+                    var siguiente = { '': 'bien', bien: 'mal', mal: '' }[estado.marcas[clave] || ''];
+                    if (siguiente) estado.marcas[clave] = siguiente; else delete estado.marcas[clave];
+                    guardar();
+                    pintar();
+                };
+            });
+        });
+
+        var resumen = document.getElementById('resumen');
+        while (resumen.cells.length > 1) resumen.deleteCell(-1);
+        estado.fechas.forEach(function (fecha) {
+            var bien = 0, mal = 0;
+            Object.keys(estado.marcas).forEach(function (k) {
+                if (!k.endsWith('|' + fecha)) return;
+                if (estado.marcas[k] === 'bien') bien++; else mal++;
+            });
+            resumen.insertCell(-1).textContent = bien + ' ✔ · ' + mal + ' ✘';
+        });
+    }
+
+    // Hoy en hora local (toISOString va en UTC y cerca de medianoche daría otro día).
+    var hoy = new Date();
+    document.getElementById('fecha-nueva').value = hoy.getFullYear() + '-'
+        + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+
+    document.getElementById('btn-nueva-fecha').onclick = function () {
+        var fecha = document.getElementById('fecha-nueva').value;
+        if (!fecha) return;
+        if (estado.fechas.indexOf(fecha) !== -1) { alert('Esa fecha ya tiene columna.'); return; }
+        estado.fechas.push(fecha);
+        estado.fechas.sort();
+        guardar();
+        pintar();
+    };
+
+    document.getElementById('btn-exportar').onclick = function () {
+        var enlace = document.createElement('a');
+        enlace.href = URL.createObjectURL(new Blob([JSON.stringify(estado, null, 2)], { type: 'application/json' }));
+        enlace.download = 'checklist-navegador-marcas.json';
+        enlace.click();
+    };
+
+    document.getElementById('btn-importar').onclick = function () {
+        document.getElementById('fichero-importar').click();
+    };
+
+    document.getElementById('fichero-importar').onchange = function (e) {
+        var fichero = e.target.files[0];
+        if (!fichero) return;
+        fichero.text().then(function (texto) {
+            try {
+                var leido = JSON.parse(texto);
+                if (!Array.isArray(leido.fechas) || !leido.marcas) throw new Error();
+                estado = leido;
+                guardar();
+                pintar();
+            } catch (err) {
+                alert('El fichero no tiene marcas de este checklist.');
+            }
+        });
+        e.target.value = '';
+    };
+
+    cargar();
+    pintar();
+})();
+</script>
+</body>
+</html>
