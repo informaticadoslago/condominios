@@ -7,16 +7,19 @@ use App\Livewire\Pruebas\Formulario;
 use App\Livewire\Pruebas\ImportarNotas;
 use App\Livewire\Pruebas\Lista;
 use App\Livewire\Pruebas\Notas;
+use App\Livewire\Pruebas\NotasEvaluacion;
 use App\Livewire\Pruebas\NotasPartes;
 use App\Models\Alumno;
 use App\Models\Asignatura;
 use App\Models\AsignaturaAlumno;
 use App\Models\Curso;
 use App\Models\Evaluacion;
+use App\Models\EvaluacionNota;
 use App\Models\Horario;
 use App\Models\Prueba;
 use App\Models\PruebaNota;
 use App\Models\TipoHorario;
+use App\Services\Horarios\CuadroEvaluacion;
 use App\Services\Horarios\HorarioEliminador;
 use App\Services\Horarios\HorarioExportador;
 use App\Services\Horarios\ImportadorZipHorario;
@@ -732,5 +735,169 @@ class PruebasTest extends TestCase
             $this->mates
         );
         $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+    }
+
+    /** Otro alumno de Matemáticas. */
+    private function alumno(string $nombre, string $apellido1, int $estado = AsignaturaAlumno::ESTADO_ACTIVO): AsignaturaAlumno
+    {
+        $alumno = Alumno::create(['horario_id' => $this->horario->id, 'nombre' => $nombre, 'apellido1' => $apellido1, 'apellido2' => 'Ruiz', 'fecha_nacimiento' => '2010-01-01']);
+
+        return AsignaturaAlumno::create(['asignatura_id' => $this->mates->id, 'alumno_id' => $alumno->id, 'grupo' => 'A', 'estado_id' => $estado]);
+    }
+
+    public function test_la_evaluacion_es_la_media_segun_el_peso_y_se_retoca(): void
+    {
+        $this->prueba('Tema 1', $this->primera, '2026-10-10');
+        $this->prueba('Tema 2', $this->primera, '2026-10-20');
+        [$tema1, $tema2] = [Prueba::where('nombre', 'Tema 1')->firstOrFail(), Prueba::where('nombre', 'Tema 2')->firstOrFail()];
+        $ana = $this->apunte;
+        $bea = $this->alumno('Bea', 'Álvarez');
+        $carlos = $this->alumno('Carlos', 'Zamora', AsignaturaAlumno::ESTADO_BAJA);
+        $this->nota($tema1, 6, $ana);
+        $this->nota($tema1, 8, $bea);
+        $this->nota($tema2, 9, $bea);
+        $this->nota($tema1, 2, $carlos);
+
+        // La opción del menú solo sale con una evaluación elegida en el filtro.
+        Livewire::test(Lista::class, ['asignatura' => $this->mates])
+            ->assertSeeHtml('opcion-evaluacion')
+            ->assertSeeHtml(route('asignaturas.pruebas.evaluacion', [$this->mates->id, $this->primera->id]))
+            ->set('filtros.evaluacion_id', '')
+            ->assertDontSeeHtml('opcion-evaluacion');
+
+        // Los pesos suman 80: la media se reparte entre eso, y la prueba sin nota cuenta 0.
+        // Ana: 6 y nada → 3; Bea: 8 y 9 → 8,5; Carlos, de baja: 2 y nada → 1.
+        $pantalla = Livewire::test(NotasEvaluacion::class, ['asignatura' => $this->mates, 'evaluacion' => $this->primera])
+            ->assertSeeHtml('aviso-suma-pesos')
+            ->assertSeeInOrder(['Álvarez Ruiz, Bea', 'García López, Ana', 'Zamora Ruiz, Carlos'])
+            ->assertSet("finales.{$ana->id}", '3')
+            ->assertSet("finales.{$bea->id}", '8,5')
+            ->assertSet("finales.{$carlos->id}", '1');
+
+        // Las medias de cada columna, sin los de baja ni los que no tienen nota.
+        $cuadro = new CuadroEvaluacion($this->mates, $this->primera);
+        $this->assertSame([$tema1->id => 7.0, $tema2->id => 9.0], $cuadro->medias);
+        $this->assertSame(5.75, $cuadro->mediaCalculada);
+
+        // A mano o con las flechas; la media de la Nota sigue al retoque.
+        $pantalla->set("finales.{$bea->id}", '9')
+            ->call('redondear', $ana->id, 1)
+            ->assertSet("finales.{$ana->id}", '4')
+            ->assertSet("finales.{$bea->id}", '9')
+            ->set("finales.{$ana->id}", '11')
+            ->assertHasErrors(["finales.{$ana->id}"]);
+        $this->assertSame(['media' => 8.5, 'nota' => 9.0], EvaluacionNota::where('asignatura_alumno_id', $bea->id)->firstOrFail()->only(['media', 'nota']));
+        $cuadro = new CuadroEvaluacion($this->mates, $this->primera);
+        $this->assertSame(['calculada' => 3.0, 'final' => 4.0, 'retocada' => true], $cuadro->finales[$ana->id]);
+        $this->assertSame(6.5, $cuadro->mediaFinal);
+        $this->assertSame(5.75, $cuadro->mediaCalculada);
+
+        // Vacía, o bajando hasta la media, vuelve a la media y el retoque desaparece.
+        $pantalla->set("finales.{$ana->id}", '')->assertSet("finales.{$ana->id}", '3');
+        $this->assertFalse(EvaluacionNota::where('asignatura_alumno_id', $ana->id)->exists());
+
+        // Al cambiar una nota cambia la media y el retoque deja de valer.
+        $this->nota($tema2, 10, $bea);
+        $this->assertSame(['calculada' => 9.0, 'final' => 9.0, 'retocada' => false], (new CuadroEvaluacion($this->mates, $this->primera))->finales[$bea->id]);
+
+        // Un alumno de otra asignatura no se toca, aunque la evaluación sea la misma.
+        $lengua = Asignatura::create(['horario_id' => $this->horario->id, 'nombre' => 'Lengua', 'estado_id' => Asignatura::ESTADO_ACTIVO]);
+        $ajeno = AsignaturaAlumno::create(['asignatura_id' => $lengua->id, 'alumno_id' => $ana->alumno_id, 'grupo' => 'A', 'estado_id' => 1]);
+        $pantalla->set("finales.{$ajeno->id}", '5');
+        $this->assertFalse(EvaluacionNota::where('asignatura_alumno_id', $ajeno->id)->exists());
+
+        // Una evaluación de otro horario no vale.
+        $otro = Horario::create(['nombre' => 'Otro', 'tipo_horario_id' => TipoHorario::PROFESOR, 'duracion_sesion_minutos' => 50]);
+        $curso = Curso::create(['horario_id' => $otro->id, 'nombre' => 'X', 'fecha_inicio' => '2026-09-01', 'fecha_fin' => '2027-06-30', 'estado_id' => 1]);
+        $ajena = Evaluacion::create(['curso_id' => $curso->id, 'nombre' => '1ª', 'fecha_inicio' => '2026-09-01', 'fecha_fin' => '2026-12-20', 'estado_id' => 1]);
+        Livewire::test(NotasEvaluacion::class, ['asignatura' => $this->mates, 'evaluacion' => $ajena])->assertStatus(404);
+    }
+
+    public function test_en_la_evaluacion_las_partes_cuentan_por_su_prueba_y_lo_no_entregado_es_0(): void
+    {
+        [$ud1, $teoria, $practica] = $this->ud1ConPartes();
+        $entrega = $this->conPalabras('Entrega', Prueba::CALIFICACION_ENTREGADO, peso: '10');
+        $this->nota($teoria, 6);
+        $this->nota($practica, 8);
+        $id = $this->apunte->id;
+
+        // UD1 (15 %): 6 y 8 → 7,2; la Entrega (10 %) sin entregar es un 0 → 7,2 × 15 / 25 = 4,32.
+        $cuadro = new CuadroEvaluacion($this->mates, $this->primera);
+        $this->assertSame([$teoria->id, $practica->id, $ud1->id, $entrega->id], $cuadro->columnas->pluck('id')->all());
+        $this->assertSame([$teoria->id => 6.0, $practica->id => 8.0, $ud1->id => 7.2, $entrega->id => 0.0], $cuadro->notas[$id]);
+        $this->assertSame(4.32, $cuadro->finales[$id]['calculada']);
+        $this->assertSame(0.0, $cuadro->medias[$entrega->id]);
+
+        Livewire::test(NotasEvaluacion::class, ['asignatura' => $this->mates, 'evaluacion' => $this->primera])
+            ->assertSeeHtml('<span class="font-semibold text-red-600">25 %</span>')
+            ->assertSee('No entregado')
+            ->assertSee('(40 % de UD1)')
+            ->assertSet("finales.{$id}", '4,32');
+
+        // Sin pruebas no hay cuadro.
+        Livewire::test(NotasEvaluacion::class, ['asignatura' => $this->mates, 'evaluacion' => $this->segunda])
+            ->assertSee('Esta evaluación todavía no tiene pruebas.');
+    }
+
+    public function test_el_pdf_lleva_la_nota_de_la_evaluacion_y_las_medias(): void
+    {
+        $this->prueba('Tema 1', $this->primera, '2026-10-10');
+        $this->nota(Prueba::firstOrFail(), 6);
+        EvaluacionNota::create(['evaluacion_id' => $this->primera->id, 'asignatura_alumno_id' => $this->apunte->id, 'media' => 6, 'nota' => 7]);
+
+        $cuadro = new CuadroEvaluacion($this->mates, $this->primera);
+        $html = view('pdf.pruebas-notas', [
+            'cuadro'       => $cuadro,
+            'hojas'        => [['columnas' => $cuadro->columnas->concat(['calculada', 'final']), 'apuntes' => $cuadro->apuntes, 'medias' => true]],
+            'anchoAlumno'  => 76,
+            'anchoColumna' => 16.3,
+        ])->render();
+        $this->assertMatchesRegularExpression('#<td class="nota final">\s*6\s*</td>\s*<td class="nota final">\s*7\s*</td>#', $html);
+        $this->assertMatchesRegularExpression('#<tr class="medias">.*Media.*>6</td>.*>6</td>.*>7</td>\s*</tr>#s', $html);
+        $this->assertStringContainsString('40 %', $html);
+
+        $pdf = app(\App\Http\Controllers\PruebasNotasPdfController::class)(
+            \Illuminate\Http\Request::create('/', 'GET', ['evaluacion_id' => $this->primera->id]),
+            $this->mates
+        );
+        $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+    }
+
+    public function test_las_notas_retocadas_de_la_evaluacion_van_en_el_zip_y_se_borran_con_lo_suyo(): void
+    {
+        Storage::fake('coms');
+        Storage::fake('local');
+
+        $this->prueba('Tema 1', $this->primera, '2026-10-10');
+        $this->nota(Prueba::firstOrFail(), 6);
+        EvaluacionNota::create(['evaluacion_id' => $this->primera->id, 'asignatura_alumno_id' => $this->apunte->id, 'media' => 6, 'nota' => 7]);
+
+        $zip = app(HorarioExportador::class)->exportar($this->horario);
+        Storage::disk('local')->put('tmp/horario.zip', Storage::disk('coms')->get($zip));
+        app(ImportadorZipHorario::class)->importar('tmp/horario.zip');
+
+        $copia = Horario::where('id', '!=', $this->horario->id)->firstOrFail();
+        $retoqueCopia = EvaluacionNota::where('asignatura_alumno_id', '!=', $this->apunte->id)->sole();
+        $this->assertSame($copia->id, $retoqueCopia->evaluacion->curso->horario_id);
+        $this->assertSame($copia->id, $retoqueCopia->apunte->alumno->horario_id);
+        $this->assertSame(7.0, (new CuadroEvaluacion($retoqueCopia->apunte->asignatura, $retoqueCopia->evaluacion))->finales[$retoqueCopia->asignatura_alumno_id]['final']);
+
+        app(HorarioEliminador::class)->eliminar($copia);
+        $this->assertSame(1, EvaluacionNota::count());
+
+        // Sin notas ni pruebas, el retoque que quede ya no vale: no impide borrar al alumno de
+        // baja ni la evaluación, y se va con ellos.
+        PruebaNota::query()->delete();
+        Prueba::query()->delete();
+        EvaluacionNota::create(['evaluacion_id' => $this->segunda->id, 'asignatura_alumno_id' => $this->apunte->id, 'media' => 5, 'nota' => 6]);
+        $otro = $this->alumno('Bea', 'Álvarez', AsignaturaAlumno::ESTADO_BAJA);
+        EvaluacionNota::create(['evaluacion_id' => $this->primera->id, 'asignatura_alumno_id' => $otro->id, 'media' => 5, 'nota' => 6]);
+
+        Livewire::test(\App\Livewire\Alumnos\Lista::class, ['asignatura' => $this->mates])->call('ejecutarEliminarFisico', $otro->id);
+        Livewire::test(EvaluacionesLista::class, ['curso' => $this->curso])->call('ejecutarEliminarFisico', $this->segunda->id);
+
+        $this->assertFalse(AsignaturaAlumno::whereKey($otro->id)->exists());
+        $this->assertFalse(Evaluacion::whereKey($this->segunda->id)->exists());
+        $this->assertSame(1, EvaluacionNota::count());
     }
 }

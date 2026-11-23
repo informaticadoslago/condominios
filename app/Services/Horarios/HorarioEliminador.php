@@ -8,6 +8,7 @@ use App\Models\Asignatura;
 use App\Models\AsignaturaAlumno;
 use App\Models\Curso;
 use App\Models\Evaluacion;
+use App\Models\EvaluacionNota;
 use App\Models\Evento;
 use App\Models\Horario;
 use App\Models\HorarioSesion;
@@ -43,13 +44,14 @@ class HorarioEliminador
 
             HorarioSesion::where('horario_id', $horario->id)->delete();
             Evento::where('horario_id', $horario->id)->delete();
-            // Notas y pruebas, antes que los apuntes, las asignaturas y las evaluaciones a los
-            // que apuntan (todas sus FK son RESTRICT).
+            // Notas y pruebas, y las notas retocadas de las evaluaciones, antes que los apuntes,
+            // las asignaturas y las evaluaciones a los que apuntan (todas sus FK son RESTRICT).
             $pruebas = Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'));
             PruebaNota::whereIn('prueba_id', (clone $pruebas)->select('id'))->delete();
             // Primero las partes: cada una apunta a la prueba que la lleva dentro.
             (clone $pruebas)->whereNotNull('prueba_id')->delete();
             $pruebas->delete();
+            EvaluacionNota::whereIn('asignatura_alumno_id', AsignaturaAlumno::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))->select('id'))->delete();
             AsignaturaAlumno::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))->delete();
             Alumno::where('horario_id', $horario->id)->delete();
             Asignatura::where('horario_id', $horario->id)->delete();

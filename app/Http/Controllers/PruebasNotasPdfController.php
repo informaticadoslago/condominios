@@ -3,26 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asignatura;
-use App\Models\AsignaturaAlumno;
 use App\Models\Evaluacion;
-use App\Models\Prueba;
+use App\Services\Horarios\CuadroEvaluacion;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 
 /**
- * Las notas de una asignatura en una evaluación, en papel: una fila por alumno y una
- * columna por prueba activa, en el orden de impresión de las pruebas, con la nota sobre 10.
- * De una prueba con partes salen primero sus partes y después ella, con la nota final.
+ * Las notas de una asignatura en una evaluación, en papel (ver CuadroEvaluacion): una fila
+ * por alumno y una columna por prueba activa, en el orden de impresión de las pruebas, con
+ * la nota sobre 10. De una prueba con partes salen primero sus partes y después ella, con
+ * la nota final. Al final de cada hoja, la media de la evaluación y su nota, y debajo la
+ * media de cada columna. Es el mismo PDF desde la lista de pruebas y desde la pantalla de la evaluación.
  */
 class PruebasNotasPdfController extends Controller
 {
     /** Alumnos por hoja: con la letra grande del alumno, los que caben en un A4 apaisado. */
     private const ALUMNOS_POR_HOJA = 20;
 
-    /** Pruebas por hoja: las que caben a lo ancho al lado de la columna de alumnos. */
-    private const PRUEBAS_POR_HOJA = 10;
+    /** Columnas de notas por hoja: las que caben a lo ancho al lado de la columna de alumnos. */
+    private const COLUMNAS_POR_HOJA = 10;
+
+    /** De ellas, las de pruebas: las otras dos son la media de la evaluación y su nota, en todas las hojas. */
+    private const PRUEBAS_POR_HOJA = self::COLUMNAS_POR_HOJA - 2;
 
     public function __invoke(Request $request, Asignatura $asignatura): Response
     {
@@ -37,54 +41,31 @@ class PruebasNotasPdfController extends Controller
             404
         );
 
-        $activas = fn ($q) => $q->where('estado_id', Prueba::ESTADO_ACTIVO);
-        $pruebas = Prueba::with(['partes' => $activas])
-            ->where('asignatura_id', $asignatura->id)
-            ->where('evaluacion_id', $evaluacion->id)
-            ->whereNull('prueba_id')
-            ->where('estado_id', Prueba::ESTADO_ACTIVO)
-            ->orderBy('orden')
-            ->orderBy('id')
-            ->get()
-            ->toBase()
-            ->flatMap(fn (Prueba $prueba) => [...$prueba->partes, $prueba])
-            ->values();
+        $cuadro = new CuadroEvaluacion($asignatura, $evaluacion);
 
-        // La nota final de cada prueba con partes, por alumno: [id de la prueba => [id del apunte => nota]].
-        $finales = $pruebas->where('con_partes', true)
-            ->mapWithKeys(fn (Prueba $prueba) => [$prueba->id => array_map(fn ($notas) => $notas['final'], $prueba->notasFinales())])
-            ->all();
-
-        // Los alumnos activos y, además, los de baja que tengan nota en alguna de las pruebas.
-        $delInforme = fn ($q) => $q->whereIn('prueba_id', $pruebas->pluck('id')->all());
-        $apuntes = AsignaturaAlumno::with(['alumno', 'notas' => $delInforme])
-            ->where('asignatura_id', $asignatura->id)
-            ->where(fn ($q) => $q
-                ->where('estado_id', AsignaturaAlumno::ESTADO_ACTIVO)
-                ->orWhereHas('notas', $delInforme))
-            ->get()
-            // Sin acentos, para que «Gándara» vaya antes que «García».
-            ->sortBy(fn (AsignaturaAlumno $a) => Str::lower(Str::ascii("{$a->alumno->apellido1} {$a->alumno->apellido2} {$a->alumno->nombre}")))
-            ->values();
-
-        // Una hoja por cada tanda de alumnos y de pruebas: primero todos los alumnos con las
-        // primeras pruebas y después, si hay más pruebas, otra vez los alumnos con las siguientes.
+        // Una hoja por cada tanda de alumnos y de pruebas (con sus partes delante): primero
+        // todos los alumnos con las primeras pruebas y después, si hay más, otra vez los
+        // alumnos con las siguientes. Cada hoja acaba con la media de la evaluación y su nota,
+        // para que no queden solas en otra hoja, y la última de alumnos lleva la fila de medias.
         $hojas = [];
-        foreach ($pruebas->chunk(self::PRUEBAS_POR_HOJA) as $tandaPruebas) {
-            foreach ($apuntes->chunk(self::ALUMNOS_POR_HOJA) as $tandaApuntes) {
-                $hojas[] = ['pruebas' => $tandaPruebas, 'apuntes' => $tandaApuntes];
+        $tandasApuntes = $cuadro->apuntes->chunk(self::ALUMNOS_POR_HOJA);
+        foreach ($cuadro->columnas->chunk(self::PRUEBAS_POR_HOJA) as $tandaPruebas) {
+            foreach ($tandasApuntes as $i => $tandaApuntes) {
+                $hojas[] = [
+                    'columnas' => $tandaPruebas->concat(['calculada', 'final']),
+                    'apuntes'  => $tandaApuntes,
+                    'medias'   => $i === $tandasApuntes->keys()->last(),
+                ];
             }
         }
 
         $pdf = Pdf::loadView('pdf.pruebas-notas', [
-            'asignatura' => $asignatura,
-            'evaluacion' => $evaluacion,
-            'hojas'      => $hojas,
-            'finales'    => $finales,
+            'cuadro' => $cuadro,
+            'hojas'  => $hojas,
             // En milímetros, sin contar el relleno de las celdas (unos 3 por columna): el A4
             // apaisado deja 277 entre márgenes.
-            'anchoAlumno' => 76,
-            'anchoPrueba' => 163 / self::PRUEBAS_POR_HOJA,
+            'anchoAlumno'  => 76,
+            'anchoColumna' => 163 / self::COLUMNAS_POR_HOJA,
         ])->setPaper('a4', 'landscape');
 
         // Inline: se abre en otra pestaña y de ahí se imprime o se guarda.

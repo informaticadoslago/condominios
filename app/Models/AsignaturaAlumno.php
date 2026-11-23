@@ -44,6 +44,12 @@ class AsignaturaAlumno extends Model
         return $this->hasMany(PruebaNota::class);
     }
 
+    /** Sus notas de evaluación retocadas a mano (ver CuadroEvaluacion). */
+    public function notasEvaluacion()
+    {
+        return $this->hasMany(EvaluacionNota::class);
+    }
+
     /** Título del historial de estados (ver ConHistorialEstadoModal). */
     protected function nombreCompleto(): Attribute
     {
@@ -52,13 +58,16 @@ class AsignaturaAlumno extends Model
 
     /**
      * Borrado físico del apunte, con su historial de estados. Un alumno no se queda sin
-     * ninguna asignatura: si este era su último apunte, se borra también el alumno.
+     * ninguna asignatura: si este era su último apunte, se borra también el alumno. Con
+     * notas no se borra (ver Alumnos\Lista); sin ellas, los retoques de la nota de una
+     * evaluación que queden ya no valen y se van con él.
      */
     public function borrarDefinitivamente(): void
     {
         $alumno = $this->alumno;
 
         $this->historialEstados()->delete();
+        $this->notasEvaluacion()->delete();
         $this->delete();
 
         if ($alumno && ! $alumno->apuntes()->exists()) {

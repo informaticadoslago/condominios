@@ -51,6 +51,21 @@ class Evaluacion extends Model
         return $this->hasMany(Prueba::class);
     }
 
+    /** Las notas de la evaluación retocadas a mano (ver CuadroEvaluacion). */
+    public function notas()
+    {
+        return $this->hasMany(EvaluacionNota::class);
+    }
+
+    protected static function booted(): void
+    {
+        // Una evaluación con pruebas no se borra (ver Evaluaciones\Lista::enUso); sin ellas,
+        // los retoques que queden ya no valen (no hay media de la que partan) y se van con ella.
+        static::deleting(function (self $evaluacion) {
+            $evaluacion->notas()->delete();
+        });
+    }
+
     /** La evaluación activa del curso en la que cae hoy, si la hay. */
     public static function actual(int $cursoId): ?self
     {

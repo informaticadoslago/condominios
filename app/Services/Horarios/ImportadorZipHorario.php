@@ -20,7 +20,7 @@ use ZipArchive;
 class ImportadorZipHorario
 {
     /** De la raíz hacia las hojas: cada tabla puede depender de las anteriores. */
-    private const ORDEN_TABLAS = ['horarios', 'modulos', 'asignaturas', 'jornadas', 'jornada_recreos', 'horario_sesiones', 'alumnos', 'asignatura_alumnos', 'cursos', 'evaluaciones', 'pruebas_evaluables', 'prueba_evaluable_notas'];
+    private const ORDEN_TABLAS = ['horarios', 'modulos', 'asignaturas', 'jornadas', 'jornada_recreos', 'horario_sesiones', 'alumnos', 'asignatura_alumnos', 'cursos', 'evaluaciones', 'pruebas_evaluables', 'prueba_evaluable_notas', 'evaluacion_notas'];
 
     public function importar(string $rutaTemporal, ?string $nombreFichero = null): void
     {
@@ -201,6 +201,11 @@ class ImportadorZipHorario
 
             case 'prueba_evaluable_notas':
                 $this->remapearColumna($datos, 'prueba_id', 'pruebas_evaluables', $mapaIds);
+                $this->remapearColumna($datos, 'asignatura_alumno_id', 'asignatura_alumnos', $mapaIds);
+                break;
+
+            case 'evaluacion_notas':
+                $this->remapearColumna($datos, 'evaluacion_id', 'evaluaciones', $mapaIds);
                 $this->remapearColumna($datos, 'asignatura_alumno_id', 'asignatura_alumnos', $mapaIds);
                 break;
         }

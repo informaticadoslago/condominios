@@ -7,6 +7,7 @@ use App\Models\Asignatura;
 use App\Models\AsignaturaAlumno;
 use App\Models\Curso;
 use App\Models\Evaluacion;
+use App\Models\EvaluacionNota;
 use App\Models\Horario;
 use App\Models\HorarioSesion;
 use App\Models\Jornada;
@@ -21,8 +22,9 @@ use Illuminate\Support\Str;
 /**
  * El equivalente, para Horarios, de ContabilidadExportador: se lleva un horario entero
  * (jornadas y sus recreos, módulos, asignaturas, las sesiones que las asignan a cada día/hueco,
- * los alumnos con sus apuntes en cada asignatura, los cursos con sus evaluaciones, y las pruebas evaluables con sus notas) a un .zip en
- * el disco 'coms'. Horario no tiene FK a Comunidad ni a la contabilidad, así que no hay
+ * los alumnos con sus apuntes en cada asignatura, los cursos con sus evaluaciones, las pruebas
+ * evaluables con sus notas y las notas de evaluación retocadas a mano) a un .zip en el disco
+ * 'coms'. Horario no tiene FK a Comunidad ni a la contabilidad, así que no hay
  * ningún enlace con otro módulo que resolver.
  *
  * No hay ficheros.json: este módulo no guarda adjuntos.
@@ -77,6 +79,9 @@ class HorarioExportador extends ExportadorZip
             'prueba_evaluable_notas' => PruebaNota::whereIn('prueba_id', Prueba::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))->select('id'))
                 ->orderBy('id')
                 ->get(),
+            'evaluacion_notas' => EvaluacionNota::whereIn('asignatura_alumno_id', AsignaturaAlumno::whereIn('asignatura_id', Asignatura::where('horario_id', $horario->id)->select('id'))->select('id'))
+                ->orderBy('id')
+                ->get(),
         ];
     }
 
@@ -119,6 +124,7 @@ class HorarioExportador extends ExportadorZip
         11. `pruebas_evaluables` (referencia `asignaturas` y `evaluaciones`, y en `prueba_id` a otra fila de
             `pruebas_evaluables`: la prueba de la que es parte, que puede venir después en el fichero)
         12. `prueba_evaluable_notas` (referencia `pruebas_evaluables` y `asignatura_alumnos`)
+        13. `evaluacion_notas` (referencia `evaluaciones` y `asignatura_alumnos`)
 
         ## NO incluido en la exportación
 

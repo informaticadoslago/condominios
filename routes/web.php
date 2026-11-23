@@ -69,6 +69,7 @@ use App\Livewire\Cursos\Lista as CursosLista;
 use App\Livewire\Evaluaciones\Lista as EvaluacionesLista;
 use App\Livewire\Pruebas\Lista as PruebasLista;
 use App\Livewire\Pruebas\Notas as PruebasNotas;
+use App\Livewire\Pruebas\NotasEvaluacion as PruebasNotasEvaluacion;
 use App\Livewire\Pruebas\NotasPartes as PruebasNotasPartes;
 use App\Livewire\Modulos\Lista as ModulosLista;
 use App\Livewire\Eventos\Lista as EventosLista;
@@ -146,6 +147,7 @@ Route::middleware([
         // Pruebas evaluables de una asignatura y las notas de cada prueba; igual, solo de profesor.
         Route::get('/asignaturas/{asignatura}/pruebas', PruebasLista::class)->name('asignaturas.pruebas');
         Route::get('/asignaturas/{asignatura}/pruebas/pdf', PruebasNotasPdfController::class)->name('asignaturas.pruebas.pdf');
+        Route::get('/asignaturas/{asignatura}/pruebas/evaluacion/{evaluacion}', PruebasNotasEvaluacion::class)->name('asignaturas.pruebas.evaluacion');
         Route::get('/asignaturas/{asignatura}/pruebas/{prueba}/notas', PruebasNotas::class)->name('asignaturas.pruebas.notas');
         Route::get('/asignaturas/{asignatura}/pruebas/{prueba}/partes', PruebasNotasPartes::class)->name('asignaturas.pruebas.partes');
         // Cursos y sus evaluaciones, solo en horarios de profesor. El nombre de la segunda

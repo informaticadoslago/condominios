@@ -35,6 +35,23 @@
                         onclick="window.open('{{ route('asignaturas.pruebas.pdf', ['asignatura' => $asignatura->id, 'evaluacion_id' => $filtros['evaluacion_id']]) }}', '_blank')">
                         <i class="fa-solid fa-print mr-1"></i>{{ __('Imprimir') }}
                     </x-secondary-button>
+                    {{-- Lo que se hace con toda la evaluación elegida en el filtro. --}}
+                    <span class="ml-1 inline-block align-middle">
+                        <x-dropdown align="right" width="48">
+                            <x-slot name="trigger">
+                                <button type="button" id="btn-menu-evaluacion" title="{{ __('Más opciones') }}"
+                                    class="p-2 rounded-lg text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-800/5 dark:hover:bg-white/10">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                            </x-slot>
+                            <x-slot name="content">
+                                <x-dropdown-link id="opcion-evaluacion" wire:navigate
+                                    href="{{ route('asignaturas.pruebas.evaluacion', [$asignatura->id, $filtros['evaluacion_id']]) }}">
+                                    <i class="fa-solid fa-table-list mr-1"></i>{{ __('Evaluación') }}
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
+                    </span>
                 @endif
             </x-slot>
 
